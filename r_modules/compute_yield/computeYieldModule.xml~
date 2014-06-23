@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Compute Yield</Name>
+	<Description>Performs computation of the yield</Description>
+	<Category>Computation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<!-- <Params> -->
+	<!-- 	<Param xsi:type="Number"> -->
+	<!-- 		<Code>incAmount</Code> -->
+	<!-- 		<Label>Increase amount</Label> -->
+	<!-- 		<Description>Amount to be added to observation values</Description> -->
+	<!-- 		<Compulsory>true</Compulsory> -->
+	<!-- 	</Param> -->
+	<!-- </Params> -->
+	<Datasets>
+		<MainDataset>
+			<Code>agriculture</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+

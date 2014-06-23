@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>LGT Outliers</Name>
+	<Description>Longitudinal validation of agricultural production data</Description>
+	<Category>Validation</Category>
+	<Authors>
+		<Author>
+			<Name>Onno Hoffmeister</Name>
+			<Mail>Onno.Hoffmeister@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Params>
+		<!--
+		<Param xsi:type="Number">
+			<Code>Tolerance</Code>
+			<Label>Tolerance level</Label>
+			<Description>Tolerance level. Should be an integer from 1 to 5</Description>
+			<Compulsory>true</Compulsory>
+			<Min>1</Min>
+			<Max>5</Max>
+		</Param>
+		-->
+		<Param xsi:type="List">
+			<Code>AllData</Code>
+			<Label>All Data</Label>
+			<Description>Is a parameter that specifies which type of data to be
+			considered for the baseline time-series. TRUE: data from all types
+			to be considered; FALSE: only official and semi-official data to
+			be considered.
+			</Description>
+			<Compulsory>false</Compulsory>
+			<Options>
+				<Option>
+					<Label>TRUE</Label>
+					<Value>true</Value>
+				</Option>
+				<Option>
+					<Label>FALSE</Label>
+					<Value>false</Value>
+				</Option>
+			</Options>
+		</Param>
+	</Params>
+	<Datasets>
+		<MainDataset>
+			<Code>agriculture</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
