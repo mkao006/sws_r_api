@@ -6,7 +6,7 @@
 	<Category>Computation</Category>
 	<Authors>
 		<Author>
-			<Name>Michael C. J. Kao</Name>
+			<Name>Michael. C. J. Kao</Name>
 			<Mail>michael.kao@fao.org</Mail>
 		</Author>
 	</Authors>
@@ -14,10 +14,9 @@
 		<MainDataset>
 			<Code>agriculture</Code>
 			<SelectableDimensions>
-				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
 				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
 	</Datasets>

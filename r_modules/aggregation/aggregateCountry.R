@@ -4,7 +4,7 @@ require("faosws")
 ## Set up for the test environment
 if(Sys.getenv("USERNAME") == "kao"){
     GetTestEnvironment(baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-                       token = "6d98803b-e623-43dc-b137-4130f0dc140c")
+                       token = "")
 }
 
 ## Pivot to vectorize yield computation

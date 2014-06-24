@@ -6,14 +6,16 @@
 ## NOTE (Michael): Need to find a way of handling formulas.
 
 ## load the library
-require("faosws")
-library(data.table)
+library(faosws)
+source("computeYield.R")
+source("computeYieldFlagObservationStatus.R")
+source("flag2weight.R")
+source("weight2flag.R")
 
 ## Set up for the test environment
-if(Sys.getenv("USERNAME") == "kao"){
-    GetTestEnvironment(baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-                       token = "6d98803b-e623-43dc-b137-4130f0dc140c")
-}
+GetTestEnvironment(baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+                   token = "d8756927-3c5c-45c3-b09d-60cb0651d8dd")
+
 
 ## Pivot to vectorize yield computation
 newPivot = c(
@@ -33,46 +35,27 @@ query = GetData(
 
 
 
-## Function for computing the yield
-computeYield = function(production, areaHarvested){
-    ifelse(production == 0 | areaHarvested == 0, NA, production/areaHarvested)
-}
-
-## Compute the yield
-query[, Value_measuredElement_5421 :=
-      as.numeric(computeYield(Value_measuredElement_5510,
-                              Value_measuredElement_5312))]
-
 ## Temporary flag table
 flagTable.dt =
     data.table(flagObservationStatus = c("", "T", "E", "I", "M"),
-               weights = c(1, 0.8, 0.75, 0.5, 0))
+               flagObservationWeights = c(1, 0.8, 0.75, 0.5, 0))
 
-## Obtain the weight of production and area harvested from the flag
-query[, flagObservationStatusWeight_measuredElement_5510 :=
-      flagTable.dt$weights[match(flagObservationStatus_measuredElement_5510,
-                                 flagTable.dt$flagObservationStatus)]]
+## Compute the yield
+query[, Value_measuredElement_5421 :=
+      computeYield(Value_measuredElement_5510,
+                   Value_measuredElement_5312)]
 
-query[, flagObservationStatusWeight_measuredElement_5312 :=
-      flagTable.dt$weights[match(flagObservationStatus_measuredElement_5312,
-                                 flagTable.dt$flagObservationStatus)]]
+## Compute observation flags for yield
+query[,
+      flagObservationStatus_measuredElement_5421 :=
+      computeYieldFlagObservationStatus(flagObservationStatus_measuredElement_5510, flagObservationStatus_measuredElement_5312, flagTable.dt)]
 
-## Calculate flag for yield
-query[, flagObservationStatusWeight_measuredElement_5421 :=
-      pmin(flagObservationStatusWeight_measuredElement_5510,
-           flagObservationStatusWeight_measuredElement_5312)]
-query[, flagObservationStatus_measuredElement_5421 :=
-      as.character(ifelse(is.na(Value_measuredElement_5421), NA,
-                          flagTable.dt$flagObservationStatus[match(flagObservationStatusWeight_measuredElement_5421, flagTable.dt$weights)]))]
-
+## Compute the method flag for yield
 query[, flagMethod_measuredElement_5421 :=
       as.character(ifelse(is.na(Value_measuredElement_5421), NA, "i"))]
 
 ## Add the newly computed key back to the dimension
 addKey(swsContext.datasets[[1]]@dimensions[["measuredElement"]]) = "5421"
-
-## ## Create column for comments as required in the API documentation
-## query[, comment := "yield computed based on production and area harvested"]
 
 ## write back to the data
 SaveData(domain = "agriculture", dataset = "agriculture", data = query,
