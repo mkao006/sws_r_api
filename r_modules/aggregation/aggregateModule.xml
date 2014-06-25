@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Aggregation</Name>
+	<Description>Perform aggregation for item or area mapping.</Description>
+	<Category>Computation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Params>
+		<Param xsi:type="List">
+			<Code>aggregationType</Code>
+			<Label>type</Label>
+			<Description>Aggregation by item or area</Description>
+			<Compulsory>true</Compulsory>
+			<Options>
+				<Option>
+					<Label>aggregate by item</Label>
+					<Value>measuredItemCPC</Value>
+				</Option>
+				<Option>
+					<Label>aggregate by area</Label>
+					<Value>geographicAreaM49</Value>
+				</Option>
+			</Options>
+		</Param>
+		<Param xsi:type="String">
+			<Code>aggregationCode</Code>
+			<Label>Root Code</Label>
+			<Description>The root code of the item or area tree</Description>
+			<Compulsory>true</Compulsory>
+		</Param>
+	</Params>
+	<Datasets>
+		<MainDataset>
+			<Code>agriculture</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
