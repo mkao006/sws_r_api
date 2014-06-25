@@ -12,21 +12,27 @@
 ## TODO (Michael): Obtain the right flag table for aggregation.
 
 
-## load parameter, type can be area, item. These are examples.
-aggregationType = "geographicAreaM49"
-aggregationCode = "1061"
-## aggregationType = "measuredItemCPC"
-## aggregationCode = "011"
-
-
 
 ## load the library
 require("faosws")
 library(data.table)
 
 ## Set up for the test environment
-GetTestEnvironment(baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-                   token = "b82cc155-44d4-4988-9c77-47f31cbf4908")
+if(Sys.getenv("USER") == "mk"){
+    GetTestEnvironment(
+        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        token = "2a4d62c3-e776-4854-a013-0a4cdb5d7541"
+        )
+}
+
+
+## load parameter, type can be area, item. These are examples.
+## aggregationType = "geographicAreaM49"
+## aggregationCode = "1061"
+## aggregationType = "measuredItemCPC"
+## aggregationCode = "011"
+aggregationType = swsContext.computationParams$aggregationType
+aggregationCode = swsContext.computationParams$aggregationCode
 
 
 ## Function to convert tree to table
@@ -70,7 +76,7 @@ switch(aggregationType,
                    )
                )
        },
-       "geographicsAreaM49" = {
+       "geographicAreaM49" = {
            newKey = DatasetKey(
                domain = slot(swsContext.datasets[[1]], "domain"),
                dataset = slot(swsContext.datasets[[1]], "dataset"),
@@ -120,5 +126,13 @@ switch(aggregationType,
        )
 
 aggregatedQuery =
-    keyedQuery[, list(Value = sum(Value)), by = aggregateIndex]
+    keyedQuery[, list(Value = sum(Value, na.rm = TRUE)),
+               by = aggregateIndex]
 setnames(aggregatedQuery, "parent", aggregationType)
+
+## Save the data back
+SaveData(domain = slot(swsContext.datasets[[1]], "domain"),
+         dataset = slot(swsContext.datasets[[1]], "dataset"),
+         data = aggregatedQuery, normalized = TRUE)
+
+
