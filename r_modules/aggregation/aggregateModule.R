@@ -125,8 +125,13 @@ switch(aggregationType,
        }
        )
 
+## standard sum
+standardSum = function(x){
+    sum(x, na.rm = !all(is.na(x)))
+}
+
 aggregatedQuery =
-    keyedQuery[, list(Value = sum(Value, na.rm = TRUE)),
+    keyedQuery[, list(Value = standardSum(Value)),
                by = aggregateIndex]
 setnames(aggregatedQuery, "parent", aggregationType)
 
@@ -134,5 +139,3 @@ setnames(aggregatedQuery, "parent", aggregationType)
 SaveData(domain = slot(swsContext.datasets[[1]], "domain"),
          dataset = slot(swsContext.datasets[[1]], "dataset"),
          data = aggregatedQuery, normalized = TRUE)
-
-
