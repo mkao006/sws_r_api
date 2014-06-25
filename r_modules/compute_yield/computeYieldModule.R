@@ -13,8 +13,8 @@ source("flag2weight.R")
 source("weight2flag.R")
 
 ## Set up for the test environment
-GetTestEnvironment(baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-                   token = "d8756927-3c5c-45c3-b09d-60cb0651d8dd")
+## GetTestEnvironment(baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+##                    token = "d8756927-3c5c-45c3-b09d-60cb0651d8dd")
 
 
 ## Pivot to vectorize yield computation
@@ -24,6 +24,9 @@ newPivot = c(
     Pivoting(code = "timePointYears", ascending = FALSE),
     Pivoting(code= "measuredElement", ascending = TRUE)
     )
+
+## NOTE (Michael): Check what is the accessor function for the
+##                 dimensions
 
 ## Query the data
 query = GetData(
@@ -35,7 +38,8 @@ query = GetData(
 
 
 
-## Temporary flag table
+## Temporary flag table for weighting the information content of
+## different flags.
 flagTable.dt =
     data.table(flagObservationStatus = c("", "T", "E", "I", "M"),
                flagObservationWeights = c(1, 0.8, 0.75, 0.5, 0))
@@ -46,11 +50,12 @@ query[, Value_measuredElement_5421 :=
                    Value_measuredElement_5312)]
 
 ## Compute observation flags for yield
-query[,
-      flagObservationStatus_measuredElement_5421 :=
-      computeYieldFlagObservationStatus(flagObservationStatus_measuredElement_5510, flagObservationStatus_measuredElement_5312, flagTable.dt)]
+query[, flagObservationStatus_measuredElement_5421 :=
+      computeYieldFlagObservationStatus(flagObservationStatus_measuredElement_5510,
+                                        flagObservationStatus_measuredElement_5312,
+                                        flagTable.dt)]
 
-## Compute the method flag for yield
+## Compute the method flags for yield
 query[, flagMethod_measuredElement_5421 :=
       as.character(ifelse(is.na(Value_measuredElement_5421), NA, "i"))]
 
