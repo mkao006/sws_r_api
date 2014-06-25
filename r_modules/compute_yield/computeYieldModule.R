@@ -7,10 +7,12 @@
 
 ## load the library
 library(faosws)
-source("computeYield.R")
-source("computeYieldFlagObservationStatus.R")
-source("flag2weight.R")
-source("weight2flag.R")
+library(faosws_flag)
+library(faosws_extra)
+## source("computeYield.R")
+## source("computeYieldFlagObservationStatus.R")
+## source("flag2weight.R")
+## source("weight2flag.R")
 
 ## Set up for the test environment
 ## GetTestEnvironment(baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
@@ -46,7 +48,7 @@ flagTable.dt =
 
 ## Compute the yield
 query[, Value_measuredElement_5421 :=
-      computeYield(Value_measuredElement_5510,
+      computeRatio(Value_measuredElement_5510,
                    Value_measuredElement_5312)]
 
 ## Compute observation flags for yield
