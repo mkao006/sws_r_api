@@ -14,7 +14,7 @@ information weights.
 -------------------------------------------
 flagObservationStatus|flagObservationWeight
 ---------------------|---------------------
-<blank> |1
+\<blank\> |1
 T|0.8
 E|0.75
 I|0.5
