@@ -11,6 +11,7 @@ the original sources.
 The following table shows the current observational flags and
 information weights.
 
+-------------------------------------------
 flagObservationStatus|flagObservationWeight
 ---------------------|---------------------
  |1
