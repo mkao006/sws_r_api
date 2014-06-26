@@ -1,4 +1,4 @@
-# FAOSWS *flag* package
+# FAOSWS Flag package
 
 This is an add-on to the faosws package to support the manipulation
 and the aggregation of flags.
@@ -14,7 +14,7 @@ information weights.
 -------------------------------------------
 flagObservationStatus|flagObservationWeight
 ---------------------|---------------------
- |1
+<blank> |1
 T|0.8
 E|0.75
 I|0.5
