@@ -13,7 +13,7 @@ information weights.
 
 -------------------------------------------------------
 flagObservationStatus|flagObservationWeight|description
----------------------|---------------------------------
+---------------------|---------------------|-----------
 \<blank\> |1|Official figure
 T|0.8|Unofficial figure
 E|0.75|Estimate
