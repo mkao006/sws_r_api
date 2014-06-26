@@ -1,29 +1,18 @@
-library(reshape2)
-library(earth)
-library(forecast)
-library(FAOSTAT)
-library(lattice)
-library(lme4)
+library(faosws)
+## library(faoswsExtra)
+library(faoswsFlag)
+library(faoswsProductionImputation)
 library(data.table)
-library(splines)
-source("~/Github/sws_imputation/support_functions/ensembleImpute.R")
-source("~/Github/sws_imputation/support_functions/naiveImputation.R")
-source("~/Github/sws_imputation/support_functions/containInfo.R")
-source("~/Github/sws_imputation/support_functions/imputeYield.R")
-source("~/Github/sws_imputation/support_functions/imputeProduction.R")
-source("~/Github/sws_r_api/r_modules/compute_yield/flag2weight.R")
-source("~/Github/sws_r_api/r_modules/compute_yield/weight2flag.R")
-source("~/Github/sws_r_api/r_modules/compute_yield/computeYield.R")
+
+source("~/Github/sws_r_api/faoswsExtra/codes/computeRatio.R")
 
 ## load the library
-require("faosws")
-library(data.table)
 
 ## Set up for the test environment
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "003c2e91-18ce-4302-a6ca-65bae0fce97c"
+        token = "aed9f0da-e943-4287-9da1-b075b28eaa51"
         )
 }
 
@@ -34,7 +23,8 @@ if(Sys.getenv("USER") == "mk"){
 allCountryCode =
     slot(
         slot(swsContext.datasets[[1]], "dimensions")$geographicAreaM49,
-        "keys")
+        "keys"
+        )
 
 ## Create hte new expanded keys
 newKey = DatasetKey(
@@ -99,19 +89,36 @@ query[, eval(parse(text = paste0(gsub("flag", "weight", areaHarvestedFlagObserva
 
 query[, eval(parse(text = paste0(gsub("flag", "weight", yieldFlagObservation), " := pmin(", gsub("flag", "weight", productionFlagObservation), ", ", gsub("flag", "weight", areaHarvestedFlagObservation), ")")))]
 
-## Build the yield formula
-yieldFormula = formula(paste0(yieldVar, " ~ ", "timePointYears", "|",
-    "geographicAreaM49", ":", "measuredItemCPC"))
+query[, Value_measuredElement_5421 :=
+      computeRatio(Value_measuredElement_5510,
+                   Value_measuredElement_5312)]
+query[, timePointYears := as.numeric(timePointYears)]
+
+
 
 ## Create the indexing
-index = c("geographicAreaM49", "measuredItemCPC")
+index = c("geographicAreaM49")
 
-## Impute yield
+## Build the yield formula
+yieldFormula = formula(paste0(yieldVar, " ~ ", "timePointYears", "|",
+    "geographicAreaM49"))
+
+## Impute Yield
 queryYieldImputed =
     imputeYield(formula = yieldFormula, data = query,
-                weights = parse(text = paste0(gsub("flag", "weight",
-                                    yieldFlagObservation))),
                 index = index)
+
+## queryYieldImputed =
+##     imputeYield(formula = yieldFormula, data = query,
+##                 weights = eval(as.name(gsub("flag", "weight",
+##                     yieldFlagObservation))),
+##                 index = index)
+
+
+
+
+
+
 
 ## calculate production if area harvested and yield both exist
 queryYieldImputed[, eval(parse(text = paste0(productionVar, " := ",
