@@ -14,8 +14,8 @@ package.skeleton("faoswsFlag", code_files = paste("./codes/",
 
 ## build the flag table data
 dir.create("faoswsFlag/data")
-save(read.csv(file = "flag_table.csv", header = TRUE),
-     file = "data/flag_table.Rdata")
+flagTable = read.csv(file = "flag_table.csv", header = TRUE)
+save(flagTable, file = "faoswsFlag/data/flag_table.Rdata")
 
 ## Include the DESCRIPTION file
 file.copy(from = "./DESCRIPTION", to = "faoswsFlag/",
