@@ -3,6 +3,17 @@
 This is an add-on to the faosws package to support the manipulation
 and the aggregation of flags.
 
+## Installation
+
+The package can be installed by running the following command.
+
+```r
+library(devtools)
+install_github(repo = "sws_r_api", username = "mkao006", 
+               subdir = "faoswsFlag/faoswsFlag")
+```
+
+
 ## Aggregation
 
 The aggregation of observational flags depends on the reliability of
