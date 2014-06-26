@@ -11,15 +11,15 @@ the original sources.
 The following table shows the current observational flags and
 information weights.
 
--------------------------------------------
-flagObservationStatus|flagObservationWeight
----------------------|---------------------
-\<blank\> |1
-T|0.8
-E|0.75
-I|0.5
-M|0
--------------------------------------------
+-------------------------------------------------------
+flagObservationStatus|flagObservationWeight|description
+---------------------|---------------------------------
+\<blank\> |1|Official figure
+T|0.8|Unofficial figure
+E|0.75|Estimate
+I|0.5|Imputed
+M|0|Missing
+-------------------------------------------------------
 
 The aggregation is done by taking the lowest weight to reflect the
 reliability of the source.
