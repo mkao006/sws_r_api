@@ -1,14 +1,15 @@
 ########################################################################
 ## Title: Temporary script for computing yield
 ## Date:2014-04-25
+## Author: Michael. C. J. Kao
 ########################################################################
 
 ## NOTE (Michael): Need to find a way of handling formulas.
 
 ## load the library
 library(faosws)
-library(faosws_flag)
-library(faosws_extra)
+library(faoswsFlag)
+library(faoswsExtra)
 
 ## Set up for the test environment
 if(Sys.getenv("USER") == "mk"){
@@ -27,9 +28,6 @@ newPivot = c(
     Pivoting(code= "measuredElement", ascending = TRUE)
     )
 
-## NOTE (Michael): Check what is the accessor function for the
-##                 dimensions
-
 ## Query the data
 query = GetData(
     key = swsContext.datasets[[1]],
@@ -46,11 +44,11 @@ query[, Value_measuredElement_5421 :=
 
 ## Compute observation flags for yield
 query[, flagObservationStatus_measuredElement_5421 :=
-      computeYieldFlagObservationStatus(flagObservationStatus_measuredElement_5510,
-                                        flagObservationStatus_measuredElement_5312,
-                                        flagTable.dt)]
+      aggregateObservationStatusFlag(flagObservationStatus_measuredElement_5510,
+                                     flagObservationStatus_measuredElement_5312,
+                                     flagTable.dt)]
 
-## Compute the method flags for yield
+## Append the method flags for yield
 query[, flagMethod_measuredElement_5421 :=
       as.character(ifelse(is.na(Value_measuredElement_5421), NA, "i"))]
 
