@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Production Imputation</Name>
+	<Description>Perform imputation on production, area harvested and yield on the selected set of data.</Description>
+	<Category>Imputation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Datasets>
+		<MainDataset>
+			<Code>agriculture</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
