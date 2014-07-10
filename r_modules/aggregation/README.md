@@ -12,7 +12,7 @@ by running the following command.
 library(devtools)
 install_github(repo = "sws_r_api", 
 	       username = "mkao006", 
-	       subdir = "faoswsFlag/faoswsFlag")
+	       subdir = "faoswsExtra/faoswsExtra")
 ```
 
 ### Note
