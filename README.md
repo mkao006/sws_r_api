@@ -7,9 +7,9 @@ working system.
 ### Packages
 
 There are currently 2 add-ons. The first is `faoswsExtra`, which
-contains function which helps to facilitate basic data
-manipulation. While the second package `faoswsFlag` is designed to
-handle the aggregation and the transformation of flags.
+contains function which helps to facilitate basic data manipulation
+such as computing ratios. While the second package `faoswsFlag` is
+designed to handle the aggregation and the transformation of flags.
 
 ### Computation Module
 
