@@ -9,7 +9,9 @@
 ##' @export
 ##' 
 
-flag2weight = function(flagObservationStatus, flagTable){
+flag2weight = function(flagObservationStatus,
+                       flagTable = faoswsFlagTable){
+    
     index = match(flagObservationStatus, flagTable$flagObservationStatus)
     as.numeric(flagTable$flagObservationWeights[index])
 }

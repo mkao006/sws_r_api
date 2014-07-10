@@ -9,6 +9,7 @@
 ##' @export
 ##'
 ##' 
+
 computeRatio = function(numerator, denominator){
     as.numeric(ifelse(numerator == 0 | denominator == 0, NA,
                       numerator/denominator))
