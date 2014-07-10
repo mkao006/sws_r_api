@@ -44,9 +44,9 @@ query[, Value_measuredElement_5421 :=
 
 ## Compute observation flags for yield
 query[, flagObservationStatus_measuredElement_5421 :=
-      aggregateObservationStatusFlag(flagObservationStatus_measuredElement_5510,
-                                     flagObservationStatus_measuredElement_5312,
-                                     flagTable.dt)]
+      aggregateObservationFlag(flagObservationStatus_measuredElement_5510,
+                               flagObservationStatus_measuredElement_5312,
+                               faoswsFlagTable)]
 
 ## Append the method flags for yield
 query[, flagMethod_measuredElement_5421 :=
