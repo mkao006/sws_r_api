@@ -1,4 +1,4 @@
-# Computation Module for yield calculation
+# Computation Module for Yield Calculation
 
 This is the module for computing the yield based on production and
 area harvested.
