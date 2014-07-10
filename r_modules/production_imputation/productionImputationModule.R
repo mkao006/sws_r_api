@@ -59,47 +59,18 @@ query = GetData(
     pivoting = newPivot
 )
 
-
-## Assign names to variable
-productionVar = "Value_measuredElement_5510"
-areaHarvestedVar = "Value_measuredElement_5312"
-yieldVar = "Value_measuredElement_5421"
-
-productionFlagObservation =
-    "flagObservationStatus_measuredElement_5510"
-areaHarvestedFlagObservation =
-    "flagObservationStatus_measuredElement_5312"
-yieldFlagObservation =
-    "flagObservationStatus_measuredElement_5421"
-
-
-productionWeightObservation =
-    "weightObservationStatus_measuredElement_5510"
-areaHarvestedWeightObservation =
-    "weightObservationStatus_measuredElement_5312"
-yieldWeightObservation =
-    "weightObservationStatus_measuredElement_5421"
-
-productionFlagMethod = "flagMethod_measuredElement_5510"
-areaHarvestedFlagMethod = "flagMethod_measuredElement_5312"
-yieldFlagMethod = "flagMethod_measuredElement_5421"
-
-
-## Create weights
-query[, eval(parse(text = paste0(productionWeightObservation,
-                       " := flag2weight(", productionFlagObservation,
-                       ",flagTable = flagTable)")))]
-query[, eval(parse(text = paste0(areaHarvestedWeightObservation,
-                       " := flag2weight(", areaHarvestedFlagObservation,
-                       ",flagTable = flagTable)")))]
-query[, eval(parse(text = paste0(yieldWeightObservation,
-                       " := pmin(", productionWeightObservation,
-                       ", ", areaHarvestedWeightObservation, ")")))]
-
-## Compute yield
+## NOTE (Michael): The yield should have been calculated a priori to
+##                 the imputation modeul.
 query[, Value_measuredElement_5421 :=
       computeRatio(Value_measuredElement_5510,
                    Value_measuredElement_5312)]
+query[, flagObservationStatus_measuredElement_5421 :=
+      aggregateObservationFlag(
+          flagObservationStatus_measuredElement_5312,
+          flagObservationStatus_measuredElement_5510
+          )]
+query[, flagMethod_measuredElement_5421 := NULL]
+query[, flagMethod_measuredElement_5421 := "c"]
 
 ## Convert time to numeric
 query[, timePointYears := as.numeric(timePointYears)]
@@ -108,26 +79,26 @@ query[, timePointYears := as.numeric(timePointYears)]
 index = c("geographicAreaM49")
 
 ## Build the yield formula
-yieldFormula = formula(paste0(yieldVar, " ~ ", "timePointYears", "|",
-    "geographicAreaM49"))
+yieldFormula = Value_measuredElement_5421 ~ -1 +
+    (1 + timePointYears|geographicAreaM49)
 
-## Impute Yield
-queryYieldImputed =
-    imputeYield(formula = yieldFormula, data = query,
-                weights =
-                unlist(query[, yieldWeightObservation, with = FALSE]),
-                index = index)
+## Impute the data
+imputed = imputeProductionDomain(data = query,
+    productionVar = "Value_measuredElement_5510",
+    areaHarvestedVar = "Value_measuredElement_5312",
+    yieldVar = "Value_measuredElement_5421",
+    productionObservationFlag =
+        "flagObservationStatus_measuredElement_5510",
+    areaHarvestedObservationFlag =
+        "flagObservationStatus_measuredElement_5312",
+    yieldObservationFlag =
+        "flagObservationStatus_measuredElement_5421",
+    index = index, yieldFormula = yieldFormula,
+    flagTable = faoswsFlagTable)
 
-## calculate production if area harvested and yield both exist
-queryYieldImputed[, eval(parse(text = paste0(productionVar, " := ",
-                                   areaHarvestedVar, " * ", yieldVar)))]
 
-## Impute production
-queryProductionImputed =
-    imputeProduction(queryYieldImputed, productionVar, index)
-
-## balance area harvested
-queryAllImputed =
-    queryProductionImputed[, eval(parse(text = paste0(areaHarvestedVar,
-                                            " := ", productionVar,
-                                            "/", yieldVar)))]
+## Save data back
+SaveData(domain = slot(swsContext.datasets[[1]], "domain"),
+         datasets = slot(swsContext.datasets[[1]], "datasets"),
+         data = imputed, normalized = FALSE)
+         
