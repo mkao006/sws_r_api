@@ -3,18 +3,9 @@
 ## Date: 2014-06-25
 ########################################################################
 
-## NOTE (Michael): Need to have some way to obtain the parameter from
-##                 the SWS working system.
-##
-## NOTE (Michael): The tree structure is different in geographic area
-##                 and item.
-##
-## TODO (Michael): Obtain the right flag table for aggregation.
-
-
-
 ## load the library
 require("faosws")
+library(faoswsExtra)
 library(data.table)
 
 ## Set up for the test environment
@@ -35,14 +26,6 @@ aggregationType = swsContext.computationParams$aggregationType
 aggregationCode = swsContext.computationParams$aggregationCode
 
 
-## Function to convert tree to table
-tree2table = function(tree){
-    children = strsplit(tree[, children], ", ")
-    data.table(parent = rep(tree[, parent], sapply(children, length)),
-               children = unlist(children))
-}
-
-
 ## CHECK (Michael): There are duplicate key in geographic key tree.
 keyTree =
     unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
@@ -52,8 +35,12 @@ keyTree =
            )
 
 ## Convert the code tree to code table
-keyTable = tree2table(keyTree)
+keyTable = adjacent2edge(keyTree)
 setnames(x = keyTable, old = "children", new = aggregationType)
+
+## This is a hack to collapse the graph
+if(aggregationType == "measuredItemCPC")
+    keyTable[, parent := substr(parent, 1, 3)]
 
 ## Set up the new key
 switch(aggregationType,
@@ -110,6 +97,7 @@ query = GetData(
 keyedQuery =
     merge(query, keyTable, by = aggregationType, all.x = TRUE,
           allow.cartesian = TRUE)
+setkeyv(x = keyedQuery, cols = aggregationType)
 
 ## Aggregate the data
 switch(aggregationType,
@@ -125,13 +113,9 @@ switch(aggregationType,
        }
        )
 
-## standard sum
-standardSum = function(x){
-    sum(x, na.rm = !all(is.na(x)))
-}
-
+## Compute the aggregation
 aggregatedQuery =
-    keyedQuery[, list(Value = standardSum(Value)),
+    keyedQuery[, list(Value = sumWithNA(Value)),
                by = aggregateIndex]
 setnames(aggregatedQuery, "parent", aggregationType)
 
