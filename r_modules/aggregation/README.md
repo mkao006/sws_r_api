@@ -20,4 +20,12 @@ install_github(repo = "sws_r_api",
 The current implementation requires the user to know the code which
 corresponds to the parent node of the aggregation. For example, to
 aggregate by all economic areas the parameter `aggregationCode` will
-have to be set to 1061.
+have to be set to 1061. A dynamic list will be required from the
+developers to enable the user to choose which aggregation desired.
+
+The graph for the geographic codes only has one layer, while the CPC
+item has multiple layers.
+
+### Check
+
+There are duplicated items from the result of `GetCodeTree`.
