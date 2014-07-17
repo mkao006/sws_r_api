@@ -22,14 +22,9 @@ install_github(repo = "sws_r_api",
 
 ### Definition of yield
 
-The definition of yield is defined by the following equation:
-
-``` mathjax
-\begin{equation}
-  \text{P}_t := \text{A}_t \times \text{Y}_t \quad\quad P_t \ge 0,\, A_t
-  \ge 0,\, Y_t > 0
-\end{equation}
-```
+The yield is defined as the ratio between production and area
+harvested. The production is divided by the area harvested to obtain
+the yield.
 
 Unlike previous implementation, yield is a missing value if both and
 area harvested and production are zero. First of all, division by zero
