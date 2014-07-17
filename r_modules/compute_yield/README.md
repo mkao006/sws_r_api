@@ -25,8 +25,10 @@ install_github(repo = "sws_r_api",
 The definition of yield is defined by the following equation:
 
 ``` mathjax
+\begin{equation}
   \text{P}_t := \text{A}_t \times \text{Y}_t \quad\quad P_t \ge 0,\, A_t
   \ge 0,\, Y_t > 0
+\end{equation}
 ```
 
 Unlike previous implementation, yield is a missing value if both and
