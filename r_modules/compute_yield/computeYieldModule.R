@@ -1,5 +1,5 @@
 ########################################################################
-## Title: Temporary script for computing yield
+## Title: Yield Computation Module for SWS
 ## Date:2014-04-25
 ## Author: Michael. C. J. Kao
 ########################################################################
@@ -53,9 +53,15 @@ getYieldData = function(dataContext){
          prefixTuples = prefixTuples)
 }
 
+## Function to compute yield
+computeRatio = function (numerator, denominator){
+    as.numeric(ifelse(numerator == 0 | denominator == 0, NA, 
+        numerator/denominator))
+}
 
 ## Function to compute the yield data
 computeYieldData = function(data, formulaTuples, prefixTuples){
+    
     for(i in NROW(formulaTuples)){
         ## set the names
         valueNames =
