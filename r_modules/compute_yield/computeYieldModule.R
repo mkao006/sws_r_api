@@ -4,25 +4,33 @@
 ## Author: Michael. C. J. Kao
 ########################################################################
 
+library(data.table)
+library(faosws)
 
 ## Set up for the test environment
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "4ad7bc88-5521-4be1-81e2-a1a5b3b6413f"
+        token = "e0521c0d-c8f9-43c8-8097-087340c02e3d"
         )
 }
 
 
 ## Function for obtaining the data and meta data.
 getYieldData = function(dataContext){
-    ## Setting the tuples, this should be accessed by the API
+    ## Setting the formula triplet, this should be accessed by the API
+    ## formulaTuples =
+    ##     data.table(
+    ##         output = c("5510", "5510", "5510"),
+    ##         input = c("5312", "5320", "5313"),
+    ##         productivity = c("5421", "5417", "5417")
+    ##         )
     formulaTuples =
         data.table(
             output = "5510",
             input = "5312",
             productivity = "5421"
-            )
+            )    
     
     ## setting the prefix, also should be accessed by the API
     prefixTuples =
@@ -56,38 +64,36 @@ getYieldData = function(dataContext){
 ## Function to compute yield
 computeRatio = function (numerator, denominator){
     as.numeric(ifelse(numerator == 0 | denominator == 0, NA, 
-        numerator/denominator))
+                      numerator/denominator))
 }
 
 ## Function to compute the yield data
-computeYieldData = function(data, formulaTuples, prefixTuples){
-    
+computeYieldData = function(data, formulaTuples, prefixTuples){    
     for(i in NROW(formulaTuples)){
         ## set the names
         valueNames =
             as.list(paste0(prefixTuples$valuePrefix, formulaTuples[i]))
+        ## print(valueNames)
         names(valueNames) =
             colnames(formulaTuples)
         flagObsNames =
             as.list(paste0(prefixTuples$flagObsPrefix,formulaTuples[i]))
+        ## print(flagObsNames)
         names(flagObsNames) = colnames(formulaTuples)
         ## Compute Value
-        data[, eval(valueNames$productivity) :=
+        data[, c(valueNames$productivity) :=
              computeRatio(get(valueNames$output),
-                          get(valueNames$input))]             
+                          get(valueNames$input))]
+        
         ## Compute observation flag
-        data[, eval(flagObsNames$productivity) :=
+        data[, c(flagObsNames$productivity) :=
              aggregateObservationFlag(get(flagObsNames$output),
                                       get(flagObsNames$input))]
-        ## Assign method flag
+        ## ## Assign method flag
         data[, eval(paste0(prefixTuples$flagMethod,
                            formulaTuples$productivity[i])) := "i"]
     }
 }
-
-## computeYieldData(data = query, formulaTuples = formulaTuples,
-##                  prefixTuples = prefixTuples)
-
 
 ## Function to save data back
 saveYieldData = function(dataContext, data){
@@ -102,16 +108,18 @@ executeYieldModule = function(){
     require(faoswsFlag)
     require(faoswsExtra)
     compute = try(
-        datasets = getYieldData(swsContext.datasets[[1]])
-        with(datasets,
-             {
-                 computeYieldData(data = query,
-                                  formulaTuples = formulaTuples,
-                                  prefixTuples = prefixTuples)
-                 saveYieldData(dataContext = swsContext.datasets[[1]],
-                               data = query)
-             }
-             )
+        {
+            datasets = getYieldData(swsContext.datasets[[1]])
+            with(datasets,
+                 {
+                     computeYieldData(data = query,
+                                      formulaTuples = formulaTuples,
+                                      prefixTuples = prefixTuples)
+                     saveYieldData(dataContext = swsContext.datasets,
+                                   data = query)
+                 }
+                 )
+        }
         )
     if(inherits(compute, "try-error")){
         print("Yield Module Failed")
