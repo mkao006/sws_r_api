@@ -4,9 +4,11 @@ Title: Package to manipulate and aggregate observational status
 Version: 1.0
 Date: 2014-06-26
 Authors@R: c(person("Micheal. C. J.", "Kao", role = c("aut", "cre"), email = "michael.kao@fao.org"))
-Author: Michael C. J. Kao <michael.kao@fao.org>
-Maintainer: Michael C. J. Kao <michael.kao@fao.org>
+Author: Michael. C. J. Kao <michael.kao@fao.org>
+Maintainer: Michael. C. J. Kao <michael.kao@fao.org>
 Description: This package provides functions to manipulate and aggregate observational status flags.
 License: GPL (>= 3)
 LazyData: yes
 ZipData: no
+VignetteBuilder: knitr	
+Suggests: knitr, ggplot2
