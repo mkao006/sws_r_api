@@ -24,10 +24,19 @@ unlink("./faoswsFlag/Read\\-and\\-delete\\-me")
 
 ## Use roxygen to build the documentation
 roxygenize("faoswsFlag")
-unlink("./faoswsFlag/inst/", recursive = TRUE)
+## unlink("./faoswsFlag/inst/", recursive = TRUE)
+
+## Include vignette
+dir.create("./faoswsFlag/vignettes/")
+dir.create("./faoswsFlag/inst/")
+dir.create("./faoswsFlag/inst/doc/")
+file.copy(from = "./Documentation/faoswsFlag.pdf",
+          to = "./faoswsFlag/inst/doc/", overwrite = TRUE)
+file.copy(from = "./Documentation/faoswsFlag.Rnw",
+          to = "./faoswsFlag/vignettes/", overwrite = TRUE)
 
 ## Build and check the package
 system("R CMD INSTALL --build faoswsFlag")
 system("R CMD build faoswsFlag")
-system("R CMD check --as-cran faoswsFlag")
+## system("R CMD check --as-cran faoswsFlag")
 
