@@ -11,7 +11,7 @@ library(faosws)
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "e0521c0d-c8f9-43c8-8097-087340c02e3d"
+        token = "b17a7676-a130-427c-a96b-2668294784c6"
         )
 }
 
@@ -62,8 +62,10 @@ getYieldData = function(dataContext){
 }
 
 ## Function to compute yield
-computeRatio = function (numerator, denominator){
-    as.numeric(ifelse(numerator == 0 | denominator == 0, NA, 
+
+computeRatio = function(numerator, denominator){
+    as.numeric(ifelse((numerator == 0 & denominator == 0) |
+                      denominator == 0, NA,
                       numerator/denominator))
 }
 
