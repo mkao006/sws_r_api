@@ -25,5 +25,5 @@ unlink("./faoswsExtra/inst/", recursive = TRUE)
 ## Build and check the package
 system("R CMD INSTALL --build faoswsExtra")
 system("R CMD build faoswsExtra")
-system("R CMD check --as-cran faoswsExtra")
+## system("R CMD check --as-cran faoswsExtra")
 
