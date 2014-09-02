@@ -4,101 +4,184 @@ library(faoswsExtra)
 library(faoswsFlag)
 library(faoswsProductionImputation)
 library(data.table)
+library(FAOSTAT)
 
 ## Set up for the test environment
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "bba5e7b2-9aa8-4dac-929f-2ffeab3e3b6d"
+        token = "f9886fc4-7107-455b-ab31-7fa0290481ab"
         )
 }
 
-## Get all country keys
+## Function to get all country keys
 ##
 ## TODO (Michael): Need to get CIO to provide a proper functionality
 ##                 for this.
-allCountryCode =
-    slot(
-        slot(swsContext.datasets[[1]], "dimensions")$geographicAreaM49,
-        "keys"
+## CHECK (Michael): There are duplicate key in geographic key tree.
+getAllCountryCode = function(){
+    keyTree =
+        unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
+                           dataset = swsContext.datasets[[1]]@dataset,
+                           dimension = "geographicAreaM49",
+                           roots = "1062")
+               )
+    allCountryCode =
+        unique(adjacent2edge(keyTree)$children)
+    allCountryCode
+}
+
+getImputationData = function(dataContext){
+    ## Setups
+    formulaTuples =
+        data.table(
+            output = "5510",
+            input = "5312",
+            productivity = "5421"
+            )    
+
+    ## setting the prefix, also should be accessed by the API
+    prefixTuples =
+        data.table(
+            valuePrefix = "Value_measuredElement_",
+            flagObsPrefix = "flagObservationStatus_measuredElement_",
+            flagMethodPrefix = "flagMethod_measuredElement_"
+            )
+    allCountryCode = getAllCountryCode()
+    
+    ## Create the new expanded keys
+    newKey = DatasetKey(
+        domain = slot(swsContext.datasets[[1]], "domain"),
+        dataset = slot(swsContext.datasets[[1]], "dataset"),
+        dimensions = list(
+            Dimension(name = "geographicAreaM49",
+                      keys = allCountryCode),
+            Dimension(name = "measuredElement",
+                      keys = slot(slot(swsContext.datasets[[1]],
+                          "dimensions")$measuredElement, "keys")),
+            Dimension(name = "measuredItemCPC",
+                      keys = slot(slot(swsContext.datasets[[1]],
+                          "dimensions")$measuredItemCPC, "keys")),
+            Dimension(name = "timePointYears",
+                      keys = slot(slot(swsContext.datasets[[1]],
+                          "dimensions")$timePointYears, "keys"))
+            )
         )
 
-## Create the new expanded keys
-newKey = DatasetKey(
-    domain = slot(swsContext.datasets[[1]], "domain"),
-    dataset = slot(swsContext.datasets[[1]], "dataset"),
-    dimensions = list(
-        Dimension(name = "geographicAreaM49",
-                  keys = allCountryCode),
-        Dimension(name = "measuredElement",
-                  keys = slot(slot(swsContext.datasets[[1]],
-                      "dimensions")$measuredElement, "keys")),
-        Dimension(name = "measuredItemCPC",
-                  keys = slot(slot(swsContext.datasets[[1]],
-                      "dimensions")$measuredItemCPC, "keys")),
-        Dimension(name = "timePointYears",
-                  keys = slot(slot(swsContext.datasets[[1]],
-                      "dimensions")$timePointYears, "keys"))
+
+    ## Pivot to vectorize yield computation
+    newPivot = c(
+        Pivoting(code= "geographicAreaM49", ascending = TRUE),
+        Pivoting(code= "measuredItemCPC", ascending = TRUE),
+        Pivoting(code = "timePointYears", ascending = FALSE),
+        Pivoting(code= "measuredElement", ascending = TRUE)
         )
-    )
 
+    ## Query the data
+    query = GetData(
+        ## key = swsContext.datasets[[1]],
+        key = newKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = newPivot
+        )
+    ## Convert time to numeric
+    query[, timePointYears := as.numeric(timePointYears)]
 
-## Pivot to vectorize yield computation
-newPivot = c(
-    Pivoting(code= "geographicAreaM49", ascending = TRUE),
-    Pivoting(code= "measuredItemCPC", ascending = TRUE),
-    Pivoting(code = "timePointYears", ascending = FALSE),
-    Pivoting(code= "measuredElement", ascending = TRUE)
-    )
-
-## Query the data
-query = GetData(
-    key = swsContext.datasets[[1]],
-    flags = TRUE,
-    normalized = FALSE,
-    pivoting = newPivot
-)
-
+    list(query = query,
+         formulaTuples = formulaTuples,
+         prefixTuples = prefixTuples)
+}
+    
 ## NOTE (Michael): The yield should have been calculated a priori to
 ##                 the imputation modeul.
-query[, Value_measuredElement_5421 :=
-      computeRatio(Value_measuredElement_5510,
-                   Value_measuredElement_5312)]
-query[, flagObservationStatus_measuredElement_5421 :=
-      aggregateObservationFlag(
-          flagObservationStatus_measuredElement_5312,
-          flagObservationStatus_measuredElement_5510
-          )]
-query[, flagMethod_measuredElement_5421 := NULL]
-query[, flagMethod_measuredElement_5421 := "c"]
 
-## Convert time to numeric
-query[, timePointYears := as.numeric(timePointYears)]
+## Function to compute the yield data
+computeYieldData = function(data, formulaTuples, prefixTuples,
+    newMethodFlag = "i", flagTable = faoswsFlagTable){
+    computeYield(productionValue =
+                 paste0(prefixTuples$valuePrefix, formulaTuples$output),
+                 productionObservationFlag =
+                 paste0(prefixTuples$flagObsPrefix,
+                        formulaTuples$output),
+                 areaHarvestedValue =
+                 paste0(prefixTuples$valuePrefix, formulaTuples$input),
+                 areaHarvestedObservationFlag =
+                 paste0(prefixTuples$flagObsPrefix, formulaTuples$input),
+                 yieldValue = paste0(prefixTuples$valuePrefix,
+                                     formulaTuples$productivity),
+                 yieldObservationFlag =
+                 paste0(prefixTuples$flagObsPrefix,
+                        formulaTuples$productivity),
+                 yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix,
+                     formulaTuples$productivity),
+                 newMethodFlag = newMethodFlag,
+                 flagTable = flagTable, data = data)
+}    
 
-## Create the indexing
-index = c("geographicAreaM49")
-
-## Build the yield formula
-yieldFormula = Value_measuredElement_5421 ~ -1 +
-    (1 + timePointYears|geographicAreaM49)
-
-## Impute the data
-imputed = imputeProductionDomain(data = query,
-    productionVar = "Value_measuredElement_5510",
-    areaHarvestedVar = "Value_measuredElement_5312",
-    yieldVar = "Value_measuredElement_5421",
-    productionObservationFlag =
-        "flagObservationStatus_measuredElement_5510",
-    areaHarvestedObservationFlag =
-        "flagObservationStatus_measuredElement_5312",
-    yieldObservationFlag =
-        "flagObservationStatus_measuredElement_5421",
-    index = index, yieldFormula = yieldFormula,
-    flagTable = faoswsFlagTable)
+## Function to save data back
+saveImputedData = function(dataContext, data){
+    ## Should only the selected country be saved, or the whole set?
+    SaveData(domain = slot(dataContext[[1]], "domain"),
+             dataset = slot(dataContext[[1]], "dataset"),
+             data = data, normalized = FALSE)
+}
 
 
-## Save data back
-SaveData(domain = slot(swsContext.datasets[[1]], "domain"),
-         datasets = slot(swsContext.datasets[[1]], "datasets"),
-         data = imputed, normalized = FALSE)
-         
+executeImputationModule = function(){
+    library(faoswsProductionImputation)
+    library(faoswsFlag)
+    library(faoswsExtra)
+    ## Maybe we can put the for loop here for the multiple elements.
+    impute = try(
+        {
+            datasets = getImputationData(swsContext.datasets[[1]])
+            with(datasets,
+                 {
+                     computeYieldData(data = query,
+                                      formulaTuples = formulaTuples,
+                                      prefixTuples = prefixTuples,
+                                      newMethodFlag = "i",
+                                      flagTable = faoswsFlagTable)
+                     
+ 
+
+                     imputed =
+                         imputeProductionDomain(data = query,
+                                                productionValue = paste0(prefixTuples$valuePrefix, formulaTuples$output),
+                                                productionObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$output),
+                                                productionMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$output),
+                                                areaHarvestedValue = paste0(prefixTuples$valuePrefix, formulaTuples$input),
+                                                areaHarvestedObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$input),
+                                                areaHarvestedMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$input),
+                                                yieldValue = paste0(prefixTuples$valuePrefix, formulaTuples$productivity),
+                                                yieldObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$productivity),
+                                                yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$productivity),
+                                                yearValue = "timePointYears",
+                                                flagTable = faoswsFlagTable,
+                                                removePriorImputation = TRUE,
+                                                removeConflictValues = TRUE,
+                                                imputedFlag = "E",
+                                                imputationFlag = "I",
+                                                newMethodFlag = "e",
+                                                naFlag = "M",
+                                                maxdf = 5,
+                                                byKey = "geographicAreaM49",
+                                                restrictWeights = TRUE,
+                                                maximumWeights = 0.7)
+                     
+                     saveImputedData(swsContext.datasets, imputed)
+                 }
+                 )
+        }
+        )
+    if(inherits(impute, "try-error")){
+        print("Imputation Module Failed")
+    } else {
+        print("Imputation Module Executed Successfully")
+    }
+}
+
+
+executeImputationModule()
+
