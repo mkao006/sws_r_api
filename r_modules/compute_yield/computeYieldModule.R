@@ -7,11 +7,11 @@
 library(data.table)
 library(faosws)
 
-## Set up for the test environment
+## set up for the test environment
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "b17a7676-a130-427c-a96b-2668294784c6"
+        token = "f9886fc4-7107-455b-ab31-7fa0290481ab"
         )
 }
 
@@ -42,10 +42,10 @@ getYieldData = function(dataContext){
 
     ## Pivot to vectorize yield computation
     newPivot = c(
-        Pivoting(code= "geographicAreaM49", ascending = TRUE),
-        Pivoting(code= "measuredItemCPC", ascending = TRUE),
+        Pivoting(code = "geographicAreaM49", ascending = TRUE),
+        Pivoting(code = "measuredItemCPC", ascending = TRUE),
         Pivoting(code = "timePointYears", ascending = FALSE),
-        Pivoting(code= "measuredElement", ascending = TRUE)
+        Pivoting(code = "measuredElement", ascending = TRUE)
         )
     
     ## Query the data
@@ -61,42 +61,36 @@ getYieldData = function(dataContext){
          prefixTuples = prefixTuples)
 }
 
-## Function to compute yield
 
-computeRatio = function(numerator, denominator){
-    as.numeric(ifelse((numerator == 0 & denominator == 0) |
-                      denominator == 0, NA,
-                      numerator/denominator))
-}
+
+
 
 ## Function to compute the yield data
-computeYieldData = function(data, formulaTuples, prefixTuples){    
-    for(i in NROW(formulaTuples)){
-        ## set the names
-        valueNames =
-            as.list(paste0(prefixTuples$valuePrefix, formulaTuples[i]))
-        ## print(valueNames)
-        names(valueNames) =
-            colnames(formulaTuples)
-        flagObsNames =
-            as.list(paste0(prefixTuples$flagObsPrefix,formulaTuples[i]))
-        ## print(flagObsNames)
-        names(flagObsNames) = colnames(formulaTuples)
-        ## Compute Value
-        data[, c(valueNames$productivity) :=
-             computeRatio(get(valueNames$output),
-                          get(valueNames$input))]
-        
-        ## Compute observation flag
-        data[, c(flagObsNames$productivity) :=
-             aggregateObservationFlag(get(flagObsNames$output),
-                                      get(flagObsNames$input))]
-        ## ## Assign method flag
-        data[, eval(paste0(prefixTuples$flagMethod,
-                           formulaTuples$productivity[i])) := "i"]
-    }
-}
+computeYieldData = function(data, formulaTuples, prefixTuples,
+    newMethodFlag = "i", flagTable = faoswsFlagTable){
+    computeYield(productionValue =
+                 paste0(prefixTuples$valuePrefix, formulaTuples$output),
+                 productionObservationFlag =
+                 paste0(prefixTuples$flagObsPrefix,
+                        formulaTuples$output),
+                 areaHarvestedValue =
+                 paste0(prefixTuples$valuePrefix, formulaTuples$input),
+                 areaHarvestedObservationFlag =
+                 paste0(prefixTuples$flagObsPrefix, formulaTuples$input),
+                 yieldValue = paste0(prefixTuples$valuePrefix,
+                                     formulaTuples$productivity),
+                 yieldObservationFlag =
+                 paste0(prefixTuples$flagObsPrefix,
+                        formulaTuples$productivity),
+                 yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix,
+                     formulaTuples$productivity),
+                 newMethodFlag = newMethodFlag,
+                 flagTable = flagTable, data = data)
+}    
 
+
+
+    
 ## Function to save data back
 saveYieldData = function(dataContext, data){
     SaveData(domain = slot(dataContext[[1]], "domain"),
@@ -109,6 +103,7 @@ saveYieldData = function(dataContext, data){
 executeYieldModule = function(){
     require(faoswsFlag)
     require(faoswsExtra)
+    ## Maybe we can put the for loop here for the multiple elements.
     compute = try(
         {
             datasets = getYieldData(swsContext.datasets[[1]])
@@ -129,6 +124,7 @@ executeYieldModule = function(){
         print("Yield Module Executed Successfully")
     }
 }
+
 
 executeYieldModule()
 
