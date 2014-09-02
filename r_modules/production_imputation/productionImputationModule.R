@@ -93,31 +93,6 @@ getImputationData = function(dataContext){
          prefixTuples = prefixTuples)
 }
     
-## NOTE (Michael): The yield should have been calculated a priori to
-##                 the imputation modeul.
-
-## Function to compute the yield data
-computeYieldData = function(data, formulaTuples, prefixTuples,
-    newMethodFlag = "i", flagTable = faoswsFlagTable){
-    computeYield(productionValue =
-                 paste0(prefixTuples$valuePrefix, formulaTuples$output),
-                 productionObservationFlag =
-                 paste0(prefixTuples$flagObsPrefix,
-                        formulaTuples$output),
-                 areaHarvestedValue =
-                 paste0(prefixTuples$valuePrefix, formulaTuples$input),
-                 areaHarvestedObservationFlag =
-                 paste0(prefixTuples$flagObsPrefix, formulaTuples$input),
-                 yieldValue = paste0(prefixTuples$valuePrefix,
-                                     formulaTuples$productivity),
-                 yieldObservationFlag =
-                 paste0(prefixTuples$flagObsPrefix,
-                        formulaTuples$productivity),
-                 yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix,
-                     formulaTuples$productivity),
-                 newMethodFlag = newMethodFlag,
-                 flagTable = flagTable, data = data)
-}    
 
 ## Function to save data back
 saveImputedData = function(dataContext, data){
@@ -138,25 +113,39 @@ executeImputationModule = function(){
             datasets = getImputationData(swsContext.datasets[[1]])
             with(datasets,
                  {
+                     ## NOTE (Michael): The yield should have been calculated a priori to
+                     ##                 the imputation modeul.
+
+                     ## Recompute the yield
                      computeYieldData(data = query,
                                       formulaTuples = formulaTuples,
                                       prefixTuples = prefixTuples,
                                       newMethodFlag = "i",
                                       flagTable = faoswsFlagTable)
-                     
- 
 
+                     ## Set the names
+                     productionValue = paste0(prefixTuples$valuePrefix, formulaTuples$output)
+                     productionObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$output)
+                     productionMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$output)
+                     areaHarvestedValue = paste0(prefixTuples$valuePrefix, formulaTuples$input)
+                     areaHarvestedObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$input)
+                     areaHarvestedMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$input)
+                     yieldValue = paste0(prefixTuples$valuePrefix, formulaTuples$productivity)
+                     yieldObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$productivity)
+                     yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$productivity)
+
+                     ## Impute the dataset
                      imputed =
                          imputeProductionDomain(data = query,
-                                                productionValue = paste0(prefixTuples$valuePrefix, formulaTuples$output),
-                                                productionObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$output),
-                                                productionMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$output),
-                                                areaHarvestedValue = paste0(prefixTuples$valuePrefix, formulaTuples$input),
-                                                areaHarvestedObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$input),
-                                                areaHarvestedMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$input),
-                                                yieldValue = paste0(prefixTuples$valuePrefix, formulaTuples$productivity),
-                                                yieldObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$productivity),
-                                                yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$productivity),
+                                                productionValue = productionValue,
+                                                productionObservationFlag = productionObservationFlag,
+                                                productionMethodFlag = productionMethodFlag,
+                                                areaHarvestedValue = areaHarvestedValue,
+                                                areaHarvestedObservationFlag = areaHarvestedObservationFlag,
+                                                areaHarvestedMethodFlag = areaHarvestedMethodFlag,
+                                                yieldValue = yieldValue,
+                                                yieldObservationFlag = yieldObservationFlag,
+                                                yieldMethodFlag = yieldMethodFlag,
                                                 yearValue = "timePointYears",
                                                 flagTable = faoswsFlagTable,
                                                 removePriorImputation = TRUE,
@@ -169,7 +158,7 @@ executeImputationModule = function(){
                                                 byKey = "geographicAreaM49",
                                                 restrictWeights = TRUE,
                                                 maximumWeights = 0.7)
-                     
+                     ## Save back
                      saveImputedData(swsContext.datasets, imputed)
                  }
                  )
