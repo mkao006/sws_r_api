@@ -2,5 +2,7 @@
 
 export(adjacent2edge)
 export(computeRatio)
+export(computeYield)
 export(sumWithNA)
 export(toLowerCamel)
+import(data.table)

@@ -9,5 +9,6 @@
 ##' @author Michael. C. J. Kao \email{michael.kao@@fao.org}
 ##' @keywords package
 ##' 
-##'
+##' @import data.table
+##' 
 NULL

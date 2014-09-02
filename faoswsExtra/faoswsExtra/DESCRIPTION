@@ -11,7 +11,8 @@ Maintainer: Michael C. J. Kao <michael.kao@fao.org>
 Description: This package provides extra functionality to the faosws package
     for the manipulation of data.
 Imports:
-    faosws (>= 0.3.0)
+    faosws (>= 0.3.0),
+    data.table (>= 1.9.2)
 License: GPL (>= 3)
 LazyData: yes
 ZipData: no
