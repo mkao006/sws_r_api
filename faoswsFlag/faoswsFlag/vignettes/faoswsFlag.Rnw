@@ -1,4 +1,5 @@
-% \VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{faoswsFlag:A package to manage flag aggregation}
+%\VignetteEngine{knitr::knitr}
 \documentclass[nojss]{jss}
 \usepackage{url}
 \usepackage[sc]{mathpazo}
