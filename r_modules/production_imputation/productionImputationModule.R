@@ -14,22 +14,26 @@ if(Sys.getenv("USER") == "mk"){
         )
 }
 
+
+
 ## Function to get all country keys
 ##
 ## TODO (Michael): Need to get CIO to provide a proper functionality
 ##                 for this.
 ## CHECK (Michael): There are duplicate key in geographic key tree.
 getAllCountryCode = function(){
+    ## 1062 is geographical world
     keyTree =
         unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
                            dataset = swsContext.datasets[[1]]@dataset,
                            dimension = "geographicAreaM49",
                            roots = "1062")
-               )
+               )    
     allCountryCode =
         unique(adjacent2edge(keyTree)$children)
-    allCountryCode
+    allCountryCode[allCountryCode %in% FAOcountryProfile$UN_CODE]
 }
+
 
 getImputationData = function(dataContext){
     ## Setups
@@ -116,13 +120,6 @@ executeImputationModule = function(){
                      ## NOTE (Michael): The yield should have been calculated a priori to
                      ##                 the imputation modeul.
 
-                     ## Recompute the yield
-                     computeYieldData(data = query,
-                                      formulaTuples = formulaTuples,
-                                      prefixTuples = prefixTuples,
-                                      newMethodFlag = "i",
-                                      flagTable = faoswsFlagTable)
-
                      ## Set the names
                      productionValue = paste0(prefixTuples$valuePrefix, formulaTuples$output)
                      productionObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$output)
@@ -134,6 +131,18 @@ executeImputationModule = function(){
                      yieldObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$productivity)
                      yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$productivity)
 
+                     
+                     ## Recompute the yield
+                     computeYield(productionValue = productionValue,
+                                  productionObservationFlag = productionObservationFlag,
+                                  areaHarvestedValue = areaHarvestedValue,
+                                  areaHarvestedObservationFlag = areaHarvestedObservationFlag,
+                                  yieldValue = yieldValue,
+                                  yieldObservationFlag = yieldObservationFlag,
+                                  yieldMethodFlag = yieldMethodFlag,
+                                  newMethodFlag = "i", flagTable = faoswsFlagTable,
+                                  data = query)
+                     
                      ## Impute the dataset
                      imputed =
                          imputeProductionDomain(data = query,
