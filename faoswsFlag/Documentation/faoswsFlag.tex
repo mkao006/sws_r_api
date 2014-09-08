@@ -1,3 +1,5 @@
+%\VignetteIndexEntry{faoswsFlag:A package to perform flag aggregation and much more}
+%\VignetteEngine{knitr::knitr}
 \documentclass[nojss]{jss}\usepackage[]{graphicx}\usepackage[]{color}
 %% maxwidth is the original width if it is less than linewidth
 %% otherwise use linewidth (to make sure the graphics do not exceed the margin)
@@ -69,7 +71,8 @@
 
 
 
-\title{\bf faoswsFlag:A package to manage flag aggregation}
+\title{\bf faoswsFlag:A package to perform \\flag aggregation and much
+  more}
 
 \author{Michael. C. J. Kao\\ Food and Agriculture Organization \\ of
   the United Nations}
@@ -84,6 +87,12 @@
 
   This short documentation is intended to explain how observation
   flags are aggregated in the ESS Statistical Working System.
+  
+  The methodology and tools are presented step by step, with code
+  examples and explanations.
+  
+  The paper also provide example of potential applications for
+  integrating flag information.
 
 }
 
@@ -105,7 +114,7 @@
 
 
 
-
+\section{Introduction}
 Lets start by loading the required library into R.
 
 \begin{knitrout}
@@ -119,16 +128,19 @@ Lets start by loading the required library into R.
 \end{knitrout}
 
 Since the introduction of the new statistical working system, the old
-symb which reprents how the data was collected and computed is split
-into two separate flags. The first, an observation flag which is a
-description of the observation status, whether it be official,
-estimates or imputed value. While on the other hand, the methodology
-flag contains information of how it is collected or computed. It can
-be from survey, questionnaire or it can be obtained as a balance or
-estimated through statistical methodology.
+symbol which reprents the collection and computation method of the
+data is now represented by two separate flags.
 
-This paper concerns mainly the observation flag, where the data
-originated and the information content it is associated with.
+The first, an observation flag which is a description of the
+observation status, whether it be official, estimates or imputed
+value. While on the other hand, the methodology flag contains
+information of how it is collected or computed. It can be from survey,
+questionnaire or it can be obtained as a balance or estimated through
+statistical methodology.
+
+The aim of this paper is to introduce a systematic way to aggregate
+observation flags and further incorporate this piece of information in
+to subsequent analysis.
 
 Shown below is the corresponding table for the observation flags as of
 \today{} outlined in Annex 5 of FAO Statistical Standards:
@@ -150,21 +162,28 @@ Shown below is the corresponding table for the observation flags as of
   \end{center}  
 \end{table}
 
-One of the main goal for this package is to provide a consistent
-framework for handling multiple flags and flag aggregation.
+The remaining of the paper is divided into three sections. First, we
+show how to crate a table which holds the rank information required
+for aggregation. The second part will illustrate how multiple flags
+can be aggregated by using functions provided in the package. Finally,
+the last section will present a simulated case how the use of these
+data can help us build better models.
+
+
+\section{Specification of a mapping table}
 
 In order to compute aggregation of flags, one must convert the symbol
-into a numerical type. The way how this is handled is based on the
-amount of information quantity and the reliability of the observation
-status.
+into a numerical type. The way this should be handled is assign a
+value based on the amount of information quantity and the reliability
+of the observation status.
 
-Information obtained from reliable source should have a high
-information content and thus should be converted to a high value,
-while data estimated or derived should have a lower information vice
-versa.
+Data obtained from reliable source should have a high information
+content and thus should be assigned a high value, while data based on
+human estimation should be assigned a low level of score to reflect
+that the data is not directly observed and error may result as a case.
 
 Shown below is the default weights table for the new statistical
-working system which comes along with the package.
+working system.
 
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
@@ -186,21 +205,31 @@ working system which comes along with the package.
 
 From this table, we have assigned 1 to official figure while 0 to
 missing values. Albeit the arbitrary selection of the values, it
-provides a rank of the information content which is what we need in
-order to compute flag aggregation.
+provides a rank of the information content which is necessary for the
+computation of flag aggregation.
 
-Take the computation of yield for example, the value is computed based
-on production and area harvested which may come from different
-sources. Thus, when we compute a derived statistic which is unobserved
-such as yield it is important to reflecte the information content
-which associated with this derivative. For a set of aggregation, the
-minimum of the set is taken as the final observation flag.
+Flag tables can be created for each separate application depending on
+the goal. For the aggregation of flag, only one restriction is applied
+and that is the value of the weights are unique.
 
-Lets say we have a production value of 30,000 recorded from official
-survey (), while the area harvested was collected from an unofficial
-private data base (T). As shown in the following code, the resulting
-flag for yield should return (T) to reflect the lower information
-content of the unofficial figure.
+
+\section{Use the table to compute aggregation for flags}
+
+In this section, we take the computation of yield for example and
+illustrate how to compute flag aggregation with the package. 
+
+The value of yield is computed based on production and area harvested
+which may come from different sources. Thus, when we compute a derived
+statistic which is unobserved such as the yield; it is important that
+the information quality reflect the lowest level that is used in the
+computation. For a set of aggregation, the minimum of the set is taken
+as the final observation flag.
+
+A more concrete example is to say that we may have a production value
+recorded from official survey (), while the area harvested was
+collected from an unofficial external data base (T). Following this
+principle, the resulting flag for yield should return (T) to reflect
+the lower information content of the unofficial figure.
 
 
 \begin{knitrout}
@@ -228,7 +257,7 @@ content of the unofficial figure.
 \hlstd{simulatedProductionFlag}
 \end{alltt}
 \begin{verbatim}
-##  [1] "T" "E" "E" "T" "I" "I" ""  "E" "I" "I"
+##  [1] "E" ""  "T" "I" "T" "T" "I" "T" "I" "T"
 \end{verbatim}
 \begin{alltt}
 \hlcom{## Simulated flag for area harvested}
@@ -238,7 +267,7 @@ content of the unofficial figure.
 \hlstd{simulatedAreaFlag}
 \end{alltt}
 \begin{verbatim}
-##  [1] "E" "E" "I" "M" ""  ""  ""  "M" ""  "M"
+##  [1] ""  "T" "T" "I" "I" "T" ""  "I" "I" "M"
 \end{verbatim}
 \begin{alltt}
 \hlcom{## Now compute the aggregation of flag}
@@ -246,67 +275,80 @@ content of the unofficial figure.
                          \hlkwc{flagTable} \hlstd{= faoswsFlagTable)}
 \end{alltt}
 \begin{verbatim}
-##  [1] "E" "E" "I" "M" "I" "I" ""  "M" "I" "M"
+##  [1] "E" "T" "T" "I" "I" "T" "I" "I" "I" "M"
 \end{verbatim}
 \end{kframe}
 \end{knitrout}
 
 
-Currently, the flags are chosen as arbitrary mainly to preserve a rank
-order based on expert judgement. Nevertheless, this information can be
-estimated from the data and history of the flag. This is currently
-under investigation, yet the idea is simple. First, we take official
-figure as the golden benchmark, then we calculate the deviation of
-each observation which has a value collected priorly with a different
-flag. This will allow us to compute the relative error of flags and in
-turn to estimate the information content.
+Currently, the weights of the flags are chosen as arbitrary mainly to
+preserve a rank order based on expert judgement. Nevertheless, this
+information can be estimated from the data and history of the flag as
+we wil discuss more in the improvement section.
 
 
-Associating a value with its meta data has significant advantages, as
-it provides information about the data which can be used in further
-analysis or improvements of modelling. For example, instead of fitting
-a linear regression by treating all observation equally, we can
+
+\section{Applications}
+The converesion of the symbol to a numeric value has various advantage
+than solely for the purpose of constructing aggregation. It can assist
+subsequent modelling by identifying the quality of data and enable an
+algorithm to take into account of the difference among various data
+source.
+
+For example, instead of fitting a linear regression by treating all
+observation equally with the same source and identical quality, we can
 estimate a weighted regression which gives more weight to data which
-are of higher reliability. 
+are of higher reliability.
 
 
+\subsection{Robust fitting}
 The following artificial example illustrates how accounting for the
 information source can result in a better fit and incorporate poor
-data quality. The artificial data starts in 1990 and ends in 2014,
-with all the observation collected as official figure except for
-2009. For illustrative purpose, the value in 2009 was imputed by a
+data quality. The artificial data starts in 1991 and ends in 2014,
+with all the observation collected as unofficial figure except for
+2010. For illustrative purpose, the value in 2010 was estimated by a
 poor algorithm and can be seen in the graph as an outlier. The
 illustration shows how accounting for the outlier through the use of
 meta data can result in more robust model fitting than as treating all
 data have the same information quality.
 
-The black dots are the original data, with the red line being the
-linear regression treating all observation equally while the blue line
-incorporates the information quality through the flags. We can see
-that by accounting for the source, the fit of the blue line is less
-affected by the outlier generated by the poor imputation algorithm.
+Figure below shows the value of simulated production with respect to
+time, they are labelled by their corresponding flag. The fit of the
+linear regression when all observation are treated equally is
+illustrated in red. On the other hand, the blue line corresponds to
+the fit of a weighted regression which gave less weight for the
+suspicious point as it was marked as estimated (E) by the flag and
+takes only half the weight of an official observation.
+
+The dataset contains two flag, E and T which has weight of 0.4 and 0.8
+respectively.
 
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 \begin{alltt}
+\hlcom{## New table for simulation.}
+\hlstd{simTable} \hlkwb{=} \hlstd{faoswsFlagTable}
+\hlstd{simTable[simTable}\hlopt{$}\hlstd{flagObservationStatus} \hlopt{==} \hlstr{"E"}\hlstd{,}
+         \hlstr{"flagObservationWeights"}\hlstd{]} \hlkwb{=} \hlnum{0.4}
+
 \hlcom{## Simuate a data set which has a single point that was imputed badly }
 \hlcom{## but still used for later analysis.}
-\hlstd{x} \hlkwb{=} \hlnum{1990}\hlopt{:}\hlnum{2014}
+\hlstd{x} \hlkwb{=} \hlnum{1991}\hlopt{:}\hlnum{2014}
 \hlstd{y} \hlkwb{=} \hlnum{100} \hlopt{+} \hlnum{10} \hlopt{*} \hlstd{(x} \hlopt{-} \hlnum{1989}\hlstd{)} \hlopt{+} \hlkwd{rnorm}\hlstd{(}\hlkwd{length}\hlstd{(x),} \hlkwc{sd} \hlstd{=} \hlnum{20}\hlstd{)}
-\hlstd{f} \hlkwb{=} \hlkwd{rep}\hlstd{(}\hlstr{""}\hlstd{,} \hlkwd{length}\hlstd{(x))}
+\hlstd{f} \hlkwb{=} \hlkwd{rep}\hlstd{(}\hlstr{"T"}\hlstd{,} \hlkwd{length}\hlstd{(x))}
 \hlstd{y[}\hlnum{20}\hlstd{]} \hlkwb{=} \hlstd{y[}\hlnum{20}\hlstd{]} \hlopt{+} \hlnum{500}
-\hlstd{f[}\hlnum{20}\hlstd{]} \hlkwb{=} \hlstr{"I"}
+\hlstd{f[}\hlnum{20}\hlstd{]} \hlkwb{=} \hlstr{"E"}
 \hlstd{simulated.df} \hlkwb{=} \hlkwd{data.frame}\hlstd{(}\hlkwc{year} \hlstd{= x,} \hlkwc{simulatedProduction} \hlstd{= y,} \hlkwc{flag} \hlstd{= f)}
 
 \hlcom{## Plot the data and show the two different fit when accounting for the }
 \hlcom{## source and quality of information.}
 \hlkwd{ggplot}\hlstd{(}\hlkwc{data} \hlstd{= simulated.df,}
-       \hlkwd{aes}\hlstd{(}\hlkwc{x} \hlstd{= year,} \hlkwc{y} \hlstd{= simulatedProduction))} \hlopt{+}
-    \hlkwd{geom_point}\hlstd{()} \hlopt{+}
+       \hlkwd{aes}\hlstd{(}\hlkwc{x} \hlstd{= year,} \hlkwc{y} \hlstd{= simulatedProduction,} \hlkwc{label} \hlstd{= flag))} \hlopt{+}
+    \hlkwd{geom_text}\hlstd{()} \hlopt{+}
     \hlkwd{geom_smooth}\hlstd{(}\hlkwc{method} \hlstd{=} \hlstr{"lm"}\hlstd{,} \hlkwc{formula} \hlstd{= y} \hlopt{~} \hlstd{x,}
                 \hlkwc{data} \hlstd{= simulated.df,} \hlkwc{se} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{col} \hlstd{=} \hlstr{"red"}\hlstd{)} \hlopt{+}
     \hlkwd{geom_smooth}\hlstd{(}\hlkwc{method} \hlstd{=} \hlstr{"lm"}\hlstd{,} \hlkwc{formula} \hlstd{= y} \hlopt{~} \hlstd{x,}
-                \hlkwd{aes}\hlstd{(}\hlkwc{weight} \hlstd{=} \hlkwd{flag2weight}\hlstd{(flag)),}
+                \hlkwd{aes}\hlstd{(}\hlkwc{weight} \hlstd{=} \hlkwd{flag2weight}\hlstd{(flag,} \hlkwc{flagTable} \hlstd{= simTable)),}
                 \hlkwc{data} \hlstd{= simulated.df,} \hlkwc{se} \hlstd{=} \hlnum{FALSE}\hlstd{)}
 \end{alltt}
 \end{kframe}
@@ -320,8 +362,81 @@ affected by the outlier generated by the poor imputation algorithm.
 \end{knitrout}
 
 
+\subsection{Weighted source of combination}
+
+Another potential application of weight is for combining data from
+various source to form an ensemble estimate.
+
+Here we generate another artificial dataset for illustration. Assuming
+we have two sources of data where each are collected on alternating
+years and we would like to estimate the growth rate.
+
+Plotted below is the simulated data, again the red is uniform weight
+while the blue line represents the model which accounts for the
+asymmetry of information. Since we trust data which are marked with T
+with higher degree of believability, we can observe the estimated
+growth curve is closer to the observed value marked as T.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{x} \hlkwb{=} \hlnum{1991}\hlopt{:}\hlnum{2014}
+\hlstd{y} \hlkwb{=} \hlnum{100} \hlopt{+} \hlkwd{c}\hlstd{(}\hlnum{10}\hlstd{,} \hlnum{15}\hlstd{)} \hlopt{*} \hlstd{(x} \hlopt{-} \hlnum{1989}\hlstd{)}\hlopt{^}\hlnum{2} \hlopt{+} \hlkwd{rnorm}\hlstd{(}\hlkwd{length}\hlstd{(x),} \hlkwc{sd} \hlstd{=} \hlnum{20}\hlstd{)}
+\hlstd{f} \hlkwb{=} \hlkwd{rep}\hlstd{(}\hlkwd{c}\hlstd{(}\hlstr{"E"}\hlstd{,} \hlstr{"T"}\hlstd{),} \hlkwd{length}\hlstd{(x)}\hlopt{/}\hlnum{2}\hlstd{)}
+\hlstd{simulated.df} \hlkwb{=} \hlkwd{data.frame}\hlstd{(}\hlkwc{year} \hlstd{= x,} \hlkwc{simulatedProduction} \hlstd{= y,} \hlkwc{flag} \hlstd{= f)}
+
+\hlcom{## Plot the data and show the two different fit when accounting for the }
+\hlcom{## source and quality of information.}
+\hlkwd{ggplot}\hlstd{(}\hlkwc{data} \hlstd{= simulated.df,}
+       \hlkwd{aes}\hlstd{(}\hlkwc{x} \hlstd{= year,} \hlkwc{y} \hlstd{= simulatedProduction,} \hlkwc{label} \hlstd{= flag))} \hlopt{+}
+    \hlkwd{geom_text}\hlstd{()} \hlopt{+}
+    \hlkwd{geom_smooth}\hlstd{(}\hlkwc{method} \hlstd{=} \hlstr{"lm"}\hlstd{,} \hlkwc{formula} \hlstd{= y} \hlopt{~} \hlkwd{bs}\hlstd{(x),}
+                \hlkwc{data} \hlstd{= simulated.df,} \hlkwc{se} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{col} \hlstd{=} \hlstr{"red"}\hlstd{)} \hlopt{+}
+    \hlkwd{geom_smooth}\hlstd{(}\hlkwc{method} \hlstd{=} \hlstr{"lm"}\hlstd{,} \hlkwc{formula} \hlstd{= y} \hlopt{~} \hlkwd{bs}\hlstd{(x),}
+                \hlkwd{aes}\hlstd{(}\hlkwc{weight} \hlstd{=} \hlkwd{flag2weight}\hlstd{(flag,} \hlkwc{flagTable} \hlstd{= simTable)),}
+                \hlkwc{data} \hlstd{= simulated.df,} \hlkwc{se} \hlstd{=} \hlnum{FALSE}\hlstd{)}
+\end{alltt}
+\end{kframe}
+
+{\centering \includegraphics[width=\maxwidth]{figure/simulated-example2} 
+
+}
 
 
+
+\end{knitrout}
+
+
+\section{Further Improvements}
+Currently, the method is only implement to perform flag
+aggregation. Nevertheless, we would like to extend the possibility to
+what has been demonstrated in the application section. In order to
+achieve this, we would need a methodology allowing us to assign a
+weight automatically and objectively.
+
+Two method are being investigated, the first is to use official figure
+as the benchmark and measure the loss in information through the use
+of entropy. The greater the loss in information, the lower the weight
+should be. This however, requires us to assume that the official
+figure is of highest quality. On the other hand, the second
+methodology does not make this assumption. Rather, it computes the
+similarity between values of different flag then assign weights
+according to the similarity. The rational of this approach is that the
+data source which are close to what we want to measure will also be
+close to data sources measured differently. This is similary to
+finding the centroid which minimizes the within cluster sums of
+variance.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+
+{\centering \includegraphics[width=\maxwidth]{figure/illustration} 
+
+}
+
+
+
+\end{knitrout}
 
 
 

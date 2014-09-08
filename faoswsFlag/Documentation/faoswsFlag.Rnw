@@ -1,4 +1,5 @@
-% \VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{faoswsFlag:A package to perform flag aggregation and much more}
+%\VignetteEngine{knitr::knitr}
 \documentclass[nojss]{jss}
 \usepackage{url}
 \usepackage[sc]{mathpazo}
@@ -21,7 +22,8 @@
 
 
 
-\title{\bf faoswsFlag:A package to manage flag aggregation}
+\title{\bf faoswsFlag:A package to perform \\flag aggregation and much
+  more}
 
 \author{Michael. C. J. Kao\\ Food and Agriculture Organization \\ of
   the United Nations}
@@ -36,6 +38,12 @@
 
   This short documentation is intended to explain how observation
   flags are aggregated in the ESS Statistical Working System.
+  
+  The methodology and tools are presented step by step, with code
+  examples and explanations.
+  
+  The paper also provide example of potential applications for
+  integrating flag information.
 
 }
 
@@ -65,7 +73,7 @@ assign("depthtrigger", 10, data.table:::.global)
 @ 
 
 
-
+\section{Introduction}
 Lets start by loading the required library into R.
 
 <<load-libraries>>=
@@ -76,16 +84,19 @@ library(ggplot2)
 @ 
 
 Since the introduction of the new statistical working system, the old
-symb which reprents how the data was collected and computed is split
-into two separate flags. The first, an observation flag which is a
-description of the observation status, whether it be official,
-estimates or imputed value. While on the other hand, the methodology
-flag contains information of how it is collected or computed. It can
-be from survey, questionnaire or it can be obtained as a balance or
-estimated through statistical methodology.
+symbol which reprents the collection and computation method of the
+data is now represented by two separate flags.
 
-This paper concerns mainly the observation flag, where the data
-originated and the information content it is associated with.
+The first, an observation flag which is a description of the
+observation status, whether it be official, estimates or imputed
+value. While on the other hand, the methodology flag contains
+information of how it is collected or computed. It can be from survey,
+questionnaire or it can be obtained as a balance or estimated through
+statistical methodology.
+
+The aim of this paper is to introduce a systematic way to aggregate
+observation flags and further incorporate this piece of information in
+to subsequent analysis.
 
 Shown below is the corresponding table for the observation flags as of
 \today{} outlined in Annex 5 of FAO Statistical Standards:
@@ -107,21 +118,28 @@ Shown below is the corresponding table for the observation flags as of
   \end{center}  
 \end{table}
 
-One of the main goal for this package is to provide a consistent
-framework for handling multiple flags and flag aggregation.
+The remaining of the paper is divided into three sections. First, we
+show how to crate a table which holds the rank information required
+for aggregation. The second part will illustrate how multiple flags
+can be aggregated by using functions provided in the package. Finally,
+the last section will present a simulated case how the use of these
+data can help us build better models.
+
+
+\section{Specification of a mapping table}
 
 In order to compute aggregation of flags, one must convert the symbol
-into a numerical type. The way how this is handled is based on the
-amount of information quantity and the reliability of the observation
-status.
+into a numerical type. The way this should be handled is assign a
+value based on the amount of information quantity and the reliability
+of the observation status.
 
-Information obtained from reliable source should have a high
-information content and thus should be converted to a high value,
-while data estimated or derived should have a lower information vice
-versa.
+Data obtained from reliable source should have a high information
+content and thus should be assigned a high value, while data based on
+human estimation should be assigned a low level of score to reflect
+that the data is not directly observed and error may result as a case.
 
 Shown below is the default weights table for the new statistical
-working system which comes along with the package.
+working system.
 
 <<flag-table>>=
 
@@ -132,21 +150,31 @@ faoswsFlagTable
 
 From this table, we have assigned 1 to official figure while 0 to
 missing values. Albeit the arbitrary selection of the values, it
-provides a rank of the information content which is what we need in
-order to compute flag aggregation.
+provides a rank of the information content which is necessary for the
+computation of flag aggregation.
 
-Take the computation of yield for example, the value is computed based
-on production and area harvested which may come from different
-sources. Thus, when we compute a derived statistic which is unobserved
-such as yield it is important to reflecte the information content
-which associated with this derivative. For a set of aggregation, the
-minimum of the set is taken as the final observation flag.
+Flag tables can be created for each separate application depending on
+the goal. For the aggregation of flag, only one restriction is applied
+and that is the value of the weights are unique.
 
-Lets say we have a production value of 30,000 recorded from official
-survey (), while the area harvested was collected from an unofficial
-private data base (T). As shown in the following code, the resulting
-flag for yield should return (T) to reflect the lower information
-content of the unofficial figure.
+
+\section{Use the table to compute aggregation for flags}
+
+In this section, we take the computation of yield for example and
+illustrate how to compute flag aggregation with the package. 
+
+The value of yield is computed based on production and area harvested
+which may come from different sources. Thus, when we compute a derived
+statistic which is unobserved such as the yield; it is important that
+the information quality reflect the lowest level that is used in the
+computation. For a set of aggregation, the minimum of the set is taken
+as the final observation flag.
+
+A more concrete example is to say that we may have a production value
+recorded from official survey (), while the area harvested was
+collected from an unofficial external data base (T). Following this
+principle, the resulting flag for yield should return (T) to reflect
+the lower information content of the unofficial figure.
 
 
 <<aggregate-flag1>>=
@@ -176,67 +204,205 @@ aggregateObservationFlag(simulatedProductionFlag, simulatedAreaFlag,
 @ 
 
 
-Currently, the flags are chosen as arbitrary mainly to preserve a rank
-order based on expert judgement. Nevertheless, this information can be
-estimated from the data and history of the flag. This is currently
-under investigation, yet the idea is simple. First, we take official
-figure as the golden benchmark, then we calculate the deviation of
-each observation which has a value collected priorly with a different
-flag. This will allow us to compute the relative error of flags and in
-turn to estimate the information content.
+Currently, the weights of the flags are chosen as arbitrary mainly to
+preserve a rank order based on expert judgement. Nevertheless, this
+information can be estimated from the data and history of the flag as
+we wil discuss more in the improvement section.
 
 
-Associating a value with its meta data has significant advantages, as
-it provides information about the data which can be used in further
-analysis or improvements of modelling. For example, instead of fitting
-a linear regression by treating all observation equally, we can
+
+\section{Applications}
+The converesion of the symbol to a numeric value has various advantage
+than solely for the purpose of constructing aggregation. It can assist
+subsequent modelling by identifying the quality of data and enable an
+algorithm to take into account of the difference among various data
+source.
+
+For example, instead of fitting a linear regression by treating all
+observation equally with the same source and identical quality, we can
 estimate a weighted regression which gives more weight to data which
-are of higher reliability. 
+are of higher reliability.
 
 
+\subsection{Robust fitting}
 The following artificial example illustrates how accounting for the
 information source can result in a better fit and incorporate poor
-data quality. The artificial data starts in 1990 and ends in 2014,
-with all the observation collected as official figure except for
-2009. For illustrative purpose, the value in 2009 was imputed by a
+data quality. The artificial data starts in 1991 and ends in 2014,
+with all the observation collected as unofficial figure except for
+2010. For illustrative purpose, the value in 2010 was estimated by a
 poor algorithm and can be seen in the graph as an outlier. The
 illustration shows how accounting for the outlier through the use of
 meta data can result in more robust model fitting than as treating all
 data have the same information quality.
 
-The black dots are the original data, with the red line being the
-linear regression treating all observation equally while the blue line
-incorporates the information quality through the flags. We can see
-that by accounting for the source, the fit of the blue line is less
-affected by the outlier generated by the poor imputation algorithm.
+Figure below shows the value of simulated production with respect to
+time, they are labelled by their corresponding flag. The fit of the
+linear regression when all observation are treated equally is
+illustrated in red. On the other hand, the blue line corresponds to
+the fit of a weighted regression which gave less weight for the
+suspicious point as it was marked as estimated (E) by the flag and
+takes only half the weight of an official observation.
+
+The dataset contains two flag, E and T which has weight of 0.4 and 0.8
+respectively.
 
 <<simulated-example, fig.height=5>>=
+## New table for simulation.
+simTable = faoswsFlagTable
+simTable[simTable$flagObservationStatus == "E", 
+         "flagObservationWeights"] = 0.4
+
 ## Simuate a data set which has a single point that was imputed badly 
 ## but still used for later analysis.
-x = 1990:2014
+x = 1991:2014
 y = 100 + 10 * (x - 1989) + rnorm(length(x), sd = 20)
-f = rep("", length(x))
+f = rep("T", length(x))
 y[20] = y[20] + 500
-f[20] = "I"
+f[20] = "E"
 simulated.df = data.frame(year = x, simulatedProduction = y, flag = f)
 
 ## Plot the data and show the two different fit when accounting for the 
 ## source and quality of information.
 ggplot(data = simulated.df, 
-       aes(x = year, y = simulatedProduction)) + 
-    geom_point() + 
+       aes(x = year, y = simulatedProduction, label = flag)) + 
+    geom_text() + 
     geom_smooth(method = "lm", formula = y ~ x, 
                 data = simulated.df, se = FALSE, col = "red") + 
     geom_smooth(method = "lm", formula = y ~ x, 
-                aes(weight = flag2weight(flag)),
+                aes(weight = flag2weight(flag, flagTable = simTable)),
                 data = simulated.df, se = FALSE)
 
 
 @ 
 
 
+\subsection{Weighted source of combination}
+
+Another potential application of weight is for combining data from
+various source to form an ensemble estimate.
+
+Here we generate another artificial dataset for illustration. Assuming
+we have two sources of data where each are collected on alternating
+years and we would like to estimate the growth rate.
+
+Plotted below is the simulated data, again the red is uniform weight
+while the blue line represents the model which accounts for the
+asymmetry of information. Since we trust data which are marked with T
+with higher degree of believability, we can observe the estimated
+growth curve is closer to the observed value marked as T.
+
+<<simulated-example2, fig.height=5>>=
+x = 1991:2014
+y = 100 + c(10, 15) * (x - 1989)^2 + rnorm(length(x), sd = 20)
+f = rep(c("E", "T"), length(x)/2)
+simulated.df = data.frame(year = x, simulatedProduction = y, flag = f)
+
+## Plot the data and show the two different fit when accounting for the 
+## source and quality of information.
+ggplot(data = simulated.df, 
+       aes(x = year, y = simulatedProduction, label = flag)) + 
+    geom_text() + 
+    geom_smooth(method = "lm", formula = y ~ bs(x), 
+                data = simulated.df, se = FALSE, col = "red") + 
+    geom_smooth(method = "lm", formula = y ~ bs(x), 
+                aes(weight = flag2weight(flag, flagTable = simTable)),
+                data = simulated.df, se = FALSE)
 
 
+
+@ 
+
+
+\section{Further Improvements}
+Currently, the method is only implement to perform flag
+aggregation. Nevertheless, we would like to extend the possibility to
+what has been demonstrated in the application section. In order to
+achieve this, we would need a methodology allowing us to assign a
+weight automatically and objectively.
+
+Two method are being investigated, the first is to use official figure
+as the benchmark and measure the loss in information through the use
+of entropy. The greater the loss in information, the lower the weight
+should be. This however, requires us to assume that the official
+figure is of highest quality. On the other hand, the second
+methodology does not make this assumption. Rather, it computes the
+similarity between values of different flag then assign weights
+according to the similarity. The rational of this approach is that the
+data source which are close to what we want to measure will also be
+close to data sources measured differently. This is similary to
+finding the centroid which minimizes the within cluster sums of
+variance.
+
+<<illustration, echo=FALSE>>=
+
+## sim.df = 
+##     data.frame(x = c(1, 1.5, 1.8, 3, 20),
+##                y = c(5, 7, 3, 4, 30),
+##                name = letters[1:5])
+## plot(sim.df[, c("x", "y")], pch = 19)
+## with(sim.df, text(x = mean(x), y = mean(y), label = "equal weight mean"))
+## similarity = 1/rowSums(as.matrix(dist(sim.df[, c("x", "y")], 
+##     diag = TRUE,  upper = TRUE)))^2
+## weights = similarity/sum(similarity)
+## with(sim.df, text(x = weighted.mean(x = x, w = weights),
+##                   y = weighted.mean(x = y, w = weights),
+##                   label = "weighted mean"))
+
+
+
+## pdf(file = "../presentation/centroid.pdf", width = 10, height = 10)
+sim.df = 
+    data.frame(x = c(1, 1.5, 1.8, 3, 20),
+               y = c(5, 7, 3, 4, 30),
+               name = letters[1:5])
+plot(sim.df[, c("x", "y")], pch = 19)
+similarity = 1/rowSums(as.matrix(dist(sim.df[, c("x", "y")], 
+    diag = TRUE,  upper = TRUE)))^2
+weights = similarity/sum(similarity)
+centroid = with(sim.df, 
+    c(weighted.mean(x = x, w = weights), 
+      weighted.mean(x = y, w = weights)))
+with(sim.df[1,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
+with(sim.df[2,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
+with(sim.df[3,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
+with(sim.df[4,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
+with(sim.df[5,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
+text(x = centroid[1], y = centroid[2] + 1, label = "Centroid")
+points(x = centroid[1], y = centroid[2], col = "red", pch = 19)
+## graphics.off()
+
+
+## time = 1:30
+## O = 20 + 0.8 * time + rnorm(length(time))
+## T = 20 + 0.8 * time + rnorm(length(time), mean = 3)
+## E = 20 + 0.8 * time + rnorm(length(time), mean = -2)
+## I = 20 + 0.8 * time + rnorm(length(time), mean = 2, sd = 5)
+
+## plot(time, O, pch = 19)
+## points(time, T, col = "green", pch = 19)
+## points(time, E, col = "blue", pch = 19)
+## points(time, I, col = "red", pch = 19)
+
+
+## D = O - T
+## eD = ecdf(D)
+## plot(eD)
+
+## test = rnorm(100, mean = -3)
+## eTest = ecdf(test)
+## plot(eTest)
+## curve(eD, add = TRUE, col = "red")
+
+
+## ks.test(O, T)
+## ks.test(O, E)
+## ks.test(O, I)
+## plot(ecdf(O))
+## plot(ecdf(T), add = TRUE, col = "red")
+## plot(ecdf(E), add = TRUE, col = "blue")
+## plot(ecdf(I), add = TRUE, col = "green")
+
+@ 
 
 
 
