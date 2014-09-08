@@ -11,7 +11,7 @@ library(faosws)
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "f9886fc4-7107-455b-ab31-7fa0290481ab"
+        token = "5d9b8d4a-0989-4b50-869f-cd0bc566fd18"
         )
 }
 
