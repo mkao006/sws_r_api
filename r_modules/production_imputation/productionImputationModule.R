@@ -20,7 +20,7 @@ if(Sys.getenv("USER") == "mk"){
 ##
 ## TODO (Michael): Need to get CIO to provide a proper functionality
 ##                 for this.
-## CHECK (Michael): There are duplicate key in geographic key tree.
+
 getAllCountryCode = function(){
     ## 1062 is geographical world
     keyTree =
@@ -97,6 +97,45 @@ getImputationData = function(dataContext){
          prefixTuples = prefixTuples)
 }
     
+## Function to turn lists of NULL to vector of NA
+NULLtoNA = function(nullList){
+    vector = rep(NA, length = length(nullList))
+    validEntry = which(sapply(nullList, FUN = function(x) !is.null(x)))
+    vector[validEntry] =
+        unlist(nullList[validEntry])
+    vector
+}
+
+## Obtain the valid year range of each country
+getValidRange = function(){
+    countryTable =
+        GetCodeList("agriculture", "agriculture", "geographicAreaM49")
+    countryTable =
+        countryTable[code %in% FAOcountryProfile$UN_CODE]
+    countryTable[, type := NULLtoNA(type)]
+    countryTable[, startDate := NULLtoNA(startDate)]
+    countryTable[, endDate := NULLtoNA(endDate)]
+    countryTable[, startDate := as.numeric(substr(startDate, 1, 4))]
+    countryTable[, endDate := as.numeric(substr(endDate, 1, 4))]
+    countryTable[is.na(startDate), startDate := -Inf]
+    countryTable[is.na(endDate), endDate := Inf]
+    countryTable
+}
+
+
+validImputedData = function(imputed, areaName = "geographicAreaM49",
+    yearName = "timePointYears"){
+    validRange = getValidRange()
+    validSubset =
+        paste0(with(validRange,
+                    paste0("(", areaName, " == ", code,
+                           " & ", yearName, " > ", startDate,
+                           " & ", yearName, " < ", endDate, ")")),
+               collapse = " | ")
+    valid = imputed[eval(parse(text = validSubset)), ]
+    valid    
+}    
+
 
 ## Function to save data back
 saveImputedData = function(dataContext, data){
@@ -167,8 +206,9 @@ executeImputationModule = function(){
                                                 byKey = "geographicAreaM49",
                                                 restrictWeights = TRUE,
                                                 maximumWeights = 0.7)
+                     valid = validImputedData(imputed)
                      ## Save back
-                     saveImputedData(swsContext.datasets, imputed)
+                     saveImputedData(swsContext.datasets, valid)
                  }
                  )
         }
