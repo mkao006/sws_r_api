@@ -6,6 +6,20 @@
 
 library(data.table)
 library(faosws)
+library(faoswsFlag)
+library(faoswsExtra)
+library(RPostgreSQL)
+R_SWS_DATABASE_NAME="sws_test_upload"
+R_SWS_DATABASE_HOST="hqlqasws2.hq.un.fao.org"
+R_SWS_DATABASE_USER="ess_user"
+R_SWS_DATABASE_USER_PASSWD="ess_user"
+
+connectionProfile =
+    list(drv = PostgreSQL(),
+         user = R_SWS_DATABASE_USER,
+         password = R_SWS_DATABASE_USER_PASSWD,
+         dbname = R_SWS_DATABASE_NAME,
+         host = R_SWS_DATABASE_HOST)
 
 ## set up for the test environment
 if(Sys.getenv("USER") == "mk"){
@@ -15,23 +29,24 @@ if(Sys.getenv("USER") == "mk"){
         )
 }
 
+## Function to get the yield formula triplets
+getYieldFormula = function(itemCode, connectionProfile){
+    con = do.call(what = "dbConnect", args = connectionProfile)
+    query = paste0("SELECT * FROM ess.item_yield_elements WHERE cpc_code IN (", paste0("'", itemCode, "'", collapse = ", "), ")")
+    yieldFormula = data.table(dbGetQuery(con, query))
+    setnames(yieldFormula,
+             old = c("cpc_code", "element_31", "element_41",
+                 "element_51", "factor"),
+             new = c("measuredItemCPC", "input", "productivity",
+                 "output", "unitConversion")
+             )
+    yieldFormula
+}
+
+
 
 ## Function for obtaining the data and meta data.
 getYieldData = function(dataContext){
-    ## Setting the formula triplet, this should be accessed by the API
-    ## formulaTuples =
-    ##     data.table(
-    ##         output = c("5510", "5510", "5510"),
-    ##         input = c("5312", "5320", "5313"),
-    ##         productivity = c("5421", "5417", "5417")
-    ##         )
-    formulaTuples =
-        data.table(
-            output = "5510",
-            input = "5312",
-            productivity = "5421"
-            )    
-    
     ## setting the prefix, also should be accessed by the API
     prefixTuples =
         data.table(
@@ -57,7 +72,6 @@ getYieldData = function(dataContext){
         )
     
     list(query = query,
-         formulaTuples = formulaTuples,
          prefixTuples = prefixTuples)
 }
 
@@ -67,25 +81,31 @@ getYieldData = function(dataContext){
 
 ## Function to compute the yield data
 computeYieldData = function(data, formulaTuples, prefixTuples,
-    newMethodFlag = "i", flagTable = faoswsFlagTable){
+    newMethodFlag = "i", flagTable = faoswsFlagTable, unitConversion){
     computeYield(productionValue =
-                 paste0(prefixTuples$valuePrefix, formulaTuples$output),
+                     paste0(prefixTuples$valuePrefix,
+                            formulaTuples$output),
                  productionObservationFlag =
-                 paste0(prefixTuples$flagObsPrefix,
-                        formulaTuples$output),
+                     paste0(prefixTuples$flagObsPrefix,
+                            formulaTuples$output),
                  areaHarvestedValue =
-                 paste0(prefixTuples$valuePrefix, formulaTuples$input),
+                     paste0(prefixTuples$valuePrefix,
+                            formulaTuples$input),
                  areaHarvestedObservationFlag =
-                 paste0(prefixTuples$flagObsPrefix, formulaTuples$input),
-                 yieldValue = paste0(prefixTuples$valuePrefix,
-                                     formulaTuples$productivity),
+                     paste0(prefixTuples$flagObsPrefix,
+                            formulaTuples$input),
+                 yieldValue =
+                     paste0(prefixTuples$valuePrefix,
+                            formulaTuples$productivity),
                  yieldObservationFlag =
-                 paste0(prefixTuples$flagObsPrefix,
-                        formulaTuples$productivity),
-                 yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix,
-                     formulaTuples$productivity),
+                     paste0(prefixTuples$flagObsPrefix,
+                            formulaTuples$productivity),
+                 yieldMethodFlag =
+                     paste0(prefixTuples$flagMethodPrefix,
+                            formulaTuples$productivity),
                  newMethodFlag = newMethodFlag,
-                 flagTable = flagTable, data = data)
+                 flagTable = flagTable, data = data,
+                 unitConversion = unitConversion)
 }    
 
 
@@ -93,38 +113,59 @@ computeYieldData = function(data, formulaTuples, prefixTuples,
     
 ## Function to save data back
 saveYieldData = function(dataContext, data){
-    SaveData(domain = slot(dataContext[[1]], "domain"),
-             dataset = slot(dataContext[[1]], "dataset"),
+    SaveData(domain = slot(dataContext, "domain"),
+             dataset = slot(dataContext, "dataset"),
              data = data, normalized = FALSE)
 }
 
 
+list2vec = function(x){
+    tmp = unlist(x)
+    if(is.null(tmp))
+        tmp = rep(NA, length(x))
+    tmp
+}
+
 ## Function to execute the whole yield module
 executeYieldModule = function(){
-    require(faoswsFlag)
-    require(faoswsExtra)
-    ## Maybe we can put the for loop here for the multiple elements.
-    compute = try(
-        {
-            datasets = getYieldData(swsContext.datasets[[1]])
-            with(datasets,
-                 {
-                     computeYieldData(data = query,
-                                      formulaTuples = formulaTuples,
-                                      prefixTuples = prefixTuples)
-                     saveYieldData(dataContext = swsContext.datasets,
-                                   data = query)
-                 }
-                 )
-        }
+    fullKey = swsContext.datasets[[1]]
+    subKey = fullKey
+    uniqueItem = fullKey@dimensions$measuredItemCPC@keys
+    for(singleItem in uniqueItem){
+        subKey@dimensions$measuredItemCPC@keys = singleItem
+        yieldFormula = getYieldFormula(singleItem, connectionProfile)
+        unitConversion = yieldFormula[, unitConversion]
+        subKey@dimensions$measuredElement@keys =
+            yieldFormula[, c(input, productivity, output)]
+        
+        compute = try(
+            {
+                datasets = getYieldData(subKey)
+                with(datasets,
+                     {
+                         computeYieldData(data = query,
+                                          formulaTuples = yieldFormula,
+                                          prefixTuples = prefixTuples,
+                                          unitConversion =
+                                              unitConversion)
+                         convertedData =
+                             as.data.table(lapply(query, list2vec))
+                         saveYieldData(dataContext = subKey,
+                                       data = convertedData)
+                     }
+                     )
+            }
         )
-    if(inherits(compute, "try-error")){
-        print("Yield Module Failed")
-    } else {
-        print("Yield Module Executed Successfully")
+        
+        if(inherits(compute, "try-error")){
+            print("Yield Module Failed")
+        } else {
+            print("Yield Module Executed Successfully")
+        }
     }
 }
 
 
 executeYieldModule()
 
+## correctedData = as.data.table(lapply(datasets$query, foo))
