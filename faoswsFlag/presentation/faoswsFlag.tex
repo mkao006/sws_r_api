@@ -1,6 +1,6 @@
 \documentclass{beamer}
 \usepackage{amsfonts, amsmath, graphicx, verbatim, graphicx, hyperref,
-  color}
+  color, caption, subcaption}
 \definecolor{UNBlue}{RGB}{91, 146, 229}
 \setbeamercolor{structure}{fg=UNBlue}
 \newcommand\Fontvi{\fontsize{6.5}{7.2}\selectfont}
@@ -34,6 +34,34 @@
 
 
 \section{Introduction}
+
+\frame{
+\vfill
+\begin{figure}
+        \centering
+        \begin{subfigure}[c]{0.5\textwidth}
+                \includegraphics[width=\textwidth]{all_flags.png}
+                %% \caption{A gull}
+                %% \label{fig:gull}
+        \end{subfigure}%
+        ~ %add desired spacing between images, e. g. ~, \quad, \qquad, \hfill etc.
+          %(or a blank line to force the subfigure onto a new line)
+        \begin{subfigure}[c]{0.1\textwidth}
+                \includegraphics[width=\textwidth]{arrow.jpg}
+                %% \caption{A tiger}
+                %% \label{fig:tiger}
+        \end{subfigure}
+        ~ %add desired spacing between images, e. g. ~, \quad, \qquad, \hfill etc.
+          %(or a blank line to force the subfigure onto a new line)
+        \begin{subfigure}[c]{0.25\textwidth}
+                \includegraphics[width=\textwidth]{un_flag.png}
+                %% \caption{A mouse}
+                %% \label{fig:mouse}
+        \end{subfigure}
+        \caption{Flag Aggregation}
+\end{figure}
+\vfill
+}
 
 \frame{
   \frametitle{Background}
@@ -114,6 +142,12 @@
   flag when a value is calculated? Take the yield for example again,
   we would assign a method flag indicating the value was calculated;
   but what is its observation status?
+
+  \vfill
+
+  If we had production value collected from unofficial source (T)
+  while area harvested were imputed (I), what is the observation flag
+  for yield?
   
 }
 
@@ -123,24 +157,37 @@
 \frame{
   \frametitle{What should the correct observation flag?}
 
-  One approach is to quantify the believability of information for
-  each flag and treating them as ordinal variables. Then the
-  aggregation can be proceeded by taking the lower bounds of the set.
+  One approach is to quantify the quality of information for each flag
+  and treating them as ordinal variables. Then the aggregation can be
+  proceeded by taking the lower bounds of the set.
 
+  %% Add in the mathematical representation
+  \begin{block}{Flag Aggregation}
+    $$
+    F = \min_{\mathcal{S}}\left\{f_1, f_2, \cdots, f_n\right\}
+    %% F = \left\{f: f, s \in \mathcal{S} \land f \le \forall s\right\}
+    $$
+  \end{block}
+  Where the set $\mathcal{S}$ is the collection of flag which are used
+  in the calculation.
+  %% Where $f_i$ are all the flags used in the calculation
   \vfill
 
-  The rational for that is that the believability of an aggregation
-  should reflect the lowest level of believability.
+  The rational is that the aggregated flag should reflect the maximum
+  amount of uncertainty.
 
-  %% It's like aggregating two different distribution. We have to take
-  %% the variance.
 
 }
 
 \frame{
   \frametitle{The Flag Table}
+  
+  In order to take the minimum of the set, we will need to rank the
+  flags.
 
-  Shown below are the weights used to rank the flags.
+  \vfill
+
+  Shown below are subjective weights used to rank the flags.
 
   \begin{table}[h!]
     \begin{center}
@@ -164,25 +211,49 @@
 
 
 \frame{
-  \frametitle{An example}
+  \frametitle{Example 1}
   
-  Given that the yield is computed based on production and area
-  harvested, then the observation flag should only depend on the flag
-  of production and area harvested and is the minimum of the two.
+  Lets take the computation of yield for example again, if we had
+  production value collected from unofficial source (T) while area
+  harvested were imputed (I).
 
   \vfill
 
-  Lets assume that official figure are of higher quality than
-  unofficial sources. Then the flag of yield computed from a
-  production collected from official survey and area harvested
-  collected from unofficial database should be unofficial.
+  Then provided with the previous table, we can compute the flag of
+  yield as follow:
+  
+  \begin{block}{Flag Aggregation}
+    $$
+    \text{Flag of yield} = \min\left\{T, I\right\} = I
+    $$
+  \end{block}
 
 }
 
+\frame{
+  \frametitle{Example 2}
 
-%% \frame{
-%%   \frametitle{}
-%% }
+  A second example arises in the case when we need to calculate
+  regional aggregate.
+
+  \vfill
+  
+  If we are trying to compute the total production of wheat of North
+  America; with data from Canada and United States are unofficial (T) while
+  the figure from Mexico is estimated (E).
+
+  \vfill
+
+  \begin{block}{Flag Aggregation}
+    $$
+    \text{Flag of aggregate} = \min\left\{T, E\right\} = E
+    $$
+  \end{block}
+
+
+
+}
+
 
 
 
@@ -190,15 +261,20 @@
 \frame{
   \frametitle{}
   
+  Flags have been collected for many decades, however, this piece of
+  information have never been utilized.
+
+  \vfill
+  
   The recognition of various data source and quantification of the
-  believability provides many potential application which can improve
-  the quality of overall statistics.
+  information quality provides many potential application which can
+  enhance subsequent analysis.
 
 }
 
 
 \frame{
-  \frametitle{Robust From Outlier}
+  \frametitle{Robust From Anormalies}
   %% include graphics on robust fitting
 
   \includegraphics[scale=0.5]{robust.pdf}
@@ -255,87 +331,199 @@
     \end{center}  
   \end{table}
   
-  However, methods are being devised to estimate these weights
-  objectively and automatically.
+  %% However, methods are being devised to estimate these weights
+  %% objectively and automatically.
 
 }
 
 
 \frame{
-  \frametitle{}
+  \frametitle{Objective Weights}
   
   A requirement for automatized and objective computation of weights
   is required due to the fact that we do not have the human resources
   to devote to assigning weights for each country, each agricultural
   domain and partition of the data.
 
-  \vfill
-
-  Below we present two methods that are under-investigation for
-  discussion.
-
 }
   
 
 \frame{
-  \frametitle{Measuring Loss of Information}
+  \frametitle{Principle of Minimum Discrimination Information}
 
-  In this method, we take the official figures as gold standard. Then
-  we compute the Kullback-Leibner Divergence and measure the amount of
-  information loss when we represnt value in alternative sources other
-  than official source.
-  
+  Given derived information set, a new distribution $q$ should be
+  chosen which is as hard to discriminate from the original
+  distribution $p$ as possible; so that the new data produces as small
+  an information gain as possible.
+
   \vfill
 
-  \begin{block}{Kullback Leibler Divergence}
+  In another word, the principle states that if we have to choose
+  another representation, the information set which result in the
+  least amount of information gain or uncertainty should be chosen.
+  
+}
+
+
+\frame{
+  \frametitle{Cross Entropy}
+
+  \begin{block}{Cross-Entropy}
+    \begin{align*}
+    \mathrm{H}(P, Q) &=  \mathrm{H}(P) + D_{\mathrm{KL}}(P \| Q)\\
+    \intertext{Where}
+    H(P) &= -\sum_{i} {p(x_i) \log p(x_i)},\\
+    D_{\mathrm{KL}}(P\|Q) &= \sum_i \log\left(\frac{p(i)}{q(i)}\right) p(i).\\
+    \end{align*}
+  \end{block}
+
+}
+
+\frame{
+  \frametitle{Compute the weights}
+
+  However, since the entropy of $H(x)$ would be the identical. We can
+  simple calculate the Kullback-Leibler Divergence
+  $D_{\mathrm{KL}}(P\|Q)$.
+
+  \vfill
+  After calculating the Kullback-Leibler Divergence, we can compute
+  the weight according to the information gain.
+
+  \vfill
+  \begin{block}{Weights}
     $$
-    D_{\mathrm{KL}}(P\|Q) = \sum_i \ln\left(\frac{P(i)}{Q(i)}\right) P(i).\!
+    \omega_i = \left\{
+    \begin{array}{l r}
+      1/(1 + D_{\mathrm{KL}}(P\|Q_i)) \quad \text{if $D_{\mathrm{KL}}(P\|Q_i) \ne 0$}\\
+      1 - 1e^{-5} \, \, \, \, \quad \quad \quad \quad \quad \text{if $D_{\mathrm{KL}}(P\|Q_i) = 0$}
+    \end{array} \right.
     $$
   \end{block}
 
-  %% \begin{block}{Mean Squared Error}
-  %%   \begin{align*}
-  %%   \operatorname{MSE} &=\frac{1}{n}\sum_{i=1}^n(\hat{Y_i} - Y_i)^2\\
-  %%   \omega &= \frac{MSE}{||MSE||}
-  %%   \end{align*}
-    
-  %% \end{block}
+  
+}  
 
-  %% Where $Y_i$ are data from official source and $\hat{Y}$ are
-  %% alternative sources. 
 
-  %% The smaller the MSE, the greater the weight.
+\frame{
+  \frametitle{The New Flag Table}
+  
+  Shown below is the new set of weights for the wheat domain
+  calculated based on the method above.
 
-  The weights can then be calculated based on the relative loss of
-  information. The greater amount of information lost, the lower the
-  weight.
+  \begin{table}[h!]
+    \begin{center}
+      \caption{New Observation Status Table of Wheat}
+      \begin{tabular}{|c|c|p{5cm}|}
+        \hline
+        Flags & Weights & Description\\
+        \hline
+        (blank) & 1 & Official Figure\\
+        T & 0.9901 & Unofficial Figure\\
+        E & 0.97 & Estimates\\
+        I &  & Imputed\\
+        M & 0 & Missing\\
+        \hline
+      \end{tabular}
+    \end{center}  
+  \end{table}
+  
 
 }
+
+
+\frame{
+  \frametitle{The New Flag Table (Cont.)}
   
+
+  \begin{table}[h!]
+    \begin{center}
+      \caption{New Observation Status Table of Ginger}
+      \begin{tabular}{|c|c|p{5cm}|}
+        \hline
+        Flags & Weights & Description\\
+        \hline
+        (blank) & 1 & Official Figure\\
+        T & 0.943 & Unofficial Figure\\
+        E & 0.873 & Estimates\\
+        I &  & Imputed\\
+        M & 0 & Missing\\
+        \hline
+      \end{tabular}
+    \end{center}  
+  \end{table}
+  
+
+}
+
+\frame{
+  \frametitle{Concusion}
+  
+  We hope this new change and framework will assist users to improve
+  their work and utilize information which has been collected over
+  several decades.
+  
+}
+
+
+
+%% \frame{
+%%   \frametitle{Benford's Law}
+
+%%   In the previous approach, we took the official figures as the
+%%   benchmark. Nevertheless, we may want to know how it compares to the
+%%   true distribution.
+  
+%%   \vfill
+
+%%   For large commodities, we can potentially use the \textbf{Benford
+%%   distribution} or the \textbf{First-Digit Law}.
+  
+%%   \begin{block}{Benford Distribution}
+%%     $$
+%%     P(d)=\log_{10} \left(1+\frac{1}{d}\right).
+%%     $$
+%%   \end{block}
+
+%%   Then we can calculate the Kullback-Leibler Divergence with respect
+%%   to the Benford Distribution.
+  
+
+%% }
+
+
+
+%% \frame{
+
+%%   \includegraphics[scale = 0.45]{benford}
+
+%% }
+
 
 %% See if we can use AIC
 
-\frame{
-  \frametitle{Self-Similarity Weights}
-  
-  This alternative method does not assume which source is correct,
-  rather it uses similarity between the observations of different flag
-  to identify a centroid. This centroid is interpreted as close to the
-  true value.
-  
-  \vfill
+%% \frame{
+%%   \frametitle{Self-Similarity Weights}
 
-  The distance from the centroid will be inversely related to the
-  weight. That is, the further away you are from the centroid, the
-  lower the weight will be assigned.
+%%   In this approach, we try to estimate the true value based on
+%%   similarity. The rational is that since all different sources are
+%%   intended to measure the same value, the true value should be within
+%%   the cluster of the observed points. Then the centroid is used as an
+%%   approximation to the true value.
   
-}
+%%   \vfill
 
-\frame{
-  \centering
-  \includegraphics[scale=0.3]{centroid.pdf}
+%%   The distance from the centroid will be inversely related to the
+%%   weight. That is, the further away you are from the centroid, the
+%%   lower the weight will be assigned.
   
-}  
+%% }
+
+%% \frame{
+%%   \centering
+%%   \includegraphics[scale=0.3]{centroid.pdf}
+  
+%% }  
 
 
 \end{document}

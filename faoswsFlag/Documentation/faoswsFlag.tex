@@ -60,7 +60,7 @@
 \usepackage{hyperref}
 \usepackage[ruled, vlined]{algorithm2e}
 \usepackage{mathtools}
-\usepackage{draftwatermark}
+%% \usepackage{draftwatermark}
 \usepackage{float}
 \usepackage{placeins}
 \usepackage{mathrsfs}
@@ -106,7 +106,7 @@
   Food and Agriculture Organization of the United Nations (FAO)\\
   Viale delle Terme di Caracalla 00153 Rome, Italy\\
   E-mail: \email{michael.kao@fao.org}\\
-  URL: \url{https://github.com/mkao006/sws_imputation}
+  URL: \url{https://github.com/mkao006/sws_r_api/tree/master/faoswsFlag}
 }
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
@@ -123,6 +123,7 @@ Lets start by loading the required library into R.
 \hlcom{## Load the required libraries}
 \hlkwd{library}\hlstd{(faoswsFlag)}
 \hlkwd{library}\hlstd{(ggplot2)}
+\hlkwd{library}\hlstd{(splines)}
 \end{alltt}
 \end{kframe}
 \end{knitrout}
@@ -170,7 +171,7 @@ the last section will present a simulated case how the use of these
 data can help us build better models.
 
 
-\section{Specification of a mapping table}
+\section{Specification of a Mapping Table}
 
 In order to compute aggregation of flags, one must convert the symbol
 into a numerical type. The way this should be handled is assign a
@@ -213,7 +214,7 @@ the goal. For the aggregation of flag, only one restriction is applied
 and that is the value of the weights are unique.
 
 
-\section{Use the table to compute aggregation for flags}
+\section{Compute Flag Aggregation}
 
 In this section, we take the computation of yield for example and
 illustrate how to compute flag aggregation with the package. 
@@ -257,7 +258,7 @@ the lower information content of the unofficial figure.
 \hlstd{simulatedProductionFlag}
 \end{alltt}
 \begin{verbatim}
-##  [1] "E" ""  "T" "I" "T" "T" "I" "T" "I" "T"
+##  [1] ""  "T" "T" "I" "E" "M" "T" "T" "M" "I"
 \end{verbatim}
 \begin{alltt}
 \hlcom{## Simulated flag for area harvested}
@@ -267,7 +268,7 @@ the lower information content of the unofficial figure.
 \hlstd{simulatedAreaFlag}
 \end{alltt}
 \begin{verbatim}
-##  [1] ""  "T" "T" "I" "I" "T" ""  "I" "I" "M"
+##  [1] "I" "E" "M" "T" ""  "M" "T" "E" "T" "E"
 \end{verbatim}
 \begin{alltt}
 \hlcom{## Now compute the aggregation of flag}
@@ -275,7 +276,7 @@ the lower information content of the unofficial figure.
                          \hlkwc{flagTable} \hlstd{= faoswsFlagTable)}
 \end{alltt}
 \begin{verbatim}
-##  [1] "E" "T" "T" "I" "I" "T" "I" "I" "I" "M"
+##  [1] "I" "E" "M" "I" "E" "M" "T" "E" "M" "I"
 \end{verbatim}
 \end{kframe}
 \end{knitrout}
@@ -288,7 +289,7 @@ we wil discuss more in the improvement section.
 
 
 
-\section{Applications}
+\section{Other Applications}
 The converesion of the symbol to a numeric value has various advantage
 than solely for the purpose of constructing aggregation. It can assist
 subsequent modelling by identifying the quality of data and enable an
@@ -301,16 +302,16 @@ estimate a weighted regression which gives more weight to data which
 are of higher reliability.
 
 
-\subsection{Robust fitting}
+\subsection{Robust Fitting to Anormalies}
 The following artificial example illustrates how accounting for the
 information source can result in a better fit and incorporate poor
 data quality. The artificial data starts in 1991 and ends in 2014,
-with all the observation collected as unofficial figure except for
-2010. For illustrative purpose, the value in 2010 was estimated by a
-poor algorithm and can be seen in the graph as an outlier. The
-illustration shows how accounting for the outlier through the use of
-meta data can result in more robust model fitting than as treating all
-data have the same information quality.
+with all the observation collected as unofficial figure except the
+last two which were estimated. For illustrative purpose, the values
+were estimated by a poor algorithm and can be seen in the graph as
+anormalies. The illustration shows how accounting for the anormalies
+through the use of meta data can result in more robust model fitting
+than as treating all data have the same information quality.
 
 Figure below shows the value of simulated production with respect to
 time, they are labelled by their corresponding flag. The fit of the
@@ -334,10 +335,10 @@ respectively.
 \hlcom{## Simuate a data set which has a single point that was imputed badly }
 \hlcom{## but still used for later analysis.}
 \hlstd{x} \hlkwb{=} \hlnum{1991}\hlopt{:}\hlnum{2014}
-\hlstd{y} \hlkwb{=} \hlnum{100} \hlopt{+} \hlnum{10} \hlopt{*} \hlstd{(x} \hlopt{-} \hlnum{1989}\hlstd{)} \hlopt{+} \hlkwd{rnorm}\hlstd{(}\hlkwd{length}\hlstd{(x),} \hlkwc{sd} \hlstd{=} \hlnum{20}\hlstd{)}
+\hlstd{y} \hlkwb{=} \hlnum{100} \hlopt{+} \hlnum{10} \hlopt{*} \hlstd{(x} \hlopt{-} \hlnum{1989}\hlstd{)} \hlopt{+} \hlkwd{rnorm}\hlstd{(}\hlkwd{length}\hlstd{(x),} \hlkwc{sd} \hlstd{=} \hlnum{30}\hlstd{)}
 \hlstd{f} \hlkwb{=} \hlkwd{rep}\hlstd{(}\hlstr{"T"}\hlstd{,} \hlkwd{length}\hlstd{(x))}
-\hlstd{y[}\hlnum{20}\hlstd{]} \hlkwb{=} \hlstd{y[}\hlnum{20}\hlstd{]} \hlopt{+} \hlnum{500}
-\hlstd{f[}\hlnum{20}\hlstd{]} \hlkwb{=} \hlstr{"E"}
+\hlstd{y[}\hlnum{23}\hlopt{:}\hlnum{24}\hlstd{]} \hlkwb{=} \hlkwd{c}\hlstd{(}\hlnum{80}\hlstd{,} \hlnum{90}\hlstd{)}
+\hlstd{f[}\hlnum{23}\hlopt{:}\hlnum{24}\hlstd{]} \hlkwb{=} \hlstr{"E"}
 \hlstd{simulated.df} \hlkwb{=} \hlkwd{data.frame}\hlstd{(}\hlkwc{year} \hlstd{= x,} \hlkwc{simulatedProduction} \hlstd{= y,} \hlkwc{flag} \hlstd{= f)}
 
 \hlcom{## Plot the data and show the two different fit when accounting for the }
@@ -362,7 +363,7 @@ respectively.
 \end{knitrout}
 
 
-\subsection{Weighted source of combination}
+\subsection{Weighted Source of Combination}
 
 Another potential application of weight is for combining data from
 various source to form an ensemble estimate.
@@ -406,38 +407,123 @@ growth curve is closer to the observed value marked as T.
 
 \end{knitrout}
 
+\section{Computing Weights}
 
-\section{Further Improvements}
-Currently, the method is only implement to perform flag
-aggregation. Nevertheless, we would like to extend the possibility to
-what has been demonstrated in the application section. In order to
-achieve this, we would need a methodology allowing us to assign a
-weight automatically and objectively.
+To compute the weights objectively, we following the principle of
+minimum discrimination information.\\
 
-Two method are being investigated, the first is to use official figure
-as the benchmark and measure the loss in information through the use
-of entropy. The greater the loss in information, the lower the weight
-should be. This however, requires us to assume that the official
-figure is of highest quality. On the other hand, the second
-methodology does not make this assumption. Rather, it computes the
-similarity between values of different flag then assign weights
-according to the similarity. The rational of this approach is that the
-data source which are close to what we want to measure will also be
-close to data sources measured differently. This is similary to
-finding the centroid which minimizes the within cluster sums of
-variance.
+The information states that given derived information set, a new
+distribution $q$ should be chosen which is as hard to discriminate
+from the original distribution $p$ as possible; so that the new data
+produces as small an information gain as possible.\\
+
+In another word, if we have to choose another representation, the
+information set which result in the least amount of information gain
+or uncertainty should be chosen.\\
+
+First of all, we take official figures as the desired
+distribution. Then we can measured the information gain when we
+replace data collection with imputed or estimated data.\\
+
+The cross-entropy can be calculated as:
+
+\begin{align*}
+  \mathrm{H}(P, Q) &=  \mathrm{H}(P) + D_{\mathrm{KL}}(P \| Q)\\
+  \intertext{Where}
+  H(P) &= -\sum_{i} {p(x_i) \log p(x_i)},\\
+  D_{\mathrm{KL}}(P\|Q) &= \sum_i \log\left(\frac{p(i)}{q(i)}\right) p(i).\\
+\end{align*}
+
+
+
+However, since the entropy of $H(x)$ would be the identical. We can
+simple calculate the Kullback-Leibler Divergence
+$D_{\mathrm{KL}}(P\|Q)$. After calculating the Kullback-Leibler
+Divergence, we can compute the weight according to the information
+gain.
+  
+
+\begin{equation*}
+  \omega_i = \left\{
+  \begin{array}{l r}
+    1/(1 + D_{\mathrm{KL}}(P\|Q_i)) \quad \text{if $D_{\mathrm{KL}}(P\|Q_i) \ne 0$}\\
+    1 - 1e^{-5} \, \, \, \, \quad \quad \quad \quad \quad \text{if $D_{\mathrm{KL}}(P\|Q_i) = 0$}
+  \end{array} \right.
+\end{equation*}
+
+
+The following function shows how the weights can be computed from
+historical information. This code is only executable when connected to
+the intranet.
 
 \begin{knitrout}
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## load the library}
+\hlkwd{library}\hlstd{(faosws)}
+\hlkwd{library}\hlstd{(faoswsExtra)}
+\hlkwd{library}\hlstd{(faoswsFlag)}
+\hlkwd{library}\hlstd{(data.table)}
+\hlkwd{library}\hlstd{(FAOSTAT)}
 
-{\centering \includegraphics[width=\maxwidth]{figure/illustration} 
+\hlcom{## Set up the data query}
+\hlstd{newPivot} \hlkwb{=} \hlkwd{c}\hlstd{(}
+    \hlkwd{Pivoting}\hlstd{(}\hlkwc{code}\hlstd{=} \hlstr{"geographicAreaM49"}\hlstd{,} \hlkwc{ascending} \hlstd{=} \hlnum{TRUE}\hlstd{),}
+    \hlkwd{Pivoting}\hlstd{(}\hlkwc{code}\hlstd{=} \hlstr{"measuredItemCPC"}\hlstd{,} \hlkwc{ascending} \hlstd{=} \hlnum{TRUE}\hlstd{),}
+    \hlkwd{Pivoting}\hlstd{(}\hlkwc{code} \hlstd{=} \hlstr{"timePointYears"}\hlstd{,} \hlkwc{ascending} \hlstd{=} \hlnum{FALSE}\hlstd{),}
+    \hlkwd{Pivoting}\hlstd{(}\hlkwc{code}\hlstd{=} \hlstr{"measuredElement"}\hlstd{,} \hlkwc{ascending} \hlstd{=} \hlnum{TRUE}\hlstd{)}
+    \hlstd{)}
 
-}
+\hlstd{newKey} \hlkwb{=} \hlstd{swsContext.datasets}
 
+\hlstd{getAllCountryCode} \hlkwb{=} \hlkwa{function}\hlstd{()\{}
+    \hlcom{## 1062 is geographical world}
+    \hlstd{keyTree} \hlkwb{=}
+        \hlkwd{unique}\hlstd{(}\hlkwd{GetCodeTree}\hlstd{(}\hlkwc{domain} \hlstd{= swsContext.datasets[[}\hlnum{1}\hlstd{]]}\hlopt{@}\hlkwc{domain}\hlstd{,}
+                           \hlkwc{dataset} \hlstd{= swsContext.datasets[[}\hlnum{1}\hlstd{]]}\hlopt{@}\hlkwc{dataset}\hlstd{,}
+                           \hlkwc{dimension} \hlstd{=} \hlstr{"geographicAreaM49"}\hlstd{,}
+                           \hlkwc{roots} \hlstd{=} \hlstr{"1062"}\hlstd{)}
+               \hlstd{)}
+    \hlstd{allCountryCode} \hlkwb{=}
+        \hlkwd{unique}\hlstd{(}\hlkwd{adjacent2edge}\hlstd{(keyTree)}\hlopt{$}\hlstd{children)}
+    \hlstd{allCountryCode[allCountryCode} \hlopt{%in%} \hlstd{FAOcountryProfile}\hlopt{$}\hlstd{UN_CODE]}
+\hlstd{\}}
 
+\hlcom{## Create new key and download data, the history is for the whole}
+\hlcom{## world since 1970 for wheat.}
+\hlstd{newKey[[}\hlnum{1}\hlstd{]]}\hlopt{@}\hlkwc{dimensions}\hlopt{$}\hlstd{geographicAreaM49}\hlopt{@}\hlkwc{keys} \hlkwb{=} \hlkwd{getAllCountryCode}\hlstd{()}
+\hlstd{newKey[[}\hlnum{1}\hlstd{]]}\hlopt{@}\hlkwc{dimensions}\hlopt{$}\hlstd{timePointYears}\hlopt{@}\hlkwc{keys} \hlkwb{=} \hlkwd{as.character}\hlstd{(}\hlnum{1970}\hlopt{:}\hlnum{2013}\hlstd{)}
+\hlstd{newKey[[}\hlnum{1}\hlstd{]]}\hlopt{@}\hlkwc{dimensions}\hlopt{$}\hlstd{measuredItemCPC}\hlopt{@}\hlkwc{keys} \hlkwb{=} \hlstr{"0111"}
 
+\hlcom{## Compute the table}
+\hlstd{history} \hlkwb{=} \hlkwd{GetHistory}\hlstd{(newKey[[}\hlnum{1}\hlstd{]], newPivot)}
+\hlstd{history[, timePointYears} \hlkwb{:=} \hlkwd{as.numeric}\hlstd{(timePointYears)]}
+\hlstd{obsTable} \hlkwb{=} \hlkwd{computeFlagWeight}\hlstd{(history,} \hlkwc{method} \hlstd{=} \hlstr{"entropy"}\hlstd{)}
+\end{alltt}
+\end{kframe}
 \end{knitrout}
 
+
+
+%% \section{Further Improvements}
+%% Currently, the method is only implement to perform flag
+%% aggregation. Nevertheless, we would like to extend the possibility to
+%% what has been demonstrated in the application section. In order to
+%% achieve this, we would need a methodology allowing us to assign a
+%% weight automatically and objectively.
+
+%% Two method are being investigated, the first is to use official figure
+%% as the benchmark and measure the loss in information through the use
+%% of entropy. The greater the loss in information, the lower the weight
+%% should be. This however, requires us to assume that the official
+%% figure is of highest quality. On the other hand, the second
+%% methodology does not make this assumption. Rather, it computes the
+%% similarity between values of different flag then assign weights
+%% according to the similarity. The rational of this approach is that the
+%% data source which are close to what we want to measure will also be
+%% close to data sources measured differently. This is similary to
+%% finding the centroid which minimizes the within cluster sums of
+%% variance.
 
 
 \end{document}

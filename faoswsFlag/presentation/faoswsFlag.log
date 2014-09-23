@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2014.7.2)  8 SEP 2014 15:49
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2014.7.2)  17 SEP 2014 15:21
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -666,6 +666,31 @@ Package: verbatim 2003/08/22 v1.5q LaTeX2e package for verbatim enhancements
 \verbatim@line=\toks41
 \verbatim@in@stream=\read2
 )
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption.sty
+Package: caption 2013/05/02 v3.3-89 Customizing captions (AR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/caption/caption3.sty
+Package: caption3 2013/05/02 v1.6-88 caption3 kernel (AR)
+Package caption3 Info: TeX engine: e-TeX on input line 57.
+\captionmargin=\dimen185
+\captionmargin@=\dimen186
+\captionwidth=\dimen187
+\caption@tempdima=\dimen188
+\caption@indent=\dimen189
+\caption@parindent=\dimen190
+\caption@hangindent=\dimen191
+)
+\c@ContinuedFloat=\count153
+Package caption Info: beamer document class.
+Package caption Info: hyperref package is loaded.
+Package caption Info: Hyperref support is turned off
+(caption)             because hyperref has stopped early.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/caption/subcaption.sty
+Package: subcaption 2013/02/03 v1.1-62 Sub-captions (AR)
+\c@subfigure=\count154
+\c@subtable=\count155
+)
 (/usr/share/texmf/tex/latex/beamer/base/themes/theme/beamerthemeWarsaw.sty
 Package: beamerthemeWarsaw 2010/06/17  (rcs-revision d02a7cf4d8ae)
 
@@ -737,16 +762,16 @@ LaTeX Font Info:    ... okay on input line 22.
 
 (/usr/share/texlive/texmf-dist/tex/context/base/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count153
-\scratchdimen=\dimen185
+\scratchcounter=\count156
+\scratchdimen=\dimen192
 \scratchbox=\box53
-\nofMPsegments=\count154
-\nofMParguments=\count155
+\nofMPsegments=\count157
+\nofMParguments=\count158
 \everyMPshowfont=\toks42
-\MPscratchCnt=\count156
-\MPscratchDim=\dimen186
-\MPnumerator=\count157
-\makeMPintoPDFobject=\count158
+\MPscratchCnt=\count159
+\MPscratchDim=\dimen193
+\MPnumerator=\count160
+\makeMPintoPDFobject=\count161
 \everyMPtoPDFconversion=\toks43
 ) (/usr/share/texlive/texmf-dist/tex/latex/oberdiek/epstopdf-base.sty
 Package: epstopdf-base 2010/02/09 v2.5 Base part for package epstopdf
@@ -773,7 +798,7 @@ Package: nameref 2012/10/27 v2.43 Cross-referencing by name of section
 (/usr/share/texlive/texmf-dist/tex/generic/oberdiek/gettitlestring.sty
 Package: gettitlestring 2010/12/03 v1.4 Cleanup title references (HO)
 )
-\c@section@level=\count159
+\c@section@level=\count162
 )
 LaTeX Info: Redefining \ref on input line 22.
 LaTeX Info: Redefining \pageref on input line 22.
@@ -851,6 +876,8 @@ tionary/translator-theorem-dictionary-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
 )
 LaTeX Info: Redefining \includegraphics on input line 22.
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: End \AtBeginDocument code.
  (./faoswsFlag.nav)
 <fao_logo.png, id=38, 226.8475pt x 226.8475pt>
 File: fao_logo.png Graphic file (type png)
@@ -869,73 +896,95 @@ LaTeX Font Warning: Font shape `OT1/cmss/m/n' in size <4> not available
 
 ] (./faoswsFlag.toc) [3
 
-] [4
+]
+<all_flags.png, id=162, 803.0pt x 348.30125pt>
+File: all_flags.png Graphic file (type png)
+ <use all_flags.png>
+Package pdftex.def Info: all_flags.png used on input line 64.
+(pdftex.def)             Requested size: 153.64493pt x 66.64029pt.
+LaTeX Font Info:    Try loading font information for U+msa on input line 64.
 
-] [5
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 64.
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+<arrow.jpg, id=163, 795.33134pt x 614.65636pt>
+File: arrow.jpg Graphic file (type jpg)
+ <use arrow.jpg>
+Package pdftex.def Info: arrow.jpg used on input line 64.
+(pdftex.def)             Requested size: 30.73085pt x 23.74734pt.
+
+<un_flag.png, id=164, 1027.84pt x 685.56125pt>
+File: un_flag.png Graphic file (type png)
+ <use un_flag.png>
+Package pdftex.def Info: un_flag.png used on input line 64.
+(pdftex.def)             Requested size: 76.82246pt x 51.23703pt.
+ [4
+
+ <./all_flags.png> <./arrow.jpg> <./un_flag.png>] [5
 
 ] [6
 
 ] [7
 
-] (./faoswsFlag.toc) [8
+] [8
 
-] [9
+] (./faoswsFlag.toc)
+[9
 
-]
-LaTeX Font Info:    Try loading font information for U+msa on input line 163.
- (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
-File: umsa.fd 2013/01/14 v3.01 AMS symbols A
-)
-LaTeX Font Info:    Try loading font information for U+msb on input line 163.
-
-(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
-File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) [10
+] [10
 
 ] [11
 
-]
-(./faoswsFlag.toc) [12
+] [12
 
 ] [13
 
-] <robust.pdf, id=474, 578.16pt x 361.35pt>
-File: robust.pdf Graphic file (type pdf)
+] (./faoswsFlag.toc) [14
 
-<use robust.pdf>
-Package pdftex.def Info: robust.pdf used on input line 205.
+] [15
+
+]
+<robust.pdf, id=543, 578.16pt x 361.35pt>
+File: robust.pdf Graphic file (type pdf)
+ <use robust.pdf>
+Package pdftex.def Info: robust.pdf used on input line 281.
 (pdftex.def)             Requested size: 289.07928pt x 180.67456pt.
- [14
+ [16
 
  <./robust.pdf>]
-<combine.pdf, id=510, 578.16pt x 361.35pt>
+<combine.pdf, id=580, 578.16pt x 361.35pt>
 File: combine.pdf Graphic file (type pdf)
  <use combine.pdf>
-Package pdftex.def Info: combine.pdf used on input line 213.
+Package pdftex.def Info: combine.pdf used on input line 289.
 (pdftex.def)             Requested size: 289.07928pt x 180.67456pt.
- [15
+ [17
 
- <./combine.pdf>] [16
+ <./combine.pdf>] [18
 
-] (./faoswsFlag.toc) [17
-
-] [18
-
-] [19
+] (./faoswsFlag.toc) [19
 
 ] [20
 
 ] [21
 
-]
-<centroid.pdf, id=736, 722.7pt x 722.7pt>
-File: centroid.pdf Graphic file (type pdf)
- <use centroid.pdf>
-Package pdftex.def Info: centroid.pdf used on input line 338.
-(pdftex.def)             Requested size: 216.81166pt x 216.81166pt.
- [22
+] [22
 
- <./centroid.pdf>]
+] [23
+
+] [24
+
+] [25
+
+] [26
+
+] [27
+
+]
 \tf@nav=\write6
 \openout6 = `faoswsFlag.nav'.
 
@@ -945,11 +994,12 @@ Package pdftex.def Info: centroid.pdf used on input line 338.
 \tf@snm=\write8
 \openout8 = `faoswsFlag.snm'.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 341.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 341.
- (./faoswsFlag.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 341.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 341.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 529.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 529.
+
+(./faoswsFlag.aux)
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 529.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 529.
 Package rerunfilecheck Info: File `faoswsFlag.out' has not changed.
 (rerunfilecheck)             Checksum: 373A39E9AC8FDA49F3428666FEB8BC9D;222.
 
@@ -957,30 +1007,32 @@ Package rerunfilecheck Info: File `faoswsFlag.out' has not changed.
 LaTeX Font Warning: Size substitutions with differences
 (Font)              up to 1.0pt have occurred.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 341.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 529.
  ) 
 Here is how much of TeX's memory you used:
- 15881 strings out of 493304
- 295924 string characters out of 6139872
- 373770 words of memory out of 5000000
- 18893 multiletter control sequences out of 15000+600000
- 11457 words of font info for 42 fonts, out of 8000000 for 9000
+ 16993 strings out of 493304
+ 315981 string characters out of 6139872
+ 394922 words of memory out of 5000000
+ 19982 multiletter control sequences out of 15000+600000
+ 12453 words of font info for 46 fonts, out of 8000000 for 9000
  957 hyphenation exceptions out of 8191
  49i,19n,64p,469b,640s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/shar
-e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texliv
-e/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/share/texlive/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/share/texlive/texmf-dist
-/fonts/type1/public/amsfonts/cm/cmss8.pfb></usr/share/texlive/texmf-dist/fonts/
-type1/public/amsfonts/cm/cmssbx10.pfb></usr/share/texlive/texmf-dist/fonts/type
-1/public/amsfonts/cm/cmssi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/pub
-lic/amsfonts/cm/cmssi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
-sfonts/cm/cmsy10.pfb>
-Output written on faoswsFlag.pdf (22 pages, 177945 bytes).
+e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texli
+ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf
+-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb></usr/share/texlive/texmf-dist/
+fonts/type1/public/amsfonts/cm/cmss12.pfb></usr/share/texlive/texmf-dist/fonts/
+type1/public/amsfonts/cm/cmss8.pfb></usr/share/texlive/texmf-dist/fonts/type1/p
+ublic/amsfonts/cm/cmssbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmssi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
+fonts/cm/cmssi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
+cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cms
+y8.pfb>
+Output written on faoswsFlag.pdf (27 pages, 464706 bytes).
 PDF statistics:
- 820 PDF objects out of 1000 (max. 8388607)
- 751 compressed objects within 8 object streams
- 49 named destinations out of 1000 (max. 500000)
- 143 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 978 PDF objects out of 1000 (max. 8388607)
+ 899 compressed objects within 9 object streams
+ 59 named destinations out of 1000 (max. 500000)
+ 153 words of extra memory for PDF output out of 10000 (max. 10000000)
 

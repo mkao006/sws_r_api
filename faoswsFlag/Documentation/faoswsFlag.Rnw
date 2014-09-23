@@ -11,7 +11,7 @@
 \usepackage{hyperref}
 \usepackage[ruled, vlined]{algorithm2e}
 \usepackage{mathtools}
-\usepackage{draftwatermark}
+%% \usepackage{draftwatermark}
 \usepackage{float}
 \usepackage{placeins}
 \usepackage{mathrsfs}
@@ -57,7 +57,7 @@
   Food and Agriculture Organization of the United Nations (FAO)\\
   Viale delle Terme di Caracalla 00153 Rome, Italy\\
   E-mail: \email{michael.kao@fao.org}\\
-  URL: \url{https://github.com/mkao006/sws_imputation}
+  URL: \url{https://github.com/mkao006/sws_r_api/tree/master/faoswsFlag}
 }
 
 
@@ -80,6 +80,7 @@ Lets start by loading the required library into R.
 ## Load the required libraries
 library(faoswsFlag)
 library(ggplot2)
+library(splines)
 
 @ 
 
@@ -126,7 +127,7 @@ the last section will present a simulated case how the use of these
 data can help us build better models.
 
 
-\section{Specification of a mapping table}
+\section{Specification of a Mapping Table}
 
 In order to compute aggregation of flags, one must convert the symbol
 into a numerical type. The way this should be handled is assign a
@@ -158,7 +159,7 @@ the goal. For the aggregation of flag, only one restriction is applied
 and that is the value of the weights are unique.
 
 
-\section{Use the table to compute aggregation for flags}
+\section{Compute Flag Aggregation}
 
 In this section, we take the computation of yield for example and
 illustrate how to compute flag aggregation with the package. 
@@ -211,7 +212,7 @@ we wil discuss more in the improvement section.
 
 
 
-\section{Applications}
+\section{Other Applications}
 The converesion of the symbol to a numeric value has various advantage
 than solely for the purpose of constructing aggregation. It can assist
 subsequent modelling by identifying the quality of data and enable an
@@ -224,16 +225,16 @@ estimate a weighted regression which gives more weight to data which
 are of higher reliability.
 
 
-\subsection{Robust fitting}
+\subsection{Robust Fitting to Anormalies}
 The following artificial example illustrates how accounting for the
 information source can result in a better fit and incorporate poor
 data quality. The artificial data starts in 1991 and ends in 2014,
-with all the observation collected as unofficial figure except for
-2010. For illustrative purpose, the value in 2010 was estimated by a
-poor algorithm and can be seen in the graph as an outlier. The
-illustration shows how accounting for the outlier through the use of
-meta data can result in more robust model fitting than as treating all
-data have the same information quality.
+with all the observation collected as unofficial figure except the
+last two which were estimated. For illustrative purpose, the values
+were estimated by a poor algorithm and can be seen in the graph as
+anormalies. The illustration shows how accounting for the anormalies
+through the use of meta data can result in more robust model fitting
+than as treating all data have the same information quality.
 
 Figure below shows the value of simulated production with respect to
 time, they are labelled by their corresponding flag. The fit of the
@@ -255,10 +256,10 @@ simTable[simTable$flagObservationStatus == "E",
 ## Simuate a data set which has a single point that was imputed badly 
 ## but still used for later analysis.
 x = 1991:2014
-y = 100 + 10 * (x - 1989) + rnorm(length(x), sd = 20)
+y = 100 + 10 * (x - 1989) + rnorm(length(x), sd = 30)
 f = rep("T", length(x))
-y[20] = y[20] + 500
-f[20] = "E"
+y[23:24] = c(80, 90)
+f[23:24] = "E"
 simulated.df = data.frame(year = x, simulatedProduction = y, flag = f)
 
 ## Plot the data and show the two different fit when accounting for the 
@@ -276,7 +277,7 @@ ggplot(data = simulated.df,
 @ 
 
 
-\subsection{Weighted source of combination}
+\subsection{Weighted Source of Combination}
 
 Another potential application of weight is for combining data from
 various source to form an ensemble estimate.
@@ -312,98 +313,122 @@ ggplot(data = simulated.df,
 
 @ 
 
+\section{Computing Weights}
 
-\section{Further Improvements}
-Currently, the method is only implement to perform flag
-aggregation. Nevertheless, we would like to extend the possibility to
-what has been demonstrated in the application section. In order to
-achieve this, we would need a methodology allowing us to assign a
-weight automatically and objectively.
+To compute the weights objectively, we following the principle of
+minimum discrimination information.\\
 
-Two method are being investigated, the first is to use official figure
-as the benchmark and measure the loss in information through the use
-of entropy. The greater the loss in information, the lower the weight
-should be. This however, requires us to assume that the official
-figure is of highest quality. On the other hand, the second
-methodology does not make this assumption. Rather, it computes the
-similarity between values of different flag then assign weights
-according to the similarity. The rational of this approach is that the
-data source which are close to what we want to measure will also be
-close to data sources measured differently. This is similary to
-finding the centroid which minimizes the within cluster sums of
-variance.
+The information states that given derived information set, a new
+distribution $q$ should be chosen which is as hard to discriminate
+from the original distribution $p$ as possible; so that the new data
+produces as small an information gain as possible.\\
 
-<<illustration, echo=FALSE>>=
+In another word, if we have to choose another representation, the
+information set which result in the least amount of information gain
+or uncertainty should be chosen.\\
 
-## sim.df = 
-##     data.frame(x = c(1, 1.5, 1.8, 3, 20),
-##                y = c(5, 7, 3, 4, 30),
-##                name = letters[1:5])
-## plot(sim.df[, c("x", "y")], pch = 19)
-## with(sim.df, text(x = mean(x), y = mean(y), label = "equal weight mean"))
-## similarity = 1/rowSums(as.matrix(dist(sim.df[, c("x", "y")], 
-##     diag = TRUE,  upper = TRUE)))^2
-## weights = similarity/sum(similarity)
-## with(sim.df, text(x = weighted.mean(x = x, w = weights),
-##                   y = weighted.mean(x = y, w = weights),
-##                   label = "weighted mean"))
+First of all, we take official figures as the desired
+distribution. Then we can measured the information gain when we
+replace data collection with imputed or estimated data.\\
+
+The cross-entropy can be calculated as:
+
+\begin{align*}
+  \mathrm{H}(P, Q) &=  \mathrm{H}(P) + D_{\mathrm{KL}}(P \| Q)\\
+  \intertext{Where}
+  H(P) &= -\sum_{i} {p(x_i) \log p(x_i)},\\
+  D_{\mathrm{KL}}(P\|Q) &= \sum_i \log\left(\frac{p(i)}{q(i)}\right) p(i).\\
+\end{align*}
 
 
 
-## pdf(file = "../presentation/centroid.pdf", width = 10, height = 10)
-sim.df = 
-    data.frame(x = c(1, 1.5, 1.8, 3, 20),
-               y = c(5, 7, 3, 4, 30),
-               name = letters[1:5])
-plot(sim.df[, c("x", "y")], pch = 19)
-similarity = 1/rowSums(as.matrix(dist(sim.df[, c("x", "y")], 
-    diag = TRUE,  upper = TRUE)))^2
-weights = similarity/sum(similarity)
-centroid = with(sim.df, 
-    c(weighted.mean(x = x, w = weights), 
-      weighted.mean(x = y, w = weights)))
-with(sim.df[1,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
-with(sim.df[2,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
-with(sim.df[3,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
-with(sim.df[4,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
-with(sim.df[5,], lines(c(x, centroid[1]), c(y, centroid[2]), lty = 2))
-text(x = centroid[1], y = centroid[2] + 1, label = "Centroid")
-points(x = centroid[1], y = centroid[2], col = "red", pch = 19)
-## graphics.off()
+However, since the entropy of $H(x)$ would be the identical. We can
+simple calculate the Kullback-Leibler Divergence
+$D_{\mathrm{KL}}(P\|Q)$. After calculating the Kullback-Leibler
+Divergence, we can compute the weight according to the information
+gain.
+  
+
+\begin{equation*}
+  \omega_i = \left\{
+  \begin{array}{l r}
+    1/(1 + D_{\mathrm{KL}}(P\|Q_i)) \quad \text{if $D_{\mathrm{KL}}(P\|Q_i) \ne 0$}\\
+    1 - 1e^{-5} \, \, \, \, \quad \quad \quad \quad \quad \text{if $D_{\mathrm{KL}}(P\|Q_i) = 0$}
+  \end{array} \right.
+\end{equation*}
 
 
-## time = 1:30
-## O = 20 + 0.8 * time + rnorm(length(time))
-## T = 20 + 0.8 * time + rnorm(length(time), mean = 3)
-## E = 20 + 0.8 * time + rnorm(length(time), mean = -2)
-## I = 20 + 0.8 * time + rnorm(length(time), mean = 2, sd = 5)
+The following function shows how the weights can be computed from
+historical information. This code is only executable when connected to
+the intranet.
 
-## plot(time, O, pch = 19)
-## points(time, T, col = "green", pch = 19)
-## points(time, E, col = "blue", pch = 19)
-## points(time, I, col = "red", pch = 19)
+<<compute-weight, eval=FALSE>>=
+## load the library
+library(faosws)
+library(faoswsExtra)
+library(faoswsFlag)
+library(data.table)
+library(FAOSTAT)
+
+## Set up the data query
+newPivot = c(
+    Pivoting(code= "geographicAreaM49", ascending = TRUE),
+    Pivoting(code= "measuredItemCPC", ascending = TRUE),
+    Pivoting(code = "timePointYears", ascending = FALSE),
+    Pivoting(code= "measuredElement", ascending = TRUE)
+    )
+
+newKey = swsContext.datasets
+
+getAllCountryCode = function(){
+    ## 1062 is geographical world
+    keyTree =
+        unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
+                           dataset = swsContext.datasets[[1]]@dataset,
+                           dimension = "geographicAreaM49",
+                           roots = "1062")
+               )    
+    allCountryCode =
+        unique(adjacent2edge(keyTree)$children)
+    allCountryCode[allCountryCode %in% FAOcountryProfile$UN_CODE]
+}
+
+## Create new key and download data, the history is for the whole
+## world since 1970 for wheat.
+newKey[[1]]@dimensions$geographicAreaM49@keys = getAllCountryCode()
+newKey[[1]]@dimensions$timePointYears@keys = as.character(1970:2013)
+newKey[[1]]@dimensions$measuredItemCPC@keys = "0111"
+
+## Compute the table
+history = GetHistory(newKey[[1]], newPivot)
+history[, timePointYears := as.numeric(timePointYears)]
+obsTable = computeFlagWeight(history, method = "entropy")
 
 
-## D = O - T
-## eD = ecdf(D)
-## plot(eD)
-
-## test = rnorm(100, mean = -3)
-## eTest = ecdf(test)
-## plot(eTest)
-## curve(eD, add = TRUE, col = "red")
-
-
-## ks.test(O, T)
-## ks.test(O, E)
-## ks.test(O, I)
-## plot(ecdf(O))
-## plot(ecdf(T), add = TRUE, col = "red")
-## plot(ecdf(E), add = TRUE, col = "blue")
-## plot(ecdf(I), add = TRUE, col = "green")
 
 @ 
 
+
+
+%% \section{Further Improvements}
+%% Currently, the method is only implement to perform flag
+%% aggregation. Nevertheless, we would like to extend the possibility to
+%% what has been demonstrated in the application section. In order to
+%% achieve this, we would need a methodology allowing us to assign a
+%% weight automatically and objectively.
+
+%% Two method are being investigated, the first is to use official figure
+%% as the benchmark and measure the loss in information through the use
+%% of entropy. The greater the loss in information, the lower the weight
+%% should be. This however, requires us to assume that the official
+%% figure is of highest quality. On the other hand, the second
+%% methodology does not make this assumption. Rather, it computes the
+%% similarity between values of different flag then assign weights
+%% according to the similarity. The rational of this approach is that the
+%% data source which are close to what we want to measure will also be
+%% close to data sources measured differently. This is similary to
+%% finding the centroid which minimizes the within cluster sums of
+%% variance.
 
 
 \end{document}

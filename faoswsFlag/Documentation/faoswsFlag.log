@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2014.7.2)  8 SEP 2014 15:27
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2014.7.2)  17 SEP 2014 16:44
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -511,15 +511,6 @@ LaTeX Info: Thecontrolsequence`\]'isalreadyrobust on input line 129.
 \l_MT_above_shortintertext_sep=\dimen143
 \l_MT_below_shortintertext_sep=\dimen144
 )
-(/usr/share/texlive/texmf-dist/tex/latex/draftwatermark/draftwatermark.sty
-Package: draftwatermark 2006/06/30 1.0 Put a gray textual watermark on document
- pages
-
-(/usr/share/texlive/texmf-dist/tex/latex/everypage/everypage.sty
-Package: everypage 2007/06/20 1.1 Hooks to run on every page
-)
-\sc@wm@fontsize=\skip77
-)
 (/usr/share/texlive/texmf-dist/tex/latex/float/float.sty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \c@float@type=\count126
@@ -705,38 +696,41 @@ File: t1aett.fd 1997/11/16 Font definitions for T1/aett.
 LaTeX Font Warning: Font shape `T1/aett/bx/n' undefined
 (Font)              using `T1/aett/m/n' instead on input line 124.
 
-[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
 
-pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has
- been already used, duplicate ignored
+LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-\AtBegShi@Output ...ipout \box \AtBeginShipoutBox 
-                                                  \fi \fi 
-l.171 
-      ]
-Package color Info: Redefining color shadecolor on input line 189.
-Package color Info: Redefining color shadecolor on input line 236.
+[1
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+Package color Info: Redefining color shadecolor on input line 190.
+Package color Info: Redefining color shadecolor on input line 237.
 LaTeX Font Info:    Font shape `T1/pplx/m/sl' in size <10.95> not available
-(Font)              Font shape `T1/pplx/m/it' tried instead on input line 245.
+(Font)              Font shape `T1/pplx/m/it' tried instead on input line 246.
 
 Overfull \hbox (5.47499pt too wide) has occurred while \output is active
 \T1/pplx/m/n/10.95 2 []
  []
 
-[2]
-Package color Info: Redefining color shadecolor on input line 249.
+[2pdfTeX warning (ext4): destination with the same identifier (name{table.1}) h
+as been already used, duplicate ignored
+
+\AtBegShi@Output ...ipout \box \AtBeginShipoutBox 
+                                                  \fi \fi 
+l.246 \end{kframe}
+                  ]
+Package color Info: Redefining color shadecolor on input line 250.
 
 Overfull \hbox (5.47499pt too wide) has occurred while \output is active
 [] \T1/pplx/m/n/10.95 3
  []
 
 [3]
-Package color Info: Redefining color shadecolor on input line 327.
+Package color Info: Redefining color shadecolor on input line 328.
  <figure/simulated-example.pdf, id=56, 505.89pt x 361.35pt>
 File: figure/simulated-example.pdf Graphic file (type pdf)
 
 <use figure/simulated-example.pdf>
-Package pdftex.def Info: figure/simulated-example.pdf used on input line 356.
+Package pdftex.def Info: figure/simulated-example.pdf used on input line 357.
 (pdftex.def)             Requested size: 455.24411pt x 325.17891pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -747,7 +741,7 @@ Overfull \hbox (5.47499pt too wide) has occurred while \output is active
  []
 
 [4]
-Package color Info: Redefining color shadecolor on input line 381.
+Package color Info: Redefining color shadecolor on input line 382.
 
 Overfull \hbox (5.47499pt too wide) has occurred while \output is active
 [] \T1/pplx/m/n/10.95 5
@@ -758,18 +752,30 @@ Overfull \hbox (5.47499pt too wide) has occurred while \output is active
 File: figure/simulated-example2.pdf Graphic file (type pdf)
 
 <use figure/simulated-example2.pdf>
-Package pdftex.def Info: figure/simulated-example2.pdf used on input line 401.
+Package pdftex.def Info: figure/simulated-example2.pdf used on input line 402.
 (pdftex.def)             Requested size: 455.24411pt x 325.17891pt.
-Package color Info: Redefining color shadecolor on input line 431.
 
-<figure/illustration.pdf, id=72, 505.89pt x 505.89pt>
-File: figure/illustration.pdf Graphic file (type pdf)
+Underfull \hbox (badness 10000) in paragraph at lines 412--414
 
-<use figure/illustration.pdf>
-Package pdftex.def Info: figure/illustration.pdf used on input line 433.
-(pdftex.def)             Requested size: 455.24411pt x 455.25046pt.
+ []
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+
+Underfull \hbox (badness 10000) in paragraph at lines 415--419
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 420--423
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 424--427
+
+ []
+
+
+Underfull \vbox (badness 6493) has occurred while \output is active []
 
 
 Overfull \hbox (5.47499pt too wide) has occurred while \output is active
@@ -777,43 +783,54 @@ Overfull \hbox (5.47499pt too wide) has occurred while \output is active
  []
 
 [6 <./figure/simulated-example2.pdf>]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 443.
+Package color Info: Redefining color shadecolor on input line 460.
 
 Overfull \hbox (5.47499pt too wide) has occurred while \output is active
 [] \T1/pplx/m/n/10.95 7
  []
 
-[7 <./figure/illustration.pdf>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 443.
+[7]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 529.
+
+Overfull \hbox (5.47499pt too wide) has occurred while \output is active
+\T1/pplx/m/n/10.95 8 []
+ []
+
+[8]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 529.
  (./faoswsFlag.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 443.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 443.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 529.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 529.
 Package rerunfilecheck Info: File `faoswsFlag.out' has not changed.
-(rerunfilecheck)             Checksum: 073F2E402EFE4F5ADB61104ADB7429F4;656.
+(rerunfilecheck)             Checksum: AD6335D0D8DDA95DE0DA9E0504F4AC81;658.
 
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 443.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 529.
  ) 
 Here is how much of TeX's memory you used:
- 10293 strings out of 493304
- 150080 string characters out of 6139872
- 268388 words of memory out of 5000000
- 13534 multiletter control sequences out of 15000+600000
- 37372 words of font info for 66 fonts, out of 8000000 for 9000
+ 10258 strings out of 493304
+ 149085 string characters out of 6139872
+ 268969 words of memory out of 5000000
+ 13496 multiletter control sequences out of 15000+600000
+ 44631 words of font info for 84 fonts, out of 8000000 for 9000
  957 hyphenation exceptions out of 8191
- 36i,10n,35p,320b,376s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,12n,35p,320b,373s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texliv
-e/texmf-dist/fonts/type1/public/amsfonts/cm/cmitt10.pfb></usr/share/texlive/tex
-mf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/share/texlive/texmf-dis
-t/fonts/type1/urw/palatino/uplb8a.pfb></usr/share/texlive/texmf-dist/fonts/type
-1/urw/palatino/uplr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/palati
-no/uplri8a.pfb>
-Output written on faoswsFlag.pdf (7 pages, 107736 bytes).
+e/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmitt10.pfb></usr/share/texlive/texmf-dis
+t/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts
+/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1
+/public/amsfonts/cm/cmtt10.pfb></usr/share/texlive/texmf-dist/fonts/type1/publi
+c/mathpazo/fplmr.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/mathpazo
+/fplmri.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/palatino/uplb8a.pfb>
+</usr/share/texlive/texmf-dist/fonts/type1/urw/palatino/uplr8a.pfb></usr/share/
+texlive/texmf-dist/fonts/type1/urw/palatino/uplri8a.pfb>
+Output written on faoswsFlag.pdf (8 pages, 142643 bytes).
 PDF statistics:
- 123 PDF objects out of 1000 (max. 8388607)
- 101 compressed objects within 2 object streams
- 23 named destinations out of 1000 (max. 500000)
- 72 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 140 PDF objects out of 1000 (max. 8388607)
+ 114 compressed objects within 2 object streams
+ 24 named destinations out of 1000 (max. 500000)
+ 67 words of extra memory for PDF output out of 10000 (max. 10000000)
 

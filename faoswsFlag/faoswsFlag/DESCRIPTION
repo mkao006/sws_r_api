@@ -11,6 +11,8 @@ Description: This package provides functions to manipulate and aggregate
     observational status flags.
 License: GPL (>= 3)
 LazyData: yes
+Import: entropy (>= 1.2.0),
+    data.table (>= 1.9.2)
 ZipData: no
 VignetteBuilder: knitr
 Suggests:
