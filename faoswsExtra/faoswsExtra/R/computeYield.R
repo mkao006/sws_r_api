@@ -20,7 +20,7 @@
 computeYield = function(productionValue, productionObservationFlag,
     areaHarvestedValue, areaHarvestedObservationFlag, yieldValue,
     yieldObservationFlag, yieldMethodFlag, newMethodFlag,
-    flagTable = faoswsFlagTable, data){
+    flagTable = faoswsFlagTable, data, unitConversion = 1){
 
     if(!yieldValue %in% colnames(data))
         data[, c(yieldValue) := NA]
@@ -38,7 +38,7 @@ computeYield = function(productionValue, productionObservationFlag,
                  "yieldValue", "yieldObservationFlag", "yieldMethodFlag"))
 
     data[, yieldValue :=
-         computeRatio(productionValue, areaHarvestedValue)]
+         computeRatio(productionValue, areaHarvestedValue) * unitConversion]
     data[, yieldObservationFlag :=
          aggregateObservationFlag(productionObservationFlag,
                                   areaHarvestedObservationFlag,

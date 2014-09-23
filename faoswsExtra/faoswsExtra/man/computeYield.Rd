@@ -5,7 +5,8 @@
 \usage{
 computeYield(productionValue, productionObservationFlag, areaHarvestedValue,
   areaHarvestedObservationFlag, yieldValue, yieldObservationFlag,
-  yieldMethodFlag, newMethodFlag, flagTable = faoswsFlagTable, data)
+  yieldMethodFlag, newMethodFlag, flagTable = faoswsFlagTable, data,
+  unitConversion = 1)
 }
 \arguments{
 \item{productionValue}{The column name corresponding to production
