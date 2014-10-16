@@ -9,17 +9,14 @@ library(faosws)
 library(faoswsFlag)
 library(faoswsExtra)
 library(RPostgreSQL)
-R_SWS_DATABASE_NAME="sws_test_upload"
-R_SWS_DATABASE_HOST="hqlqasws2.hq.un.fao.org"
-R_SWS_DATABASE_USER="ess_user"
-R_SWS_DATABASE_USER_PASSWD="ess_user"
 
 connectionProfile =
     list(drv = PostgreSQL(),
          user = R_SWS_DATABASE_USER,
          password = R_SWS_DATABASE_USER_PASSWD,
          dbname = R_SWS_DATABASE_NAME,
-         host = R_SWS_DATABASE_HOST)
+         host = R_SWS_DATABASE_HOST,
+         port = R_SWS_DATABASE_PORT)
 
 ## set up for the test environment
 if(Sys.getenv("USER") == "mk"){
@@ -40,6 +37,7 @@ getYieldFormula = function(itemCode, connectionProfile){
              new = c("measuredItemCPC", "input", "productivity",
                  "output", "unitConversion")
              )
+    dbDisconnect(con)
     yieldFormula
 }
 
