@@ -167,5 +167,3 @@ executeYieldModule = function(){
 
 
 executeYieldModule()
-
-## correctedData = as.data.table(lapply(datasets$query, foo))
