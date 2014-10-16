@@ -116,13 +116,14 @@ saveYieldData = function(dataContext, data){
              data = data, normalized = FALSE)
 }
 
-
-list2vec = function(x){
-    tmp = unlist(x)
-    if(is.null(tmp))
-        tmp = rep(NA, length(x))
-    tmp
+NULLtoNA = function(nullList){
+    vector = rep(NA, length = length(nullList))
+    validEntry = which(sapply(nullList, FUN = function(x) !is.null(x)))
+    vector[validEntry] =
+        unlist(nullList[validEntry])
+    vector
 }
+
 
 ## Function to execute the whole yield module
 executeYieldModule = function(){
@@ -147,7 +148,7 @@ executeYieldModule = function(){
                                           unitConversion =
                                               unitConversion)
                          convertedData =
-                             as.data.table(lapply(query, list2vec))
+                             as.data.table(lapply(query, NULLtoNA))
                          saveYieldData(dataContext = subKey,
                                        data = convertedData)
                      }
