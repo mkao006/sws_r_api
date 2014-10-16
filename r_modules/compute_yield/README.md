@@ -5,7 +5,7 @@ area harvested.
 
 ### Depends
 
-The module depends on the `faoswsExtra` and the `faoswsFlag` package
+The module depends on the `faoswsUtil` and the `faoswsFlag` package
 which can be installed by running the following command.
 
 ```r
