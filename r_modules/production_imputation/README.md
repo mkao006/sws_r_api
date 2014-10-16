@@ -5,23 +5,23 @@ production domain.
 
 ### Depends
 
-The module depends on the `faoswsExtra`, `faoswsFlag` and the
+The module depends on the `faoswsUtil`, `faoswsFlag` and the
 `faoswsProductionImputation` package which can be installed by running
 the following command.
 
 ```r
 library(devtools)
-install_github(repo = "sws_r_api", 
+install_github(repo = "sws_flag", 
 	       username = "mkao006", 
-	       subdir = "faoswsFlag/faoswsFlag")
+	       subdir = "faoswsFlag")
 
-install_github(repo = "sws_r_api",
+install_github(repo = "sws_util",
                username = "mkao006",
-               subdir = "faoswsExtra/faoswsExtra")
+               subdir = "faoswsUtil")
 
 install_github(repo = "sws_imputation", 
            username = "mkao006", 
-           subdir = "faoswsProductionImputation"))
+           subdir = "faoswsProductionImputation")
 
 ```
 

@@ -7,7 +7,7 @@
 library(data.table)
 library(faosws)
 library(faoswsFlag)
-library(faoswsExtra)
+library(faoswsUtil)
 library(RPostgreSQL)
 
 connectionProfile =

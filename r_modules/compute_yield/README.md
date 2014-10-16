@@ -10,13 +10,13 @@ which can be installed by running the following command.
 
 ```r
 library(devtools)
-install_github(repo = "sws_r_api", 
+install_github(repo = "sws_flag", 
 	       username = "mkao006", 
-	       subdir = "faoswsFlag/faoswsFlag")
+	       subdir = "faoswsFlag")
 
-install_github(repo = "sws_r_api",
+install_github(repo = "sws_util",
                username = "mkao006",
-               subdir = "faoswsExtra/faoswsExtra")
+               subdir = "faoswsUtil")
 ```
 
 

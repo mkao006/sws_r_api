@@ -5,14 +5,14 @@ CPC commodity items.
 
 ### Depends
 
-The module depends on the `faoswsExtra` package which can be installed
+The module depends on the `faoswsUtil` package which can be installed
 by running the following command.
 
 ```r
 library(devtools)
-install_github(repo = "sws_r_api", 
+install_github(repo = "sws_util", 
 	       username = "mkao006", 
-	       subdir = "faoswsExtra/faoswsExtra")
+	       subdir = "faoswsUtil")
 ```
 
 ### Note

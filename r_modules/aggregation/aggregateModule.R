@@ -5,7 +5,7 @@
 
 ## load the library
 require("faosws")
-library(faoswsExtra)
+library(faoswsUtil)
 library(data.table)
 
 ## Set up for the test environment

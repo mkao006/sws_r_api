@@ -1,6 +1,6 @@
 ## load the library
 library(faosws)
-library(faoswsExtra)
+library(faoswsUtil)
 library(faoswsFlag)
 library(faoswsProductionImputation)
 library(data.table)
@@ -123,6 +123,8 @@ getValidRange = function(){
 }
 
 
+## Function to remove imputed data which corresponds to invalid time
+## range.
 validImputedData = function(imputed, areaName = "geographicAreaM49",
     yearName = "timePointYears"){
     validRange = getValidRange()
