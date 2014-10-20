@@ -4,13 +4,12 @@ library(faoswsUtil)
 library(faoswsFlag)
 library(faoswsProductionImputation)
 library(data.table)
-library(FAOSTAT)
 
 ## Set up for the test environment
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "f9886fc4-7107-455b-ab31-7fa0290481ab"
+        token = "dbee5396-31af-4530-843f-1cfb28134876"
         )
 }
 
@@ -31,7 +30,7 @@ getAllCountryCode = function(){
                )    
     allCountryCode =
         unique(adjacent2edge(keyTree)$children)
-    allCountryCode[allCountryCode %in% FAOcountryProfile$UN_CODE]
+    unique(allCountryCode)
 }
 
 
@@ -41,7 +40,7 @@ getImputationData = function(dataContext){
         data.table(
             output = "5510",
             input = "5312",
-            productivity = "5421"
+            productivity = "5419"
             )    
 
     ## setting the prefix, also should be accessed by the API
@@ -156,11 +155,18 @@ executeImputationModule = function(){
     impute = try(
         {
             datasets = getImputationData(swsContext.datasets[[1]])
+            ## This is a temporary hack until the API issue is
+            ## resolved
+            datasets$query =
+                as.data.table(lapply(datasets$query, FUN = NULLtoNA))
             with(datasets,
                  {
                      ## NOTE (Michael): The yield should have been calculated a priori to
                      ##                 the imputation modeul.
 
+                     
+
+                     
                      ## Set the names
                      productionValue = paste0(prefixTuples$valuePrefix, formulaTuples$output)
                      productionObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$output)
@@ -172,7 +178,6 @@ executeImputationModule = function(){
                      yieldObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$productivity)
                      yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$productivity)
 
-                     
                      ## Recompute the yield
                      computeYield(productionValue = productionValue,
                                   productionObservationFlag = productionObservationFlag,
@@ -183,9 +188,10 @@ executeImputationModule = function(){
                                   yieldMethodFlag = yieldMethodFlag,
                                   newMethodFlag = "i", flagTable = faoswsFlagTable,
                                   data = query)
-                     yieldDefaultFormula =
-                         paste0(prefixTuples$valuePrefix, formulaTuples$productivit, " ~ -1 + (1 + bs(timePointYears, df = 2, degree = 1)|geographicAreaM49)")
+
                      ## Impute the dataset
+                     yieldDefaultFormula =
+                         paste0(yieldValue, " ~ -1 + (1 + bs(timePointYears, df = 2, degree = 1)|geographicAreaM49)")                     
                      imputed =
                          imputeProductionDomain(data = query,
                                                 productionValue = productionValue,
