@@ -4,13 +4,39 @@ library(faoswsUtil)
 library(faoswsFlag)
 library(faoswsProductionImputation)
 library(data.table)
+library(RPostgreSQL)
+library(RJSONIO)
 
-## Set up for the test environment
+## set up for the test environment and parameters
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         token = "dbee5396-31af-4530-843f-1cfb28134876"
         )
+    attach(as.list(fromJSON("~/connectionDetail.json")))
+}
+
+connectionProfile =
+    list(drv = PostgreSQL(),
+         user = R_SWS_DATABASE_USER,
+         password = R_SWS_DATABASE_USER_PASSWD,
+         dbname = R_SWS_DATABASE_NAME,
+         host = R_SWS_DATABASE_HOST,
+         port = R_SWS_DATABASE_PORT)
+
+## Function to get the yield formula triplets
+getYieldFormula = function(itemCode, connectionProfile){
+    con = do.call(what = "dbConnect", args = connectionProfile)
+    query = paste0("SELECT * FROM ess.item_yield_elements WHERE cpc_code IN (", paste0("'", itemCode, "'", collapse = ", "), ")")
+    yieldFormula = data.table(dbGetQuery(con, query))
+    setnames(yieldFormula,
+             old = c("cpc_code", "element_31", "element_41",
+                 "element_51", "factor"),
+             new = c("measuredItemCPC", "input", "productivity",
+                 "output", "unitConversion")
+             )
+    dbDisconnect(con)
+    yieldFormula
 }
 
 
@@ -37,11 +63,13 @@ getAllCountryCode = function(){
 getImputationData = function(dataContext){
     ## Setups
     formulaTuples =
-        data.table(
-            output = "5510",
-            input = "5312",
-            productivity = "5419"
-            )    
+        getYieldFormula(swsContext.datasets[[1]]@dimensions$measuredItemCPC@keys, connectionProfile)
+    ## formulaTuples =
+    ##     data.table(
+    ##         output = "5510",
+    ##         input = "5312",
+    ##         productivity = "5419"
+    ##         )    
 
     ## setting the prefix, also should be accessed by the API
     prefixTuples =
@@ -109,9 +137,9 @@ NULLtoNA = function(nullList){
 getValidRange = function(){
     countryTable =
         GetCodeList("agriculture", "agriculture", "geographicAreaM49")
-    countryTable =
-        countryTable[code %in% FAOcountryProfile$UN_CODE]
     countryTable[, type := NULLtoNA(type)]
+    countryTable =
+        countryTable[type == "country", ]
     countryTable[, startDate := NULLtoNA(startDate)]
     countryTable[, endDate := NULLtoNA(endDate)]
     countryTable[, startDate := as.numeric(substr(startDate, 1, 4))]
