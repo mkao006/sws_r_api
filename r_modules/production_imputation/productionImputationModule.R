@@ -183,7 +183,8 @@ executeImputationModule = function(){
                                   yieldMethodFlag = yieldMethodFlag,
                                   newMethodFlag = "i", flagTable = faoswsFlagTable,
                                   data = query)
-                     
+                     yieldDefaultFormula =
+                         paste0(prefixTuples$valuePrefix, formulaTuples$productivit, " ~ -1 + (1 + bs(timePointYears, df = 2, degree = 1)|geographicAreaM49)")
                      ## Impute the dataset
                      imputed =
                          imputeProductionDomain(data = query,
@@ -207,7 +208,8 @@ executeImputationModule = function(){
                                                 maxdf = 5,
                                                 byKey = "geographicAreaM49",
                                                 restrictWeights = TRUE,
-                                                maximumWeights = 0.7)
+                                                maximumWeights = 0.7,
+                                                yieldFormula = yieldDefaultFormula)
                      valid = validImputedData(imputed)
                      ## Save back
                      saveImputedData(swsContext.datasets, valid)
@@ -224,4 +226,3 @@ executeImputationModule = function(){
 
 
 executeImputationModule()
-
