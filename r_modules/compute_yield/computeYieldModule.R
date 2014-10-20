@@ -9,6 +9,16 @@ library(faosws)
 library(faoswsFlag)
 library(faoswsUtil)
 library(RPostgreSQL)
+library(RJSONIO)
+
+## set up for the test environment and parameters
+if(Sys.getenv("USER") == "mk"){
+    GetTestEnvironment(
+        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        token = "5d9b8d4a-0989-4b50-869f-cd0bc566fd18"
+        )
+    attach(as.list(fromJSON("~/connectionDetail.json")))
+}
 
 connectionProfile =
     list(drv = PostgreSQL(),
@@ -17,14 +27,6 @@ connectionProfile =
          dbname = R_SWS_DATABASE_NAME,
          host = R_SWS_DATABASE_HOST,
          port = R_SWS_DATABASE_PORT)
-
-## set up for the test environment
-if(Sys.getenv("USER") == "mk"){
-    GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "5d9b8d4a-0989-4b50-869f-cd0bc566fd18"
-        )
-}
 
 ## Function to get the yield formula triplets
 getYieldFormula = function(itemCode, connectionProfile){
