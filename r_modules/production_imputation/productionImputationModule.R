@@ -13,29 +13,25 @@ if(Sys.getenv("USER") == "mk"){
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         token = "dbee5396-31af-4530-843f-1cfb28134876"
         )
-    attach(as.list(fromJSON("~/connectionDetail.json")))
 }
 
-connectionProfile =
-    list(drv = PostgreSQL(),
-         user = R_SWS_DATABASE_USER,
-         password = R_SWS_DATABASE_USER_PASSWD,
-         dbname = R_SWS_DATABASE_NAME,
-         host = R_SWS_DATABASE_HOST,
-         port = R_SWS_DATABASE_PORT)
-
 ## Function to get the yield formula triplets
-getYieldFormula = function(itemCode, connectionProfile){
-    con = do.call(what = "dbConnect", args = connectionProfile)
-    query = paste0("SELECT * FROM ess.item_yield_elements WHERE cpc_code IN (", paste0("'", itemCode, "'", collapse = ", "), ")")
-    yieldFormula = data.table(dbGetQuery(con, query))
+getYieldFormula = function(itemCode){
+    condition =
+        paste0("WHERE cpc_code IN (",
+               paste0(shQuote(as.character(itemCode)),
+                      collapse = ", "), ")")
+    ## print(condition)
+    yieldFormula =
+        GetTableData(schemaName = "ess",
+                     tableName = "item_yield_elements",
+                     whereClause = condition)
     setnames(yieldFormula,
              old = c("cpc_code", "element_31", "element_41",
                  "element_51", "factor"),
              new = c("measuredItemCPC", "input", "productivity",
                  "output", "unitConversion")
              )
-    dbDisconnect(con)
     yieldFormula
 }
 
@@ -63,7 +59,7 @@ getAllCountryCode = function(){
 getImputationData = function(dataContext){
     ## Setups
     formulaTuples =
-        getYieldFormula(swsContext.datasets[[1]]@dimensions$measuredItemCPC@keys, connectionProfile)
+        getYieldFormula(swsContext.datasets[[1]]@dimensions$measuredItemCPC@keys)
     ## formulaTuples =
     ##     data.table(
     ##         output = "5510",
@@ -124,14 +120,6 @@ getImputationData = function(dataContext){
          prefixTuples = prefixTuples)
 }
     
-## Function to turn lists of NULL to vector of NA
-NULLtoNA = function(nullList){
-    vector = rep(NA, length = length(nullList))
-    validEntry = which(sapply(nullList, FUN = function(x) !is.null(x)))
-    vector[validEntry] =
-        unlist(nullList[validEntry])
-    vector
-}
 
 ## Obtain the valid year range of each country
 getValidRange = function(){
