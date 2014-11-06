@@ -113,15 +113,6 @@ saveYieldData = function(dataContext, data){
              data = data, normalized = FALSE)
 }
 
-NULLtoNA = function(nullList){
-    vector = rep(NA, length = length(nullList))
-    validEntry = which(sapply(nullList, FUN = function(x) !is.null(x)))
-    vector[validEntry] =
-        unlist(nullList[validEntry])
-    vector
-}
-
-
 ## Function to execute the whole yield module
 executeYieldModule = function(){
     fullKey = swsContext.datasets[[1]]
