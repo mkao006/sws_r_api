@@ -17,34 +17,29 @@ if(Sys.getenv("USER") == "mk"){
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         token = "5d9b8d4a-0989-4b50-869f-cd0bc566fd18"
         )
-    attach(as.list(fromJSON("~/connectionDetail.json")))
 }
 
-connectionProfile =
-    list(drv = PostgreSQL(),
-         user = R_SWS_DATABASE_USER,
-         password = R_SWS_DATABASE_USER_PASSWD,
-         dbname = R_SWS_DATABASE_NAME,
-         host = R_SWS_DATABASE_HOST,
-         port = R_SWS_DATABASE_PORT)
 
 ## Function to get the yield formula triplets
-getYieldFormula = function(itemCode, connectionProfile){
-    con = do.call(what = "dbConnect", args = connectionProfile)
-    query = paste0("SELECT * FROM ess.item_yield_elements WHERE cpc_code IN (", paste0("'", itemCode, "'", collapse = ", "), ")")
-    yieldFormula = data.table(dbGetQuery(con, query))
+getYieldFormula = function(itemCode){
+    condition =
+        paste0("WHERE cpc_code IN (",
+               paste0(shQuote(as.character(itemCode)),
+                      collapse = ", "), ")")
+    ## print(condition)
+    yieldFormula =
+        GetTableData(schemaName = "ess",
+                     tableName = "item_yield_elements",
+                     whereClause = condition)
     setnames(yieldFormula,
              old = c("cpc_code", "element_31", "element_41",
                  "element_51", "factor"),
              new = c("measuredItemCPC", "input", "productivity",
                  "output", "unitConversion")
              )
-    dbDisconnect(con)
     yieldFormula
 }
-
-
-
+    
 ## Function for obtaining the data and meta data.
 getYieldData = function(dataContext){
     ## setting the prefix, also should be accessed by the API
@@ -134,7 +129,7 @@ executeYieldModule = function(){
     uniqueItem = fullKey@dimensions$measuredItemCPC@keys
     for(singleItem in uniqueItem){
         subKey@dimensions$measuredItemCPC@keys = singleItem
-        yieldFormula = getYieldFormula(singleItem, connectionProfile)
+        yieldFormula = getYieldFormula(singleItem)
         unitConversion = yieldFormula[, unitConversion]
         subKey@dimensions$measuredElement@keys =
             yieldFormula[, c(input, productivity, output)]
@@ -142,6 +137,8 @@ executeYieldModule = function(){
         compute = try(
             {
                 datasets = getYieldData(subKey)
+                datasets$query =
+                    as.data.table(lapply(datasets$query, NULLtoNA))
                 with(datasets,
                      {
                          computeYieldData(data = query,
@@ -149,10 +146,8 @@ executeYieldModule = function(){
                                           prefixTuples = prefixTuples,
                                           unitConversion =
                                               unitConversion)
-                         convertedData =
-                             as.data.table(lapply(query, NULLtoNA))
                          saveYieldData(dataContext = subKey,
-                                       data = convertedData)
+                                       data = query)
                      }
                      )
             }
