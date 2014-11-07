@@ -7,11 +7,17 @@ library(data.table)
 library(RPostgreSQL)
 library(RJSONIO)
 
+## Setting up variables
+areaVar = "geographicAreaM49"
+yearVar = "timePointYears"
+itemVar = "measuredItemCPC"
+elementVar = "measuredElement"
+
 ## set up for the test environment and parameters
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "dbee5396-31af-4530-843f-1cfb28134876"
+        token = "916d93af-3000-4afb-9781-4fc74e77117d"
         )
 }
 
@@ -28,7 +34,7 @@ getYieldFormula = function(itemCode){
     setnames(yieldFormula,
              old = c("cpc_code", "element_31", "element_41",
                  "element_51", "factor"),
-             new = c("measuredItemCPC", "input", "productivity",
+             new = c(itemVar, "input", "productivity",
                  "output", "unitConversion")
              )
     yieldFormula
@@ -46,7 +52,7 @@ getAllCountryCode = function(){
     keyTree =
         unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
                            dataset = swsContext.datasets[[1]]@dataset,
-                           dimension = "geographicAreaM49",
+                           dimension = areaVar,
                            roots = "1062")
                )    
     allCountryCode =
@@ -58,7 +64,8 @@ getAllCountryCode = function(){
 getImputationData = function(dataContext){
     ## Setups
     formulaTuples =
-        getYieldFormula(swsContext.datasets[[1]]@dimensions$measuredItemCPC@keys)
+        getYieldFormula(slot(slot(dataContext,
+                                  "dimensions")$measuredItemCPC, "keys"))
 
     ## setting the prefix, also should be accessed by the API
     prefixTuples =
@@ -68,37 +75,45 @@ getImputationData = function(dataContext){
             flagMethodPrefix = "flagMethod_measuredElement_"
             )
     allCountryCode = getAllCountryCode()
+    selectedYears =
+        slot(slot(dataContext, "dimensions")$timePointYears,
+             "keys")
+
+    ## Set 15 years as the default required number of years for
+    ## imputation
+    if(length(selectedYears) < 15)
+        selectedYears =
+            as.character((max(as.numeric(selectedYears) - 14)):
+                             max(as.numeric(selectedYears)))
 
     ## Create the new expanded keys
     newKey = DatasetKey(
-        domain = slot(swsContext.datasets[[1]], "domain"),
-        dataset = slot(swsContext.datasets[[1]], "dataset"),
+        domain = slot(dataContext, "domain"),
+        dataset = slot(dataContext, "dataset"),
         dimensions = list(
-            Dimension(name = "geographicAreaM49",
+            Dimension(name = areaVar,
                       keys = allCountryCode),
-            Dimension(name = "measuredElement",
+            Dimension(name = elementVar,
                       keys = unique(unlist(formulaTuples[,
                           list(input, productivity, output)]))),
-            Dimension(name = "measuredItemCPC",
-                      keys = slot(slot(swsContext.datasets[[1]],
+            Dimension(name = itemVar,
+                      keys = slot(slot(dataContext,
                           "dimensions")$measuredItemCPC, "keys")),
-            Dimension(name = "timePointYears",
-                      keys = slot(slot(swsContext.datasets[[1]],
-                          "dimensions")$timePointYears, "keys"))
+            Dimension(name = yearVar,
+                      keys = selectedYears)
             )
         )
 
     ## Pivot to vectorize yield computation
     newPivot = c(
-        Pivoting(code= "geographicAreaM49", ascending = TRUE),
-        Pivoting(code= "measuredItemCPC", ascending = TRUE),
-        Pivoting(code = "timePointYears", ascending = FALSE),
-        Pivoting(code= "measuredElement", ascending = TRUE)
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = itemVar, ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = elementVar, ascending = TRUE)
         )
 
     ## Query the data
     query = GetData(
-        ## key = swsContext.datasets[[1]],
         key = newKey,
         flags = TRUE,
         normalized = FALSE,
@@ -116,7 +131,7 @@ getImputationData = function(dataContext){
 ## Obtain the valid year range of each country
 getValidRange = function(){
     countryTable =
-        GetCodeList("agriculture", "agriculture", "geographicAreaM49")
+        GetCodeList("agriculture", "agriculture", areaVar)
     countryTable[, type := NULLtoNA(type)]
     countryTable =
         countryTable[type == "country", ]
@@ -132,8 +147,8 @@ getValidRange = function(){
 
 ## Function to remove imputed data which corresponds to invalid time
 ## range.
-validImputedData = function(imputed, areaName = "geographicAreaM49",
-    yearName = "timePointYears"){
+validImputedData = function(imputed, areaName = areaVar,
+    yearName = yearVar){
     validRange = getValidRange()
     validSubset =
         paste0(with(validRange,
@@ -159,84 +174,128 @@ executeImputationModule = function(){
     library(faoswsProductionImputation)
     library(faoswsFlag)
     library(faoswsUtil)
-    ## Maybe we can put the for loop here for the multiple elements.
-    impute = try(
-        {
-            datasets = getImputationData(swsContext.datasets[[1]])
+
+    fullKey = swsContext.datasets[[1]]
+    subKey = fullKey
+    uniqueItem = fullKey@dimensions$measuredItemCPC@keys
+    for(singleItem in uniqueItem){
+        subKey@dimensions$measuredItemCPC@keys = singleItem
+        print(paste0("Imputation for item: ", singleItem))
+        
+        impute = try({
+            datasets = getImputationData(subKey)
             ## This is a temporary hack until the API issue is
             ## resolved
             datasets$query =
                 as.data.table(lapply(datasets$query, FUN = NULLtoNA))
-            with(datasets,
-                 {
-                     ## NOTE (Michael): The yield should have been calculated a priori to
-                     ##                 the imputation modeul.
+            with(datasets, {
+                ## NOTE (Michael): The yield should have been
+                ##                 calculated a priori to the
+                ##                 imputation modeul.
+                
+                ## Set the names
+                assign("productionValue",
+                    paste0(prefixTuples$valuePrefix,
+                           formulaTuples$output),
+                       envir = .GlobalEnv)
+                assign("productionObservationFlag",
+                    paste0(prefixTuples$flagObsPrefix,
+                           formulaTuples$output),
+                       envir = .GlobalEnv)
+                assign("productionMethodFlag",
+                    paste0(prefixTuples$flagMethodPrefix,
+                           formulaTuples$output),
+                       envir = .GlobalEnv)
+                assign("areaHarvestedValue",
+                    paste0(prefixTuples$valuePrefix,
+                           formulaTuples$input),
+                       envir = .GlobalEnv)
+                assign("areaHarvestedObservationFlag",
+                    paste0(prefixTuples$flagObsPrefix,
+                           formulaTuples$input),
+                       envir = .GlobalEnv)
+                assign("areaHarvestedMethodFlag",
+                    paste0(prefixTuples$flagMethodPrefix,
+                           formulaTuples$input),
+                       envir = .GlobalEnv)
+                assign("yieldValue",
+                    paste0(prefixTuples$valuePrefix,
+                           formulaTuples$productivity),
+                       envir = .GlobalEnv)
+                assign("yieldObservationFlag",
+                    paste0(prefixTuples$flagObsPrefix,
+                           formulaTuples$productivity),
+                       envir = .GlobalEnv)
+                assign("yieldMethodFlag",
+                    paste0(prefixTuples$flagMethodPrefix,
+                           formulaTuples$productivity),
+                       envir = .GlobalEnv)
 
-                     
+                ## Recompute the yield
+                computeYield(productionValue = productionValue,
+                             productionObservationFlag =
+                                 productionObservationFlag,
+                             areaHarvestedValue =
+                                 areaHarvestedValue,
+                             areaHarvestedObservationFlag =
+                                 areaHarvestedObservationFlag,
+                             yieldValue = yieldValue,
+                             yieldObservationFlag =
+                                 yieldObservationFlag,
+                             yieldMethodFlag = yieldMethodFlag,
+                             newMethodFlag = "i",
+                             flagTable = faoswsFlagTable,
+                             data = query,
+                             unitConversion =
+                                 formulaTuples$unitConversion)
 
-                     
-                     ## Set the names
-                     productionValue = paste0(prefixTuples$valuePrefix, formulaTuples$output)
-                     productionObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$output)
-                     productionMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$output)
-                     areaHarvestedValue = paste0(prefixTuples$valuePrefix, formulaTuples$input)
-                     areaHarvestedObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$input)
-                     areaHarvestedMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$input)
-                     yieldValue = paste0(prefixTuples$valuePrefix, formulaTuples$productivity)
-                     yieldObservationFlag = paste0(prefixTuples$flagObsPrefix, formulaTuples$productivity)
-                     yieldMethodFlag = paste0(prefixTuples$flagMethodPrefix, formulaTuples$productivity)
+                ## Impute the dataset
+                yieldDefaultFormula =
+                    paste0(yieldValue, " ~ -1 + (1 + bs(timePointYears, df = 2, degree = 1)|geographicAreaM49)")
+                
+                imputed = imputeProductionDomain(data = query,
+                    productionValue = productionValue,
+                    productionObservationFlag =
+                        productionObservationFlag,
+                    productionMethodFlag = productionMethodFlag,
+                    areaHarvestedValue = areaHarvestedValue,
+                    areaHarvestedObservationFlag =
+                        areaHarvestedObservationFlag,
+                    areaHarvestedMethodFlag =
+                        areaHarvestedMethodFlag,
+                    yieldValue = yieldValue,
+                    yieldObservationFlag = yieldObservationFlag,
+                    yieldMethodFlag = yieldMethodFlag,
+                    yearValue = yearVar,
+                    flagTable = faoswsFlagTable,
+                    removePriorImputation = TRUE,
+                    removeConflictValues = TRUE,
+                    imputedFlag = "E",
+                    imputationFlag = "I",
+                    newMethodFlag = "e",
+                    naFlag = "M",
+                    maxdf = 5,
+                    byKey = areaVar,
+                    restrictWeights = TRUE,
+                    maximumWeights = 0.7,
+                    yieldFormula =
+                        yieldDefaultFormula)
 
-                     ## Recompute the yield
-                     computeYield(productionValue = productionValue,
-                                  productionObservationFlag = productionObservationFlag,
-                                  areaHarvestedValue = areaHarvestedValue,
-                                  areaHarvestedObservationFlag = areaHarvestedObservationFlag,
-                                  yieldValue = yieldValue,
-                                  yieldObservationFlag = yieldObservationFlag,
-                                  yieldMethodFlag = yieldMethodFlag,
-                                  newMethodFlag = "i", flagTable = faoswsFlagTable,
-                                  data = query)
+                ## Validate data
+                valid = validImputedData(imputed)
 
-                     ## Impute the dataset
-                     yieldDefaultFormula =
-                         paste0(yieldValue, " ~ -1 + (1 + bs(timePointYears, df = 2, degree = 1)|geographicAreaM49)")                     
-                     imputed =
-                         imputeProductionDomain(data = query,
-                                                productionValue = productionValue,
-                                                productionObservationFlag = productionObservationFlag,
-                                                productionMethodFlag = productionMethodFlag,
-                                                areaHarvestedValue = areaHarvestedValue,
-                                                areaHarvestedObservationFlag = areaHarvestedObservationFlag,
-                                                areaHarvestedMethodFlag = areaHarvestedMethodFlag,
-                                                yieldValue = yieldValue,
-                                                yieldObservationFlag = yieldObservationFlag,
-                                                yieldMethodFlag = yieldMethodFlag,
-                                                yearValue = "timePointYears",
-                                                flagTable = faoswsFlagTable,
-                                                removePriorImputation = TRUE,
-                                                removeConflictValues = TRUE,
-                                                imputedFlag = "E",
-                                                imputationFlag = "I",
-                                                newMethodFlag = "e",
-                                                naFlag = "M",
-                                                maxdf = 5,
-                                                byKey = "geographicAreaM49",
-                                                restrictWeights = TRUE,
-                                                maximumWeights = 0.7,
-                                                yieldFormula = yieldDefaultFormula)
-                     valid = validImputedData(imputed)
-                     ## Save back
-                     saveImputedData(swsContext.datasets, valid)
-                 }
+                ## Save back
+                saveImputedData(swsContext.datasets, valid)
+            }
                  )
         }
-        )
-    if(inherits(impute, "try-error")){
-        print("Imputation Module Failed")
-    } else {
-        print("Imputation Module Executed Successfully")
+                     )
+        if(inherits(impute, "try-error")){
+            print("Imputation Module Failed")
+        } else {
+            print("Imputation Module Executed Successfully")
+        }
     }
 }
-
 
 executeImputationModule()
