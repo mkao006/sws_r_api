@@ -21,7 +21,6 @@ getYieldFormula = function(itemCode){
         paste0("WHERE cpc_code IN (",
                paste0(shQuote(as.character(itemCode)),
                       collapse = ", "), ")")
-    ## print(condition)
     yieldFormula =
         GetTableData(schemaName = "ess",
                      tableName = "item_yield_elements",
@@ -60,12 +59,6 @@ getImputationData = function(dataContext){
     ## Setups
     formulaTuples =
         getYieldFormula(swsContext.datasets[[1]]@dimensions$measuredItemCPC@keys)
-    ## formulaTuples =
-    ##     data.table(
-    ##         output = "5510",
-    ##         input = "5312",
-    ##         productivity = "5419"
-    ##         )    
 
     ## setting the prefix, also should be accessed by the API
     prefixTuples =
@@ -75,7 +68,7 @@ getImputationData = function(dataContext){
             flagMethodPrefix = "flagMethod_measuredElement_"
             )
     allCountryCode = getAllCountryCode()
-    
+
     ## Create the new expanded keys
     newKey = DatasetKey(
         domain = slot(swsContext.datasets[[1]], "domain"),
@@ -84,8 +77,8 @@ getImputationData = function(dataContext){
             Dimension(name = "geographicAreaM49",
                       keys = allCountryCode),
             Dimension(name = "measuredElement",
-                      keys = slot(slot(swsContext.datasets[[1]],
-                          "dimensions")$measuredElement, "keys")),
+                      keys = unique(unlist(formulaTuples[,
+                          list(input, productivity, output)]))),
             Dimension(name = "measuredItemCPC",
                       keys = slot(slot(swsContext.datasets[[1]],
                           "dimensions")$measuredItemCPC, "keys")),
@@ -94,7 +87,6 @@ getImputationData = function(dataContext){
                           "dimensions")$timePointYears, "keys"))
             )
         )
-
 
     ## Pivot to vectorize yield computation
     newPivot = c(
