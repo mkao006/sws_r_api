@@ -11,6 +11,12 @@ library(faoswsUtil)
 library(RPostgreSQL)
 library(RJSONIO)
 
+## Setting up variables
+areaVar = "geographicAreaM49"
+yearVar = "timePointYears"
+itemVar = "measuredItemCPC"
+elementVar = "measuredElement"
+
 ## set up for the test environment and parameters
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
@@ -42,6 +48,10 @@ getYieldFormula = function(itemCode){
     
 ## Function for obtaining the data and meta data.
 getYieldData = function(dataContext){
+    ## Setups
+    formulaTuples =
+        getYieldFormula(slot(slot(dataContext,
+                                  "dimensions")$measuredItemCPC, "keys"))
     ## setting the prefix, also should be accessed by the API
     prefixTuples =
         data.table(
@@ -52,10 +62,10 @@ getYieldData = function(dataContext){
 
     ## Pivot to vectorize yield computation
     newPivot = c(
-        Pivoting(code = "geographicAreaM49", ascending = TRUE),
-        Pivoting(code = "measuredItemCPC", ascending = TRUE),
-        Pivoting(code = "timePointYears", ascending = FALSE),
-        Pivoting(code = "measuredElement", ascending = TRUE)
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = itemVar, ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = elementVar, ascending = TRUE)
         )
     
     ## Query the data
@@ -67,6 +77,7 @@ getYieldData = function(dataContext){
         )
     
     list(query = query,
+         formulaTuples = formulaTuples,
          prefixTuples = prefixTuples)
 }
 
@@ -120,28 +131,27 @@ executeYieldModule = function(){
     uniqueItem = fullKey@dimensions$measuredItemCPC@keys
     for(singleItem in uniqueItem){
         subKey@dimensions$measuredItemCPC@keys = singleItem
-        yieldFormula = getYieldFormula(singleItem)
-        unitConversion = yieldFormula[, unitConversion]
-        subKey@dimensions$measuredElement@keys =
-            yieldFormula[, c(input, productivity, output)]
-        
-        compute = try(
-            {
-                datasets = getYieldData(subKey)
-                datasets$query =
-                    as.data.table(lapply(datasets$query, NULLtoNA))
-                with(datasets,
-                     {
-                         computeYieldData(data = query,
-                                          formulaTuples = yieldFormula,
-                                          prefixTuples = prefixTuples,
-                                          unitConversion =
-                                              unitConversion)
-                         saveYieldData(dataContext = subKey,
-                                       data = query)
-                     }
-                     )
-            }
+        compute = try({
+            datasets = getYieldData(subKey)
+            datasets$query = 
+                as.data.table(lapply(datasets$query, 
+                                     FUN = function(x){
+                                         if(is.list(x))
+                                             x = NULLtoNA(x)
+                                         x
+                                     }))
+            with(datasets,
+                 {
+                     computeYieldData(data = query,
+                                      formulaTuples = formulaTuples,
+                                      prefixTuples = prefixTuples,
+                                      unitConversion =
+                                          formulaTuples$unitConversion)
+                     saveYieldData(dataContext = subKey,
+                                   data = query)
+                 }
+                 )
+        }
         )
         
         if(inherits(compute, "try-error")){
