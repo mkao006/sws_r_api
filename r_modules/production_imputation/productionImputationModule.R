@@ -47,18 +47,26 @@ getYieldFormula = function(itemCode){
 ## TODO (Michael): Need to get CIO to provide a proper functionality
 ##                 for this.
 
-getAllCountryCode = function(){
-    ## 1062 is geographical world
-    keyTree =
-        unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
-                           dataset = swsContext.datasets[[1]]@dataset,
-                           dimension = areaVar,
-                           roots = "1062")
-               )    
-    allCountryCode =
-        unique(adjacent2edge(keyTree)$children)
-    unique(allCountryCode)
+getAllCountryCode = function(dataContext){
+    countryTable =
+        GetCodeList(domain = slot(dataContext, "domain"),
+                    dataset = slot(dataContext, "dataset"),
+                    dimension = areaVar)
+    unique(countryTable[type == "country", code])
 }
+
+
+## set1 = GetCodeList("agriculture", "agriculture", "geographicAreaM49")
+## set1Code = set1[type == "country", code]
+## keyTree =
+##     unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
+##                        dataset = swsContext.datasets[[1]]@dataset,
+##                        dimension = areaVar,
+##                        roots = "1062")
+##            )    
+## allCountryCode =
+##     unique(adjacent2edge(keyTree)$children)
+## set2Code = unique(allCountryCode)
 
 
 getImputationData = function(dataContext){
@@ -74,7 +82,7 @@ getImputationData = function(dataContext){
             flagObsPrefix = "flagObservationStatus_measuredElement_",
             flagMethodPrefix = "flagMethod_measuredElement_"
             )
-    allCountryCode = getAllCountryCode()
+    allCountryCode = getAllCountryCode(dataContext)
     selectedYears =
         slot(slot(dataContext, "dimensions")$timePointYears,
              "keys")
@@ -129,10 +137,11 @@ getImputationData = function(dataContext){
     
 
 ## Obtain the valid year range of each country
-getValidRange = function(){
+getValidRange = function(dataContext){
     countryTable =
-        GetCodeList("agriculture", "agriculture", areaVar)
-    countryTable[, type := NULLtoNA(type)]
+        GetCodeList(domain = slot(dataContext, "domain"),
+                    dataset = slot(dataContext, "dataset"),
+                    dimension = areaVar)
     countryTable =
         countryTable[type == "country", ]
     countryTable[, startDate := NULLtoNA(startDate)]
@@ -148,8 +157,8 @@ getValidRange = function(){
 ## Function to remove imputed data which corresponds to invalid time
 ## range.
 validImputedData = function(imputed, areaName = areaVar,
-    yearName = yearVar){
-    validRange = getValidRange()
+    yearName = yearVar, dataContext){
+    validRange = getValidRange(dataContext)
     validSubset =
         paste0(with(validRange,
                     paste0("(", areaName, " == ", code,
@@ -164,8 +173,8 @@ validImputedData = function(imputed, areaName = areaVar,
 ## Function to save data back
 saveImputedData = function(dataContext, data){
     ## Should only the selected country be saved, or the whole set?
-    SaveData(domain = slot(dataContext[[1]], "domain"),
-             dataset = slot(dataContext[[1]], "dataset"),
+    SaveData(domain = slot(dataContext, "domain"),
+             dataset = slot(dataContext, "dataset"),
              data = data, normalized = FALSE)
 }
 
@@ -282,10 +291,11 @@ executeImputationModule = function(){
                         yieldDefaultFormula)
 
                 ## Validate data
-                valid = validImputedData(imputed)
+                valid = validImputedData(imputed = imputed,
+                    dataContext = subKey)
 
                 ## Save back
-                saveImputedData(swsContext.datasets, valid)
+                saveImputedData(subKey, valid)
             }
                  )
         }

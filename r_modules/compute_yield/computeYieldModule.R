@@ -67,7 +67,10 @@ getYieldData = function(dataContext){
         Pivoting(code = yearVar, ascending = FALSE),
         Pivoting(code = elementVar, ascending = TRUE)
         )
-    
+    slot(slot(dataContext, "dimensions")$measuredElement, "keys") =
+        unique(unlist(formulaTuples[, list(input,
+                                           productivity, output)]))
+
     ## Query the data
     query = GetData(
         key = dataContext,
@@ -88,6 +91,7 @@ getYieldData = function(dataContext){
 ## Function to compute the yield data
 computeYieldData = function(data, formulaTuples, prefixTuples,
     newMethodFlag = "i", flagTable = faoswsFlagTable, unitConversion){
+    print(formulaTuples)
     computeYield(productionValue =
                      paste0(prefixTuples$valuePrefix,
                             formulaTuples$output),
@@ -131,6 +135,7 @@ executeYieldModule = function(){
     uniqueItem = fullKey@dimensions$measuredItemCPC@keys
     for(singleItem in uniqueItem){
         subKey@dimensions$measuredItemCPC@keys = singleItem
+        ## print(paste0("Computing Yield for item: ", singleItem))
         compute = try({
             datasets = getYieldData(subKey)
             datasets$query = 
@@ -142,11 +147,13 @@ executeYieldModule = function(){
                                      }))
             with(datasets,
                  {
+                     print(str(query))
                      computeYieldData(data = query,
                                       formulaTuples = formulaTuples,
                                       prefixTuples = prefixTuples,
                                       unitConversion =
                                           formulaTuples$unitConversion)
+                     print(str(query))
                      saveYieldData(dataContext = subKey,
                                    data = query)
                  }
