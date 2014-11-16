@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>AUPUS</Name>
+	<Description> This module is a replicate and improvement of th eold AUPUS module</Description>
+	<Category>Computation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Datasets>
+		<MainDataset>
+			<Code>FS1_SUA</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementFS</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+		<MainDataset>
+			<Code>aupus_ratio_fs</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementFS</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYearsSP</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+		<MainDataset>
+			<Code>aupus_share_fs</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemParentFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemChildFS</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYearsSP</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+		<MainDataset>
+			<Code>input_from_proc_fs</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemParentFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemChildFS</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYearsSP</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
