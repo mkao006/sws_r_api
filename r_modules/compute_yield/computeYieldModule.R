@@ -32,7 +32,6 @@ getYieldFormula = function(itemCode){
         paste0("WHERE cpc_code IN (",
                paste0(shQuote(as.character(itemCode)),
                       collapse = ", "), ")")
-    ## print(condition)
     yieldFormula =
         GetTableData(schemaName = "ess",
                      tableName = "item_yield_elements",
@@ -91,7 +90,6 @@ getYieldData = function(dataContext){
 ## Function to compute the yield data
 computeYieldData = function(data, formulaTuples, prefixTuples,
     newMethodFlag = "i", flagTable = faoswsFlagTable, unitConversion){
-    print(formulaTuples)
     computeYield(productionValue =
                      paste0(prefixTuples$valuePrefix,
                             formulaTuples$output),
@@ -138,22 +136,15 @@ executeYieldModule = function(){
         ## print(paste0("Computing Yield for item: ", singleItem))
         compute = try({
             datasets = getYieldData(subKey)
-            datasets$query = 
-                as.data.table(lapply(datasets$query, 
-                                     FUN = function(x){
-                                         if(is.list(x))
-                                             x = NULLtoNA(x)
-                                         x
-                                     }))
+            datasets$query =
+                as.data.table(lapply(datasets$query, FUN = NULLtoNA))
             with(datasets,
                  {
-                     print(str(query))
                      computeYieldData(data = query,
                                       formulaTuples = formulaTuples,
                                       prefixTuples = prefixTuples,
                                       unitConversion =
                                           formulaTuples$unitConversion)
-                     print(str(query))
                      saveYieldData(dataContext = subKey,
                                    data = query)
                  }
