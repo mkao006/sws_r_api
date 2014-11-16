@@ -43,10 +43,6 @@ getYieldFormula = function(itemCode){
 
 
 ## Function to get all country keys
-##
-## TODO (Michael): Need to get CIO to provide a proper functionality
-##                 for this.
-
 getAllCountryCode = function(dataContext){
     countryTable =
         GetCodeList(domain = slot(dataContext, "domain"),
@@ -54,19 +50,6 @@ getAllCountryCode = function(dataContext){
                     dimension = areaVar)
     unique(countryTable[type == "country", code])
 }
-
-
-## set1 = GetCodeList("agriculture", "agriculture", "geographicAreaM49")
-## set1Code = set1[type == "country", code]
-## keyTree =
-##     unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
-##                        dataset = swsContext.datasets[[1]]@dataset,
-##                        dimension = areaVar,
-##                        roots = "1062")
-##            )    
-## allCountryCode =
-##     unique(adjacent2edge(keyTree)$children)
-## set2Code = unique(allCountryCode)
 
 
 getImputationData = function(dataContext){
