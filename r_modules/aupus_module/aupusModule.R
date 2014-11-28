@@ -19,7 +19,8 @@ suppressMessages({
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "7fe7cbec-2346-46de-9a3a-8437eca18e2a"
+        token = "3f113726-f40e-44b3-b2af-d5f0de77c386"
+        ## token = "7fe7cbec-2346-46de-9a3a-8437eca18e2a"
         )
 }
 
@@ -140,15 +141,16 @@ for(areas in areaCodes){
                 }                
             }
         )
+    endTime = Sys.time()
+    totalTime = endTime - startingTime
+
+    ## Return the results
+    if(inherits(aupusModule, "try-error")){
+        cat("Aupus Module Failed after", totalTime, attr(totalTime, "units"), "\n")
+    } else {
+        cat("Aupus Module Executed Successfully after", totalTime,
+            attr(totalTime, "units"), "\n")
+    }
+
 }
 
-endTime = Sys.time()
-totalTime = endTime - startingTime
-
-## Return the results
-if(inherits(aupusModule, "try-error")){
-    cat("Aupus Module Failed after", totalTime, attr(totalTime, "units"), "\n")
-} else {
-    cat("Aupus Module Executed Successfully after", totalTime,
-        attr(totalTime, "units"), "\n")
-}
