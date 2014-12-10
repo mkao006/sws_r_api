@@ -68,7 +68,16 @@ SavePopulationData = function(populationData){
 }
 
 ## Run the module by area
-areaCodes = swsContext.datasets[[1]]@dimensions$geographicAreaFS@keys
+getAllCountryCode = function(dataContext){
+    countryTable =
+        GetCodeList(domain = slot(dataContext, "domain"),
+                    dataset = slot(dataContext, "dataset"),
+                    dimension = "geographicAreaFS")
+    unique(countryTable[type == "country", code])
+}
+
+areaCodes = getAllCountryCode(swsContext.datasets[[1]])
+## areaCodes = swsContext.datasets[[1]]@dimensions$geographicAreaFS@keys
 ## areaCodes = c("100", "231")
 for(areas in areaCodes){
     if(verbose){
@@ -153,4 +162,3 @@ for(areas in areaCodes){
     }
 
 }
-
