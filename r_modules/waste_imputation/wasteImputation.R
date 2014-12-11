@@ -3,7 +3,6 @@ suppressMessages({
     library(faoswsUtil)
     library(data.table)
     library(magrittr)
-    library(pryr)
     library(biglm)
 })
 
@@ -43,10 +42,17 @@ getLossExternalData = function(){
     ## ## worldBankGeneral
     ## worldBankClimateData =
     ##     data.table(read.csv(file = "data/worldBankClimateData.csv"))
-    worldBankdGeneralData =
-        GetTableData(schemaName = "ess", tableName = "worldBankGeneralData")
+    worldBankGeneralData =
+        GetTableData(schemaName = "ess", tableName = "world_bank_general_data")
+    setnames(worldBankGeneralData, old = colnames(worldBankGeneralData),
+             new = c("geographicAreaM49", "timePointYears", "geographicAreaFS",
+                 "geographicAreaISO2WB", "geographicAreaNameISO2WB",
+                 "gdpPerCapita", "gdpPPP", "sharePavedRoad"))
     worldBankClimateData =
-        GetTableData(schemaName = "ess", tableName = "worldBankClimateData")
+        GetTableData(schemaName = "ess", tableName = "world_bank_climate_data")
+    setnames(worldBankClimateData, old = colnames(worldBankClimateData),
+             new = c("geographicAreaM49", "timePointYears", "geographicAreaFS",
+                 "geographicAreaISO3", "precipitation", "temperature"))
     
     merged = Reduce(f = function(x, y){
         merge(x, y, all = TRUE, by = intersect(colnames(x), colnames(y)))
@@ -60,7 +66,12 @@ getLossFoodGroup = function(){
     ## NOTE (Michael): This will be replaced by the GetMapping
     ##                 function when loaded into the data base
     ## data.table(read.csv(file = "data/lossFoodGroup.csv"))
-    GetTableData(schemaName = "ess", tableName = "lossFoodGroup")
+    lossFoodGroup = GetTableData(schemaName = "ess", tableName = "loss_food_group")
+    setnames(lossFoodGroup, old = colnames(lossFoodGroup),
+             new = c("measuredItemFS", "measuredItemNameFS", "foodGroupName",
+                 "foodGroup", "foodGeneralGroup", "foodPerishableGroup",
+                 "measuredItemCPC"))
+    lossFoodGroup
 }
 
 ## Function to load the loss region classification
@@ -70,7 +81,9 @@ getLossRegionClass = function(){
     ## regionMapping = data.table(read.csv(file = "data/lossRegionMapping.csv"))
     ## regionMapping[, geographicAreaM49 := as.character(geographicAreaM49)]
     regionMapping =
-        GetTableData(schemaName = "ess", tableName = "lossRegionMapping")
+        GetTableData(schemaName = "ess", tableName = "loss_region_mapping")
+    setnames(regionMapping, old = colnames(regionMapping),
+             new = c("geographicAreaM49", "lossRegionClass"))    
     regionMapping
 }
 
@@ -79,7 +92,14 @@ getNationalFbs = function(){
     ## NOTE (Michael): This will be replaced by the GetMapping
     ##                 function when loaded into the data base.
     ## data.table(read.csv(file = "data/nationalFbs.csv"))
-    GetTableData(schemaName = "ess", tableName = "nationalFbs")
+    nationalFbs = GetTableData(schemaName = "ess", tableName = "national_fbs")
+    setnames(nationalFbs, old = colnames(nationalFbs),
+             new = c("geographicAreaM49", "timePointYears",
+                 "Value_measuredElement_5510", "Value_measuredElement_5610",
+                 "Value_measuredElement_5910", "Value_measuredElement_5712",
+                 "Value_measuredElement_5015", "Value_measuredElement_5525",
+                 "measuredItemCPC"))
+    nationalFbs
 }
 
 ## Function to load the data required for loss estimation
@@ -237,7 +257,7 @@ fillUnclassifiedRegion = function(data, regionClassification = "lossRegionClass"
 dataHack = function(data){
     ## HACK (Michael): This is a hack to simulate trade data
     data[, Value_measuredElement_5610 :=
-             abs(rnorm(.N, Value_measuredElement_5510,
+             abs(rnorm(.N, mean(Value_measuredElement_5510, na.rm = TRUE), 
                        sd(Value_measuredElement_5510, na.rm = TRUE))),
          by = c("geographicAreaM49", "measuredItemCPC")]
     ## HACK (Michael): Since trade and stock variation data are not
