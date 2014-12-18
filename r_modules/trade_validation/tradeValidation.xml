@@ -12,7 +12,7 @@
 	</Authors>
 	<Datasets>
 		<MainDataset>
-			<Code>trade</Code>
+			<Code>ct_raw_tf</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
 				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>

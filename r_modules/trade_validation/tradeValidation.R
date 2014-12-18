@@ -20,8 +20,7 @@ reverseTradePrefix = "reverse_"
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "3f113726-f40e-44b3-b2af-d5f0de77c386"
-        ## token = "7fe7cbec-2346-46de-9a3a-8437eca18e2a"
+        token = "ea4a14c7-776b-43d3-bce9-7dd519d26ce3"
         )
 }
 
@@ -55,13 +54,13 @@ mapply(FUN = function(name, colname){
 ## TODO (Michael): Need to do one for reverse trade
 
 
-getComtradeRawData = function(){
+getComtradeRawData = function(measuredItemHSCode){
     dimensions =
         list(Dimension(name = "reportingCountryM49",
                        keys = allReportingCountryCode),
              Dimension(name = "partnerCountryM49", keys = allPartnerCountryCode),
              Dimension(name = "measuredItemHS",
-                       keys = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys),
+                       keys = measuredItemHSCode),
              Dimension(name = "measuredElementTrade", keys = elementCode),
              Dimension(name = "timePointYears",
                        keys = swsContext.datasets[[1]]@dimensions$timePointYears@keys))
@@ -307,123 +306,126 @@ updateTradeValue = function(data, unitValue, value, quantity){
 }
 
 saveValidTradeData = function(data, originalData){
-    SaveData(domain = "trade", dataset = "ct_raw_tf",
-             data = data[, colnames(originalData), with = FALSE],
-             normalized = FALSE)
+    validatedData = data[, colnames(originalData), with = FALSE]
+    validatedData[, timePointYears := as.character(timePointYears)]
+    SaveData(domain = "trade", dataset = "completed_tf",
+             data = validatedData, normalized = FALSE)
 }
 
 
-rawValues =
-    getComtradeRawData() %>%
-    removeSelfTrade(data = ., reportingCountry = reportingCountryVar,
-                    partnerCountry = partnerCountryVar) %>%
-    removeInconsistentQuantityValue(data = ., quantity = importQuantity,
-                                    value = importValue) %>%
-    removeInconsistentQuantityValue(data = ., quantity = exportQuantity,
-                                    value = exportValue) %>% 
-    addRetradeToTrade(data = .,
-                      importQuantity = importQuantity,
-                      reimportQuantity = reimportQuantity,
-                      exportQuantity = exportQuantity,
-                      reexportQuantity = reexportQuantity,
-                      importValue = importValue,
-                      reimportValue = reimportValue,
-                      exportValue = exportValue,
-                      reexportValue = reexportValue)
+selectedItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 
-mirrorData =
-    rawValues %>%
-    mirrorTrade(data = .,
-                reportingCountry = reportingCountryVar,
-                partnerCountry = partnerCountryVar,
-                reverseTradePrefix = reverseTradePrefix,
-                valueColumns = grep(valuePrefix, colnames(.), value = TRUE),
-                flagColumns = grep(flagPrefix, colnames(.), value = TRUE))
+for(i in selectedItems){
+    rawValues =
+        getComtradeRawData(measuredItemHSCode = i) %>%
+        removeSelfTrade(data = ., reportingCountry = reportingCountryVar,
+                        partnerCountry = partnerCountryVar) %>%
+        removeInconsistentQuantityValue(data = ., quantity = importQuantity,
+                                        value = importValue) %>%
+        removeInconsistentQuantityValue(data = ., quantity = exportQuantity,
+                                        value = exportValue) %>% 
+        addRetradeToTrade(data = .,
+                          importQuantity = importQuantity,
+                          reimportQuantity = reimportQuantity,
+                          exportQuantity = exportQuantity,
+                          reexportQuantity = reexportQuantity,
+                          importValue = importValue,
+                          reimportValue = reimportValue,
+                          exportValue = exportValue,
+                          reexportValue = reexportValue)
 
-validUnitValue =
-    mirrorData %>%
-    calculateUnitValue(data = .,
-                       importUnitValue = importUnitValue,
-                       importTradeValue = importValue,
-                       importTradeQuantity = importQuantity,
-                       exportUnitValue = exportUnitValue,
-                       exportTradeValue = exportValue,
-                       exportTradeQuantity = exportQuantity) %>%
-    calculateUnitValue(data = .,
-                       importUnitValue = paste0("reverse_", importUnitValue),
-                       importTradeValue = paste0("reverse_", importValue),
-                       importTradeQuantity = paste0("reverse_", importQuantity),
-                       exportUnitValue = paste0("reverse_", exportUnitValue),
-                       exportTradeValue = paste0("reverse_", exportValue),
-                       exportTradeQuantity = paste0("reverse_", exportQuantity)) %>%
-    validation(data = .,
-               value = importUnitValue,
-               mirrorValue = paste0("reverse_", exportUnitValue),
-               ratioBoundary = 3) %>%
-    validation(data = .,
-               value = exportUnitValue,
-               mirrorValue = paste0("reverse_", importUnitValue),
-               ratioBoundary = 3) %>%
-    imputeUnitValue(data = .,
-                    unitValue = importUnitValue,
-                    mirrorUnitValue = paste0("reverse_", exportUnitValue)) %>%
-    imputeUnitValue(data = .,
-                    unitValue = exportUnitValue,
-                    mirrorUnitValue = paste0("reverse_", importUnitValue))
-                        
+    mirrorData =
+        rawValues %>%
+        mirrorTrade(data = .,
+                    reportingCountry = reportingCountryVar,
+                    partnerCountry = partnerCountryVar,
+                    reverseTradePrefix = reverseTradePrefix,
+                    valueColumns = grep(valuePrefix, colnames(.), value = TRUE),
+                    flagColumns = grep(flagPrefix, colnames(.), value = TRUE))
+
+    validUnitValue =
+        mirrorData %>%
+        calculateUnitValue(data = .,
+                           importUnitValue = importUnitValue,
+                           importTradeValue = importValue,
+                           importTradeQuantity = importQuantity,
+                           exportUnitValue = exportUnitValue,
+                           exportTradeValue = exportValue,
+                           exportTradeQuantity = exportQuantity) %>%
+        calculateUnitValue(data = .,
+                           importUnitValue = paste0("reverse_", importUnitValue),
+                           importTradeValue = paste0("reverse_", importValue),
+                           importTradeQuantity = paste0("reverse_", importQuantity),
+                           exportUnitValue = paste0("reverse_", exportUnitValue),
+                           exportTradeValue = paste0("reverse_", exportValue),
+                           exportTradeQuantity = paste0("reverse_", exportQuantity)) %>%
+        validation(data = .,
+                   value = importUnitValue,
+                   mirrorValue = paste0("reverse_", exportUnitValue),
+                   ratioBoundary = 3) %>%
+        validation(data = .,
+                   value = exportUnitValue,
+                   mirrorValue = paste0("reverse_", importUnitValue),
+                   ratioBoundary = 3) %>%
+        imputeUnitValue(data = .,
+                        unitValue = importUnitValue,
+                        mirrorUnitValue = paste0("reverse_", exportUnitValue)) %>%
+        imputeUnitValue(data = .,
+                        unitValue = exportUnitValue,
+                        mirrorUnitValue = paste0("reverse_", importUnitValue))
 
 
-
-balancedTrade =
-    validUnitValue %>%
-    updateTradeQuantity(data = .,
-                      unitValue = importUnitValue,
-                      value = importValue,
-                      quantity = importQuantity) %>%
-    updateTradeQuantity(data = .,
-                      unitValue = exportUnitValue,
-                      value = exportValue,
-                      quantity = exportQuantity) %>%
-    updateTradeQuantity(data = .,
-                      unitValue = paste0("reverse_", importUnitValue),
-                      value = paste0("reverse_", importValue),
-                      quantity = paste0("reverse_", importQuantity)) %>%
-    updateTradeQuantity(data = .,
-                      unitValue = paste0("reverse_", exportUnitValue),
-                      value = paste0("reverse_", exportValue),
-                      quantity = paste0("reverse_", exportQuantity)) %>%
-    calculateReliability(data = .,
-                         import = importQuantity,
-                         export = exportQuantity,
-                         reverseImport = paste0("reverse_", importQuantity),
-                         reverseExport = paste0("reverse_", exportQuantity),
-                         reportingCountry = "reportingCountryM49",
-                         partnerCountry = "partnerCountryM49",
-                         pctTolerance = 0.05) %>% 
-    balanceTradeQuantity(data = .,
-                         import = importQuantity,
-                         export = exportQuantity,
-                         reverseImport = paste0("reverse_", importQuantity),
-                         reverseExport = paste0("reverse_", exportQuantity),
-                         reportingReliability = "reportingReliability",
-                         partnerReliability = "partnerReliability",
-                         pctTolerance = 0.05) %>%
-    updateTradeValue(data = .,
-                      unitValue = importUnitValue,
-                      value = importValue,
-                      quantity = importQuantity) %>%
-    updateTradeValue(data = .,
-                      unitValue = exportUnitValue,
-                      value = exportValue,
-                      quantity = exportQuantity) %>%
-    ## NOTE (Michael): Calculation of the revser is probably not
-    ##                 required, since they will be discarded.
-    updateTradeValue(data = .,
-                      unitValue = paste0("reverse_", importUnitValue),
-                      value = paste0("reverse_", importValue),
-                      quantity = paste0("reverse_", importQuantity)) %>%
-    updateTradeValue(data = .,
-                      unitValue = paste0("reverse_", exportUnitValue),
-                      value = paste0("reverse_", exportValue),
-                      quantity = paste0("reverse_", exportQuantity)) %>%
-    saveValidTradeData(data = ., originalData = rawValues)
+    balancedTrade =
+        validUnitValue %>%
+        updateTradeQuantity(data = .,
+                            unitValue = importUnitValue,
+                            value = importValue,
+                            quantity = importQuantity) %>%
+        updateTradeQuantity(data = .,
+                            unitValue = exportUnitValue,
+                            value = exportValue,
+                            quantity = exportQuantity) %>%
+        updateTradeQuantity(data = .,
+                            unitValue = paste0("reverse_", importUnitValue),
+                            value = paste0("reverse_", importValue),
+                            quantity = paste0("reverse_", importQuantity)) %>%
+        updateTradeQuantity(data = .,
+                            unitValue = paste0("reverse_", exportUnitValue),
+                            value = paste0("reverse_", exportValue),
+                            quantity = paste0("reverse_", exportQuantity)) %>%
+        calculateReliability(data = .,
+                             import = importQuantity,
+                             export = exportQuantity,
+                             reverseImport = paste0("reverse_", importQuantity),
+                             reverseExport = paste0("reverse_", exportQuantity),
+                             reportingCountry = "reportingCountryM49",
+                             partnerCountry = "partnerCountryM49",
+                             pctTolerance = 0.05) %>% 
+        balanceTradeQuantity(data = .,
+                             import = importQuantity,
+                             export = exportQuantity,
+                             reverseImport = paste0("reverse_", importQuantity),
+                             reverseExport = paste0("reverse_", exportQuantity),
+                             reportingReliability = "reportingReliability",
+                             partnerReliability = "partnerReliability",
+                             pctTolerance = 0.05) %>%
+        updateTradeValue(data = .,
+                         unitValue = importUnitValue,
+                         value = importValue,
+                         quantity = importQuantity) %>%
+        updateTradeValue(data = .,
+                         unitValue = exportUnitValue,
+                         value = exportValue,
+                         quantity = exportQuantity) %>%
+        ## NOTE (Michael): Calculation of the revser is probably not
+        ##                 required, since they will be discarded.
+        updateTradeValue(data = .,
+                         unitValue = paste0("reverse_", importUnitValue),
+                         value = paste0("reverse_", importValue),
+                         quantity = paste0("reverse_", importQuantity)) %>%
+        updateTradeValue(data = .,
+                         unitValue = paste0("reverse_", exportUnitValue),
+                         value = paste0("reverse_", exportValue),
+                         quantity = paste0("reverse_", exportQuantity)) %>%
+        saveValidTradeData(data = ., originalData = rawValues)
+}
