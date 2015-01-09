@@ -64,7 +64,7 @@ getComtradeRawData = function(measuredItemHSCode){
              Dimension(name = "measuredElementTrade", keys = elementCode),
              Dimension(name = "timePointYears",
                        keys = swsContext.datasets[[1]]@dimensions$timePointYears@keys))
-
+    
     newKey = DatasetKey(domain = "trade", dataset = "ct_raw_tf",
         dimensions = dimensions)
 

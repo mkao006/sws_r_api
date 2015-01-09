@@ -419,7 +419,11 @@ selectRequiredVariable = function(data){
               importToProductionRatio, scaledTimePointYears)]
 }
                 
-## Function to save the data back 
+## Function to save the data back
+##
+## NOTE (Michael): This should not be saved back to the production
+##                 domain. Probably should set this up for the loss
+##                 domain.
 SaveLossData = function(data){
     saveSelection =
         data[, intersect(colnames(data), colnames(lossData)),
