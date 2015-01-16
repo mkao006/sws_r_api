@@ -106,7 +106,8 @@ imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5212",
     valueAreaHarvested = "Value_measuredElement_5312",
     flagObsAreaSown = "flagObservationStatus_measuredElement_5212",
     flagObsAreaHarvested = "flagObservationStatus_measuredElement_5312",
-    imputedFlag = "i"){
+    flagMethodAreaSown = "flagMethod_measuredElement_5212",
+    imputedObsFlag = "I", imputedMethodFlag = "e"){
     if(all(is.na(data[[valueAreaSown]]))){
         data[[valueAreaSown]] = data[[valueAreaHarvested]]
         data[[flagObsAreaSown]] = data[[flagObsAreaHarvested]]
@@ -123,8 +124,8 @@ imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5212",
         ##
         ## data[[flagObsAreaSown]][replaceIndex] =
         ##     data[[flagObsAreaHarvested]]
-        data[[flagObsAreaSown]][replaceIndex] =
-            imputedFlag
+        data[[flagObsAreaSown]][replaceIndex] = imputedObsFlag
+        data[[flagMethodAreaSown]][replaceIndex] = imputedMethodFlag
     }
     data
 }
