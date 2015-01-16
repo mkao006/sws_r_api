@@ -118,8 +118,13 @@ imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5212",
             !is.na(data[[valueAreaHarvested]])
         data[[valueAreaSown]][replaceIndex] =
             data[[valueAreaHarvested]] * ratio
+        ## NOTE (Michael): This is actually wrong, the flag should not
+        ##                 be transferred.
+        ##
+        ## data[[flagObsAreaSown]][replaceIndex] =
+        ##     data[[flagObsAreaHarvested]]
         data[[flagObsAreaSown]][replaceIndex] =
-            data[[flagObsAreaHarvested]]
+            imputedFlag
     }
     data
 }
@@ -179,14 +184,6 @@ fillGeneralSeedRate = function(data,
 }
 
 
-## Function to impute the seed.
-imputeSeed = function(areaSown, seedRate, missingFlag = "M", imputedFlag = "i"){
-    seed = c(c(areaSown, NA) * c(NA, seedRate)/1000)[-1]
-    seedFlag = rep(missingFlag, length(areaSown))
-    seedFlag[!is.na(seedFlag)] = imputedFlag
-    list(seed, seedFlag)
-}
-
 imputeSeed = function(data,
     seedValue = "Value_measuredElement_5525",
     seedMethodFlag = "flagMethod_measuredElement_5525",
@@ -195,7 +192,7 @@ imputeSeed = function(data,
     areaSownObsFlag = "flagObservationStatus_measuredElement_5212",
     seedRateValue = "Value_seedRate",
     seedRateFlag = "flagObservationStatus_seedRate",
-    missingFlag = "M", imputedFlag = "i",
+    imputedFlag = "i",
     byKey = key(data)[1:2]){
 
     each = function(seedValue = seedValue, seedMethodFlag = seedMethodFlag,
