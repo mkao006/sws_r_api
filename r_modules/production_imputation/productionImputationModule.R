@@ -4,8 +4,7 @@ library(faoswsUtil)
 library(faoswsFlag)
 library(faoswsProductionImputation)
 library(data.table)
-library(RPostgreSQL)
-library(RJSONIO)
+library(splines)
 
 ## Setting up variables
 areaVar = "geographicAreaM49"
@@ -17,7 +16,7 @@ elementVar = "measuredElement"
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "916d93af-3000-4afb-9781-4fc74e77117d"
+        token = "f76f4012-392f-402c-8108-35f74f0d1564"
         )
 }
 
@@ -127,8 +126,8 @@ getValidRange = function(dataContext){
                     dimension = areaVar)
     countryTable =
         countryTable[type == "country", ]
-    countryTable[, startDate := NULLtoNA(startDate)]
-    countryTable[, endDate := NULLtoNA(endDate)]
+    ## countryTable[, startDate := NULLtoNA(startDate)]
+    ## countryTable[, endDate := NULLtoNA(endDate)]
     countryTable[, startDate := as.numeric(substr(startDate, 1, 4))]
     countryTable[, endDate := as.numeric(substr(endDate, 1, 4))]
     countryTable[is.na(startDate), startDate := -Inf]
@@ -178,8 +177,8 @@ executeImputationModule = function(){
             datasets = getImputationData(subKey)
             ## This is a temporary hack until the API issue is
             ## resolved
-            datasets$query =
-                as.data.table(lapply(datasets$query, FUN = NULLtoNA))
+            ## datasets$query =
+            ##     as.data.table(lapply(datasets$query, FUN = NULLtoNA))
             with(datasets, {
                 ## NOTE (Michael): The yield should have been
                 ##                 calculated a priori to the
