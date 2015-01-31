@@ -23,7 +23,29 @@ itemVar = "measuredItemCPC"
 elementVar = "measuredElement"
 requiredElements = c("5510", "5610", "5712", "5015")
 names(requiredElements) = c("production", "import", "stockWithdrawl", "loss")
-requiredItems = GetCodeList("agriculture", "agriculture", "measuredItemCPC")$code
+getFBSmeasuredItemCPC = function(dataContext){
+    ## itemTable =
+    ##     GetCodeList(domain = slot(dataContext, "domain"),
+    ##                 dataset = slot(dataContext, "dataset"),
+    ##                 dimension = itemVar)
+    ## HACK (Michael): Since we don't have the columne 'type' ready
+    ##                 for selection, we will select all item which
+    ##                 are under the CPC heading '0'.
+    require(igraph)
+    require(faoswsUtil)
+    itemEdgeList =
+        adjacent2edge(
+            GetCodeTree(domain = slot(dataContext, "domain"),
+                        dataset = slot(dataContext, "dataset"),
+                        dimension = itemVar)
+        )
+
+    itemEdgeGraph = graph.data.frame(itemEdgeList)
+    itemDist = shortest.paths(itemEdgeGraph, v = "0", mode = "out")
+    fbsItemCodes = colnames(itemDist)[is.finite(itemDist)]
+    fbsItemCodes
+}
+requiredItems = getFBSmeasuredItemCPC(swsContext.datasets[[1]])
 valuePrefix = "Value_measuredElement_"
 flagObsPrefix = "flagObservationStatus_measuredElement_"
 flagMethodPrefix = "flagMethod_measuredElement_"
@@ -206,6 +228,8 @@ getTradeData = function(){
 
 ## This is the function to get stock variation data, however the data
 ## does not exist and is simulated.
+##
+## NOTE (Michael): Stock variation is assumed to be zero.
 getStockVariationData = function(){}
 
 
@@ -257,7 +281,8 @@ fillUnclassifiedRegion = function(data, regionClassification = "lossRegionClass"
 dataHack = function(data){
     ## HACK (Michael): This is a hack to simulate trade data
     data[, Value_measuredElement_5610 :=
-             abs(rnorm(.N, mean(Value_measuredElement_5510, na.rm = TRUE), 
+             abs(rnorm(.N,
+                       mean(Value_measuredElement_5510, na.rm = TRUE), 
                        sd(Value_measuredElement_5510, na.rm = TRUE))),
          by = c("geographicAreaM49", "measuredItemCPC")]
     ## HACK (Michael): Since trade and stock variation data are not
