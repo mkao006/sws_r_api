@@ -167,7 +167,7 @@ addRetradeToTrade = function(data, importQuantity, reimportQuantity,
                             rowSums(.SD[, c(exportValue, reexportValue),
                                         with = FALSE], na.rm = TRUE))))]
     data[, `:=`(c(reimportQuantity, reexportQuantity,
-                  reimportValue, reexportValue), NA)]
+                  reimportValue, reexportValue), NULL)]
     ## NOTE (Michael): What do we do with the retrades in the data base?
     data
 }
@@ -189,7 +189,7 @@ removeInconsistentQuantityValue = function(data, quantity, value){
 
 
 mirrorTrade = function(data, reportingCountry, partnerCountry, reverseTradePrefix,
-                       valueColumns, flagColumns){
+                       valueColumns, flagColumns, mirrorFlag = "mr"){
     base = copy(data)
     tmp = data[, !flagColumns, with = FALSE]
 
@@ -221,23 +221,23 @@ mirrorTrade = function(data, reportingCountry, partnerCountry, reverseTradePrefi
                   !is.na(mirroredTrade[[reverse_export_quantity]]),
                   `:=`(c(import_quantity,
                          gsub(valuePrefix, flagPrefix, import_quantity)),
-                       list(.SD[[reverse_export_quantity]], "mr"))]
+                       list(.SD[[reverse_export_quantity]], mirrorFlag))]
     mirroredTrade[is.na(mirroredTrade[[import_value]]) &
                   !is.na(mirroredTrade[[reverse_export_value]]),
                   `:=`(c(import_value,
                          gsub(valuePrefix, flagPrefix, import_value)),
-                       list(.SD[[reverse_export_value]], "mr"))]
+                       list(.SD[[reverse_export_value]], mirrorFlag))]
 
     mirroredTrade[is.na(mirroredTrade[[export_quantity]]) &
                   !is.na(mirroredTrade[[reverse_import_quantity]]),
                   `:=`(c(export_quantity,
                          gsub(valuePrefix, flagPrefix, export_quantity)),
-                       list(.SD[[reverse_import_quantity]], "mr"))]
+                       list(.SD[[reverse_import_quantity]], mirrorFlag))]
     mirroredTrade[is.na(mirroredTrade[[export_value]]) &
                   !is.na(mirroredTrade[[reverse_import_value]]),
                   `:=`(c(export_value,
                          gsub(valuePrefix, flagPrefix, export_value)),
-                       list(.SD[[reverse_import_value]], "mr"))]
+                       list(.SD[[reverse_import_value]], mirrorFlag))]
 
     
     ## NOTE (Michael): Flags are not needed for the reverse trade
@@ -259,25 +259,34 @@ mirrorTrade = function(data, reportingCountry, partnerCountry, reverseTradePrefi
 }
 
 
-calculateUnitValue = function(data, importUnitValue, importTradeValue,
-    importTradeQuantity, exportUnitValue, exportTradeValue, exportTradeQuantity){
+calculateUnitValue = function(data, importUnitValue, importUnitValueFlag,
+    importTradeValue, importTradeQuantity, exportUnitValue, exportUnitValueFlag,
+    exportTradeValue, exportTradeQuantity, calculatedFlag = "c"){
+
     missingCol = setdiff(c(importUnitValue, importTradeValue, importTradeQuantity,
         exportUnitValue, exportUnitValue, exportTradeQuantity), colnames(data))
     if(length(missingCol) > 0)
         data[, `:=`(c(missingCol), as.numeric(NA))]
     
-    data[, `:=`(c(importUnitValue, exportUnitValue),
-                list(computeRatio(get(importTradeValue),
-                                  get(importTradeQuantity)),
-                computeRatio(get(exportTradeValue),
-                             get(exportTradeQuantity))))]
+    data[!is.na(data[[importTradeValue]]) & !is.na(data[[importTradeQuantity]]),
+         `:=`(c(importUnitValue, importUnitValueFlag),
+                list(computeRatio(.SD[[importTradeValue]],
+                                  .SD[[importTradeQuantity]]),
+                     calculatedFlag))]
+
+    data[!is.na(data[[exportTradeValue]]) & !is.na(data[[exportTradeQuantity]]),
+         `:=`(c(exportUnitValue, exportUnitValueFlag),
+                list(computeRatio(.SD[[exportTradeValue]],
+                                  .SD[[exportTradeQuantity]]),
+                     calculatedFlag))]
+    
     data
 }
 
 
 
-validationByMirrorValue = function(value, mirrorValue, ratioBoundary,
-    log = TRUE, plot = FALSE){
+validationByMirrorValue = function(value, flag, mirrorValue, ratioBoundary,
+    log = TRUE, plot = FALSE, validatedFlag = "v"){
     if(log){
         value = log(value)
         mirrorValue = log(mirrorValue)
@@ -297,9 +306,11 @@ validationByMirrorValue = function(value, mirrorValue, ratioBoundary,
             c(svec %*% svec)) %*% matrix(svec, nc = 2)
     ## Assing the new values to those that lies out side the ratio range
     newValue = value
+    newFlag = flag
     newMirrorValue = mirrorValue
     newValue[badRatio] = valueBasedOnExpectedRatio[badRatio, 1]
     newMirrorValue[badRatio] = valueBasedOnExpectedRatio[badRatio, 2] + intercept
+    newFlag[badRatio] = "v"
     if(plot){
         plot(value, mirrorValue, pch = 19, col = "red")
         abline(a = intercept, b = slope)
@@ -311,12 +322,10 @@ validationByMirrorValue = function(value, mirrorValue, ratioBoundary,
         newValue = exp(newValue)
         newMirrorValue = exp(newMirrorValue)
     }
-    ## list(intercept = intercept, slope= slope, newValue = newValue,
-    ##      newMirrorValue = newMirrorValue)
-    list(newValue, newMirrorValue)
+    list(newValue, newMirrorValue, newFlag)
 }
 
-validationByRange = function(value, log = TRUE){
+validationByRange = function(value, flag, validatedFlag = "v", log = TRUE){
     if(log){
         newValue = log(value)
     } else {
@@ -328,61 +337,85 @@ validationByRange = function(value, log = TRUE){
     badValue = which(value > max | value < min)
     newValue[badValue] = median(newValue[-badValue], na.rm = TRUE)
     ## list(value = value, newValue = newValue)
-    if(log){
-        return(exp(newValue))
-    } else {
-        return(newValue)
-    }
+    if(log)
+        newValue = exp(newValue)
+    newFlag = flag
+    newFlag[badValue] = validatedFlag
+    list(newValue, newFlag)
 }
 
-## TODO (Michael): Replace only values that are difference, and also
-##                 assign flag.
-validation = function(data, value, mirrorValue, ratioBoundary = 3,
-    log = TRUE, plot = FALSE){
+
+validation = function(data, value, flag, mirrorValue, validatedFlag = "v",
+    ratioBoundary = 3, log = TRUE, plot = FALSE){
     valid = copy(data)
-    valid[, `:=`(c(value, mirrorValue),
-                 validationByMirrorValue(.SD[[value]], .SD[[mirrorValue]],
+    valid[, `:=`(c(value, mirrorValue, flag),
+                 validationByMirrorValue(value = .SD[[value]],
+                                         flag = .SD[[flag]],
+                                         mirrorValue = .SD[[mirrorValue]],
                                          ratioBoundary = ratioBoundary,
                                          log = log,
                                          plot = plot))]
-    valid[, `:=`(c(value), validationByRange(value = .SD[[value]], log = log))]
-    valid[, `:=`(c(mirrorValue),
-                 validationByRange(value = .SD[[mirrorValue]], log = log))]
+    valid[, `:=`(c(value, flag),
+                 validationByRange(value = .SD[[value]],
+                                   flag = .SD[[flag]],
+                                   log = log))]
+    valid[, `:=`(c(mirrorValue, flag),
+                 validationByRange(value = .SD[[mirrorValue]],
+                                   flag = .SD[[flag]],
+                                   log = log))]
     valid
 }
 
-## TODO (Michael): assign flag.
-imputeUnitValue = function(data, unitValue, mirrorUnitValue){
+
+imputeUnitValue = function(data, unitValue, unitValueFlag, mirrorUnitValue,
+    imputationFlag = "i"){
     imputed = copy(data)
-    imputed[is.na(imputed[[unitValue]]) & !is.na(imputed[[mirrorUnitValue]]),
-            `:=`(c(unitValue), .SD[[mirrorUnitValue]])]
-    imputed[is.na(imputed[[mirrorUnitValue]]) & !is.na(imputed[[unitValue]]),
-            `:=`(c(mirrorUnitValue), .SD[[unitValue]])]
+    ## NOTE (Michael): This is not needed, since the unit value is
+    ##                 guranteed to be computed when both quantity and
+    ##                 value are mirrored. If it is missing, then it
+    ##                 also implies the partner is missing.
+    ##
+    ## imputed[is.na(imputed[[unitValue]]) & !is.na(imputed[[mirrorUnitValue]]),
+    ##         `:=`(c(unitValue), .SD[[mirrorUnitValue]])]
+    ## imputed[is.na(imputed[[mirrorUnitValue]]) & !is.na(imputed[[unitValue]]),
+    ##         `:=`(c(mirrorUnitValue), .SD[[unitValue]])]
     imputed[is.na(imputed[[mirrorUnitValue]]),
-            `:=`(c(mirrorUnitValue), median(.SD[[mirrorUnitValue]], na.rm = TRUE))]
+            `:=`(c(mirrorUnitValue),
+                 median(imputed[[mirrorUnitValue]], na.rm = TRUE))]
     imputed[is.na(imputed[[unitValue]]),
-            `:=`(c(unitValue), median(.SD[[unitValue]], na.rm = TRUE))]
+            `:=`(c(unitValue, unitValueFlag),
+                 list(median(imputed[[unitValue]], na.rm = TRUE), imputationFlag))]
     imputed
 }
 
 ## TODO (Michael): Assign flag.
-updateTradeQuantity = function(data, unitValue, value, quantity){
+updateTradeQuantity = function(data, unitValue, value, quantity, unitValueFlag,
+    quantityFlag,  calculatedFlag = "c"){
     updatedTradeQuantity = copy(data)
-    updatedTradeQuantity[!is.na(updatedTradeQuantity[[quantity]]),
-                    `:=`(c(quantity), get(value)/get(unitValue))]
+
+    ## Update trade quantity if unit value is not calculated.
+    updatedTradeQuantity[!is.na(updatedTradeQuantity[[value]]) & 
+                         !is.na(updatedTradeQuantity[[unitValue]]) &
+                         updatedTradeQuantity[[unitValueFlag]] != calculatedFlag,
+                         `:=`(c(quantity, quantityFlag),
+                              list(computeRatio(.SD[[value]], .SD[[unitValue]]),
+                                   .SD[[unitValueFlag]]))]                         
+    ## updatedTradeQuantity[!is.na(updatedTradeQuantity[[quantity]]),
+    ##                 `:=`(c(quantity), get(value)/get(unitValue))]
     updatedTradeQuantity    
 }
 
 
-calculateReliability = function(data, import, export, reverseImport,
-    reverseExport, reportingCountry, partnerCountry, pctTolerance){
+calculateReliability = function(data, importQuantity, exportQuantity,
+    reverseImportQuantity, reverseExportQuantity, reportingCountry, partnerCountry,
+    pctTolerance){
 
     ## TODO (Michael): Discard worst discrepancy
     reliability =
-        data[, (sum(abs(.SD[[import]] - .SD[[reverseExport]])/
-                        .SD[[import]] <= pctTolerance, na.rm = TRUE) +
-               (sum(abs(.SD[[export]] - .SD[[reverseImport]])/
-                        .SD[[export]] <= pctTolerance, na.rm = TRUE)))/
+        data[, (sum(abs(.SD[[importQuantity]] - .SD[[reverseExportQuantity]])/
+                        .SD[[importQuantity]] <= pctTolerance, na.rm = TRUE) +
+               (sum(abs(.SD[[exportQuantity]] - .SD[[reverseImportQuantity]])/
+                        .SD[[exportQuantity]] <= pctTolerance, na.rm = TRUE)))/
                             (2 * .N),
              by = reportingCountry]
     setnames(reliability, old = "V1", new = "reportingReliability")
@@ -396,28 +429,34 @@ calculateReliability = function(data, import, export, reverseImport,
 }
 
 
-
-balanceTradeQuantity = function(data, import, export, reverseImport, reverseExport,
-    reportingReliability, partnerReliability, pctTolerance){
+## NOTE (Michael): What happens if the reliability are equivalent?
+##                 Very possible in small data set.
+balanceTradeQuantity = function(data, importQuantity, exportQuantity,
+    reverseImportQuantity, reverseExportQuantity, reportingReliability,
+    partnerReliability, pctTolerance){
     balanced = copy(data)
     balanced[reportingReliability < partnerReliability &
-             (abs(balanced[[import]] - balanced[[reverseExport]])/
-                  balanced[[import]] > pctTolerance),
-             `:=`(c(import), get(reverseExport))]
+             (abs(balanced[[importQuantity]] - balanced[[reverseExportQuantity]])/
+                  balanced[[importQuantity]] > pctTolerance),
+             `:=`(c(importQuantity), .SD[[reverseExportQuantity]])]
     balanced[reportingReliability < partnerReliability &
-             (abs(balanced[[export]] - balanced[[reverseImport]])/
-                  balanced[[export]]> pctTolerance),
-             `:=`(c(export), get(reverseImport))]
+             (abs(balanced[[exportQuantity]] - balanced[[reverseImportQuantity]])/
+                  balanced[[exportQuantity]]> pctTolerance),
+             `:=`(c(exportQuantity), .SD[[reverseImportQuantity]])]
     balanced
 }
 
 
+updateTradeValue = function(data, unitValue, value, valueFlag, quantity,
+    calculatedFlag = "c"){
 
-updateTradeValue = function(data, unitValue, value, quantity){
     updatedTradeValue = copy(data)
-    updatedTradeValue[!is.na(updatedTradeValue[[value]]),
-                    `:=`(c(value), get(quantity) * get(unitValue))]
-    updatedTradeValue    
+
+    updatedTradeValue[, tmp := .SD[[quantity]] * .SD[[unitValue]]]
+    updatedTradeValue[tmp != updatedTradeValue[[unitValue]],
+                      `:=`(c(value, valueFlag), list(tmp, calculatedFlag))]
+    updatedTradeValue[, tmp := NULL]
+    updatedTradeValue
 }
 
 
@@ -435,6 +474,23 @@ saveValidatedTradeData = function(data, originalData){
     validatedData[, timePointYears := as.character(timePointYears)]
     SaveData(domain = "trade", dataset = "completed_tf",
              data = validatedData, normalized = FALSE)
+}
+
+
+## TODO (Michael): Need to check how we should consolidate the flag,
+##                 or if necessary.
+consolidateTradeFlow = function(balancedData, importQuantity, exportQuantity,
+    importValue, exportValue, reportingCountryVar){
+    balancedData[, list(importQuantity = sum(get(importQuantity)),
+                        exportQuantity = sum(get(exportQuantity)),
+                        importValue = sum(get(importValue)),
+                        exportValue = sum(get(exportValue))),
+                 by = reportingCountryVar]
+}
+
+saveConsolidatedData = function(consolidatedData){
+    SaveData(domain = "trade", dataset = "completed_rf",
+             data = consolidatedData, normalized = FALSE)
 }
 
 
@@ -563,6 +619,16 @@ for(i in selectedItems){
     ## Save the data back to the database
     balancedData %>%
         saveValidatedTradeData(data = ., originalData = rawData)
+
+    condolidatedData = 
+        balancedData %>%
+        consolidateTradeFlow(balancedData = .,
+                             importQuantity = import_quantity,
+                             exportQuantity = export_quantity,
+                             importValue = import_value,
+                             exportValue = export_value,
+                             reportingCountryVar = reportingCountryVar)
+    
 }
 
 
@@ -657,4 +723,144 @@ write.csv(checkValidatedData, file = "~/Desktop/validated_trade_check.csv",
 
 
 
+
+
+
+
+raw.dt = data.table(read.csv(file = "test_raw.csv",
+                             colClasses = c("character", "character", "character",
+                                 "integer", rep(c("double", "character"), 6))))
+
+
+
+## Mirrored the data and calculate unit value
+mirrored.dt =
+    raw.dt %>%
+    mirrorTrade(data = .,
+                reportingCountry = reportingCountryVar,
+                partnerCountry = partnerCountryVar,
+                reverseTradePrefix = reverseTradePrefix,
+                valueColumns = grep(valuePrefix, colnames(.), value = TRUE),
+                flagColumns = grep(flagPrefix, colnames(.), value = TRUE)) %>%
+    calculateUnitValue(data = .,
+                       importUnitValue = import_unit_value,
+                       importUnitValueFlag =
+                           gsub(valuePrefix, flagPrefix, import_unit_value),
+                       importTradeValue = import_value,
+                       importTradeQuantity = import_quantity,
+                       exportUnitValue = export_unit_value,
+                       exportUnitValueFlag =
+                           gsub(valuePrefix, flagPrefix, export_unit_value),
+                       exportTradeValue = export_value,
+                       exportTradeQuantity = export_quantity) %>%
+    calculateUnitValue(data = .,
+                       importUnitValue = reverse_import_unit_value,
+                       importUnitValueFlag =
+                           gsub(valuePrefix, flagPrefix, reverse_import_unit_value),
+                       importTradeValue = reverse_import_value,
+                       importTradeQuantity = reverse_import_quantity,
+                       exportUnitValue = reverse_export_unit_value,
+                       exportUnitValueFlag =
+                           gsub(valuePrefix, flagPrefix, reverse_export_unit_value),
+                       exportTradeValue = reverse_export_value,
+                       exportTradeQuantity = reverse_export_quantity)
+
+## Mirroring seems correct.
+write.csv(mirrored.dt, file = "check_mirror.csv", na = "", row.names = FALSE)
+
+
+## Validated the data
+validated.dt =
+    mirrored.dt %>%
+    validation(data = .,
+               value = import_unit_value,
+               flag = gsub(valuePrefix, flagPrefix, import_unit_value),
+               mirrorValue = reverse_export_unit_value,
+               ratioBoundary = 1.05, log = TRUE, plot = TRUE) %>%
+    validation(data = .,
+               value = export_unit_value,
+               flag = gsub(valuePrefix, flagPrefix, export_unit_value),
+               mirrorValue = reverse_import_unit_value,
+               ratioBoundary = 1.05, log = TRUE, plot = TRUE) %>%
+    imputeUnitValue(data = .,
+                    unitValue = import_unit_value,
+                    unitValueFlag = gsub(valuePrefix, flagPrefix, import_unit_value),
+                    mirrorUnitValue = reverse_export_unit_value) %>%
+    imputeUnitValue(data = .,
+                    unitValue = export_unit_value,
+                    unitValueFlag = gsub(valuePrefix, flagPrefix, export_unit_value),
+                    mirrorUnitValue = reverse_import_unit_value)
+
+## A value as validated by range, everything seems fine.
+write.csv(validated.dt, file = "check_valid.csv", na = "", row.names = FALSE)
+
+
+
+    
+## Balance the data
+balanced.dt =
+    validated.dt %>%
+    updateTradeQuantity(data = .,
+                        unitValue = import_unit_value,
+                        unitValueFlag =
+                            gsub(valuePrefix, flagPrefix, import_unit_value),
+                        value = import_value,
+                        quantity = import_quantity,
+                        quantityFlag =
+                            gsub(valuePrefix, flagPrefix, import_quantity)) %>%
+    updateTradeQuantity(data = .,
+                        unitValue = export_unit_value,
+                        unitValueFlag =
+                            gsub(valuePrefix, flagPrefix, export_unit_value),
+                        value = export_value,
+                        quantity = export_quantity,
+                        quantityFlag =
+                            gsub(valuePrefix, flagPrefix, export_quantity)) %>%
+    updateTradeQuantity(data = .,
+                        unitValue = reverse_import_unit_value,
+                        unitValueFlag =
+                            gsub(valuePrefix, flagPrefix, reverse_import_unit_value),
+                        value = reverse_import_value,
+                        quantity = reverse_import_quantity,
+                        quantityFlag =
+                            gsub(valuePrefix, flagPrefix, reverse_import_quantity)) %>%
+    updateTradeQuantity(data = .,
+                        unitValue = reverse_export_unit_value,
+                        unitValueFlag =
+                            gsub(valuePrefix, flagPrefix, reverse_export_unit_value),
+                        value = reverse_export_value,
+                        quantity = reverse_export_quantity,
+                        quantityFlag =
+                            gsub(valuePrefix, flagPrefix, reverse_export_quantity)) %>%
+    calculateReliability(data = .,
+                         importQuantity = import_quantity,
+                         exportQuantity = export_quantity,
+                         reverseImportQuantity = reverse_import_quantity,
+                         reverseExportQuantity = reverse_export_quantity,
+                         reportingCountry = reportingCountryVar,
+                         partnerCountry = partnerCountryVar,
+                         pctTolerance = 0.05) %>% 
+    balanceTradeQuantity(data = .,
+                         importQuantity = import_quantity,
+                         exportQuantity = export_quantity,
+                         reverseImportQuantity = reverse_import_quantity,
+                         reverseExportQuantity = reverse_export_quantity,
+                         reportingReliability = "reportingReliability",
+                         partnerReliability = "partnerReliability",
+                         pctTolerance = 0.05) %>%
+    updateTradeValue(data = .,
+                     unitValue = import_unit_value,
+                     value = import_value,
+                     valueFlag = gsub(valuePrefix, flagPrefix, import_value),
+                     quantity = import_quantity) %>%
+    updateTradeValue(data = .,
+                     unitValue = export_unit_value,
+                     value = export_value,
+                     valueFlag = gsub(valuePrefix, flagPrefix, export_value),
+                     quantity = export_quantity)
+
+## The unit value which was updated, resulted in a change in
+## quantity. Need to check whether value or quantity is more reliable
+## to determine the sequence.
+write.csv(balanced.dt, file = "check_balance.csv", na = "", row.names = FALSE)
 
