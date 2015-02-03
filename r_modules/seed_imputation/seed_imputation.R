@@ -37,7 +37,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         ## token = "ad7f16e3-d447-48ec-9d62-089f63bbc137"
-        token = "5d9b8d4a-0989-4b50-869f-cd0bc566fd18"
+        token = "f4782d74-1781-4935-af00-7fa273ecef52"
         )
 }
 
@@ -118,7 +118,7 @@ imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5212",
             is.na(data[[valueAreaSown]]) &
             !is.na(data[[valueAreaHarvested]])
         data[[valueAreaSown]][replaceIndex] =
-            data[[valueAreaHarvested]] * ratio
+            data[[valueAreaHarvested]][replaceIndex] * ratio
         ## NOTE (Michael): This is actually wrong, the flag should not
         ##                 be transferred.
         ##
@@ -151,11 +151,12 @@ getCountrySpecificSeedRate = function(){
 
 fillCountrySpecificSeedRate = function(data,
     countrySpecificData = getCountrySpecificSeedRate()){
-    ## Fill in the country Specific rates          
-    data[countrySpecificData,
-         `:=`(c("Value_seedRate", "flagObservationStatus_seedRate"),
-              list(i.Value_seedRate, i.flagObservationStatus_seedRate)),
-         allow.cartesian = TRUE]
+    merge(data, countrySpecificData, allow.cartesian = TRUE)
+    ## Fill in the country Specific rates
+    ## data[countrySpecificData,
+    ##      `:=`(c("Value_seedRate", "flagObservationStatus_seedRate"),
+    ##           list(i.Value_seedRate, i.flagObservationStatus_seedRate)),
+    ##      allow.cartesian = TRUE]
 
 }
 
@@ -200,49 +201,83 @@ imputeSeed = function(data,
         seedObsFlag = seedObsFlag, areaSownValue = areaSownValue,
         areaSownObsFlag, seedRateValue = seedRateValue,
         seedRateFlag = seedRateFlag, imputedFlag = imputedFlag){
+        
         newSeedValue = c(c(areaSownValue, NA) * c(NA, seedRateValue)/1000)[-1]
         replaceIndex = is.na(seedValue) & !is.na(newSeedValue)
-        seedValue[replaceIndex] = newSeedValue
+        seedValue[replaceIndex] = newSeedValue[replaceIndex]
         seedMethodFlag[replaceIndex] = imputedFlag
         seedObsFlag[replaceIndex] =
-            aggregateObservationFlag(areaSownObsFlag, seedRateFlag)
-        list(seedValue, seedMethodFlag, seedObsFlag)        
+            aggregateObservationFlag(areaSownObsFlag[replaceIndex],
+                                     seedRateFlag[replaceIndex])
+        list(seedValue, seedMethodFlag, seedObsFlag)
+        
     }
     data[, `:=`(c(seedValue, seedMethodFlag, seedObsFlag),
-                each(seedValue = get(seedValue),
-                     seedMethodFlag = get(seedMethodFlag),
-                     seedObsFlag = get(seedObsFlag),
-                     areaSownValue = get(areaSownValue),
-                     areaSownObsFlag = get(areaSownObsFlag),
-                     seedRateValue = get(seedRateValue),
-                     seedRateFlag = get(seedRateFlag),
+                each(seedValue = .SD[[seedValue]],
+                     seedMethodFlag = .SD[[seedMethodFlag]],
+                     seedObsFlag = .SD[[seedObsFlag]],
+                     areaSownValue = .SD[[areaSownValue]],
+                     areaSownObsFlag = .SD[[areaSownObsFlag]],
+                     seedRateValue = .SD[[seedRateValue]],
+                     seedRateFlag = .SD[[seedRateFlag]],
                      imputedFlag = imputedFlag)), by = byKey]
     data[, `:=`(c(seedRateValue, seedRateFlag), NULL)]
 }
                     
+
+## Obtain the valid year range of each country
+getValidRange = function(dataContext){
+    countryTable =
+        GetCodeList(domain = "agriculture",
+                    dataset = "agriculture",
+                    dimension = areaVar)
+    countryTable =
+        countryTable[type == "country", ]
+    ## countryTable[, startDate := NULLtoNA(startDate)]
+    ## countryTable[, endDate := NULLtoNA(endDate)]
+    countryTable[, startDate := as.numeric(substr(startDate, 1, 4))]
+    countryTable[, endDate := as.numeric(substr(endDate, 1, 4))]
+    countryTable[is.na(startDate), startDate := -Inf]
+    countryTable[is.na(endDate), endDate := Inf]
+    countryTable
+}
+
+
+## Function to remove imputed data which corresponds to invalid time
+## range.
+validTimeData = function(data, areaName = areaVar,
+    yearName = yearVar){
+    validRange = getValidRange()
+    validSubset =
+        paste0(with(validRange,
+                    paste0("(", areaName, " == ", code,
+                           " & ", yearName, " > ", startDate,
+                           " & ", yearName, " < ", endDate, ")")),
+               collapse = " | ")
+    valid = data[eval(parse(text = validSubset)), ]
+    valid    
+}    
     
 SaveSeedData = function(data){
     ## Save the data back
-    SaveData(domain = slot(swsContext.datasets[[1]], "domain"),
-             dataset = slot(swsContext.datasets[[1]], "dataset"),
+    SaveData(domain = "agriculture",
+             dataset = "agriculture",
              data = data,
              normalized = FALSE)
 }
 
 
 ## Run the whole seed module
-getAreaData(swsContext.datasets[[1]],
+getAreaData(dataContext = swsContext.datasets[[1]],
             areaSownElementCode = areaSownElementCode,
             areaHarvestedElementCode = areaHarvestedElementCode,
             seedElementCode = seedElementCode) %>%
-                imputeAreaSown %>%
-                    fillCountrySpecificSeedRate %>%
-                        fillGeneralSeedRate %>%
-                            imputeSeed %>%
-                                SaveSeedData
-
-
-
+    imputeAreaSown %>%
+    fillCountrySpecificSeedRate %>%
+    fillGeneralSeedRate %>%
+    imputeSeed %>%
+    validTimeData%>% 
+    SaveSeedData
 
 
 
