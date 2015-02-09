@@ -12,11 +12,11 @@
 	</Authors>
 	<Datasets>
 		<MainDataset>
-			<Code>agriculture</Code>
+			<Code>loss</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemSuaFbs</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementSuaFbs</SelectableDimension>
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
