@@ -1,4 +1,5 @@
 suppressMessages({
+    library(igraph)
     library(faosws)
     library(faoswsUtil)
     library(data.table)
@@ -12,31 +13,32 @@ suppressMessages({
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "40662c94-ecff-40cf-b2f7-d739bc031411"
+        token = "2dc8e555-2326-4a95-a375-8e5cde82e586"
         )
 }
 
 ## Setting up variables
 areaVar = "geographicAreaM49"
 yearVar = "timePointYears"
-itemVar = "measuredItemCPC"
-elementVar = "measuredElement"
-requiredElements = c("5510", "5610", "5712", "5015")
+## TODO (Michael): Change the item and element variable names
+itemVar = "measuredItemSuaFbs"
+elementVar = "measuredElementSuaFbs"
+## NOTE (Michael): This module is mis-named, the estimation should
+##                 corresponds to "losses". However, need to double
+##                 check which element code corresponds to real
+##                 losses.
+requiredElements = c("5510", "5610", "5712", "5120")
 names(requiredElements) = c("production", "import", "stockWithdrawl", "loss")
+valuePrefix = "Value_measuredElement_"
+flagObsPrefix = "flagObservationStatus_measuredElement_"
+flagMethodPrefix = "flagMethod_measuredElement_"
+
+
 getFBSmeasuredItemCPC = function(dataContext){
-    ## itemTable =
-    ##     GetCodeList(domain = slot(dataContext, "domain"),
-    ##                 dataset = slot(dataContext, "dataset"),
-    ##                 dimension = itemVar)
-    ## HACK (Michael): Since we don't have the columne 'type' ready
-    ##                 for selection, we will select all item which
-    ##                 are under the CPC heading '0'.
-    require(igraph)
-    require(faoswsUtil)
     itemEdgeList =
         adjacent2edge(
-            GetCodeTree(domain = slot(dataContext, "domain"),
-                        dataset = slot(dataContext, "dataset"),
+            GetCodeTree(domain = "lossWaste",
+                        dataset = "loss",
                         dimension = itemVar)
         )
 
@@ -45,10 +47,13 @@ getFBSmeasuredItemCPC = function(dataContext){
     fbsItemCodes = colnames(itemDist)[is.finite(itemDist)]
     fbsItemCodes
 }
+
 requiredItems = getFBSmeasuredItemCPC(swsContext.datasets[[1]])
-valuePrefix = "Value_measuredElement_"
-flagObsPrefix = "flagObservationStatus_measuredElement_"
-flagMethodPrefix = "flagMethod_measuredElement_"
+
+requiredCountries =
+    GetCodeList(domain = "lossWaste",
+                dataset = "loss",
+                dimension = areaVar)[type == "country", code]
 
 
 
@@ -58,36 +63,78 @@ flagMethodPrefix = "flagMethod_measuredElement_"
 
 ## Function to get the 2 external world bank data sets and merge them
 getLossExternalData = function(){
-    ## ## TODO (Michael): Get the data using R API
-    ## worldBankGeneralData =
-    ##     data.table(read.csv(file = "data/worldBankGeneralData.csv"))
-    ## ## worldBankGeneral
-    ## worldBankClimateData =
-    ##     data.table(read.csv(file = "data/worldBankClimateData.csv"))
-    worldBankGeneralData =
-        GetTableData(schemaName = "ess", tableName = "world_bank_general_data")
-    setnames(worldBankGeneralData, old = colnames(worldBankGeneralData),
-             new = c("geographicAreaM49", "timePointYears", "geographicAreaFS",
-                 "geographicAreaISO2WB", "geographicAreaNameISO2WB",
-                 "gdpPerCapita", "gdpPPP", "sharePavedRoad"))
-    worldBankClimateData =
-        GetTableData(schemaName = "ess", tableName = "world_bank_climate_data")
-    setnames(worldBankClimateData, old = colnames(worldBankClimateData),
-             new = c("geographicAreaM49", "timePointYears", "geographicAreaFS",
-                 "geographicAreaISO3", "precipitation", "temperature"))
+
+    ## NOTE (Michael): The years are selected by Klaus
     
-    merged = Reduce(f = function(x, y){
-        merge(x, y, all = TRUE, by = intersect(colnames(x), colnames(y)))
-    }, x = list(worldBankGeneralData, worldBankClimateData))
-    merged[, geographicAreaM49 := as.character(geographicAreaM49)]
-    merged
+    infrastructureKey =
+        DatasetKey(domain = "WorldBank",
+                   dataset = "wb_infrastructure",
+                   dimensions =
+                       list(
+                           Dimension(name = "geographicAreaM49",
+                                     keys = requiredCountries),
+                           Dimension(name = "wbIndicator",
+                                     keys = "IS.ROD.PAVE.ZS"),
+                           Dimension(name = "timePointYears",
+                                     keys = as.character(1969:2013))
+                       )
+                   )
+
+    climateKey =
+        DatasetKey(domain = "WorldBank",
+                   dataset = "wb_climate",
+                   dimensions =
+                       list(
+                           Dimension(name = "geographicAreaM49",
+                                     keys = requiredCountries),
+                           Dimension(name = "wbIndicator",
+                                     keys = c("SWS.FAO.PREC",
+                                         "SWS.FAO.TEMP")),
+                           Dimension(name = "timePointYears",
+                                     keys = as.character(1969:2013))
+                       )
+                   )
+
+
+    
+    gdpKey =
+        DatasetKey(domain = "WorldBank",
+                   dataset = "wb_ecogrw",
+                   dimensions =
+                       list(
+                           Dimension(name = "geographicAreaM49",
+                                     keys = requiredCountries),
+                           Dimension(name = "wbIndicator",
+                                     keys = c("NY.GDP.MKTP.PP.KD",
+                                         "NY.GDP.PCAP.KD")),
+                           Dimension(name = "timePointYears",
+                                     keys = as.character(1969:2013))
+                       )
+                   )
+
+
+    newPivot = c(
+        Pivoting(code = "geographicAreaM49", ascending = TRUE),
+        Pivoting(code = "wbIndicator", ascending = TRUE),
+        Pivoting(code = "timePointYears", ascending = FALSE)
+    )
+
+    base =
+        data.table(geographicAreaM49 = character(),
+                   wbIndicator = character(),
+                   timePointYears = character(),
+                   Value = numeric())
+    merged =
+        Reduce(f = function(base, key){
+            rbind(base, GetData(key, pivoting = newPivot))
+        }, x = list(climateKey, infrastructureKey, gdpKey), init = base)
+    dcast.data.table(merged, geographicAreaM49 + timePointYears ~ wbIndicator,
+                     value.var = "Value")
+
 }
 
 ## Function to load the loss food group classification
 getLossFoodGroup = function(){
-    ## NOTE (Michael): This will be replaced by the GetMapping
-    ##                 function when loaded into the data base
-    ## data.table(read.csv(file = "data/lossFoodGroup.csv"))
     lossFoodGroup = GetTableData(schemaName = "ess", tableName = "loss_food_group")
     setnames(lossFoodGroup, old = colnames(lossFoodGroup),
              new = c("measuredItemFS", "measuredItemNameFS", "foodGroupName",
@@ -98,10 +145,6 @@ getLossFoodGroup = function(){
 
 ## Function to load the loss region classification
 getLossRegionClass = function(){
-    ## NOTE (Michael): This will be replaced by the GetMapping
-    ##                 function when loaded into the data base.
-    ## regionMapping = data.table(read.csv(file = "data/lossRegionMapping.csv"))
-    ## regionMapping[, geographicAreaM49 := as.character(geographicAreaM49)]
     regionMapping =
         GetTableData(schemaName = "ess", tableName = "loss_region_mapping")
     setnames(regionMapping, old = colnames(regionMapping),
@@ -111,9 +154,6 @@ getLossRegionClass = function(){
 
 ## Function to load the national fbs dataset
 getNationalFbs = function(){
-    ## NOTE (Michael): This will be replaced by the GetMapping
-    ##                 function when loaded into the data base.
-    ## data.table(read.csv(file = "data/nationalFbs.csv"))
     nationalFbs = GetTableData(schemaName = "ess", tableName = "national_fbs")
     setnames(nationalFbs, old = colnames(nationalFbs),
              new = c("geographicAreaM49", "timePointYears",
@@ -129,24 +169,19 @@ getLossData = function(){
     ## Set up the query
     ##
     ## NOTE (Michael): The year is set by Klaus
-    allCountryCodesTable =
-        GetCodeList(domain = "agriculture",
-                    dataset = "agriculture",
-                    dimension = "geographicAreaM49")
-
 
     dimensions =
         list(
             Dimension(name = "geographicAreaM49",
-                      keys = allCountryCodesTable[type == "country", code]),
+                      keys = requiredCountries),
             Dimension(name = "measuredItemCPC", keys = requiredItems),
-            Dimension(name = "measuredElement", keys = unname(requiredElements)),
+            Dimension(name = "measuredElement", keys = "5120"),
             Dimension(name = "timePointYears", keys = as.character(1969:2013))
         )
 
     newDataKey =
-        DatasetKey(domain = "agriculture",
-                   dataset = "agriculture",
+        DatasetKey(domain = "lossWaste",
+                   dataset = "loss",
                    dimensions = dimensions)
 
     newPivot = c(
@@ -171,6 +206,9 @@ getLossData = function(){
 ## NOTE (Michael): Function to get trade data, however, there are no
 ##                 data in the trade domain. Thus the data in this
 ##                 example is simulated. See hackData function.
+##
+## NOTE (Michael): The trade data here is the consolidated trade data,
+##                 not trade flow.
 getTradeData = function(){
     ## Set up the query
     ##
