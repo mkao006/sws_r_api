@@ -37,7 +37,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         ## token = "ad7f16e3-d447-48ec-9d62-089f63bbc137"
-        token = "f4782d74-1781-4935-af00-7fa273ecef52"
+        token = "9b359d8e-b14c-4692-a849-d6f7a96fcb28"
         )
 }
 
@@ -276,7 +276,7 @@ getAreaData(dataContext = swsContext.datasets[[1]],
     fillCountrySpecificSeedRate %>%
     fillGeneralSeedRate %>%
     imputeSeed %>%
-    validTimeData%>% 
+    validTimeData %>% 
     SaveSeedData
 
 
