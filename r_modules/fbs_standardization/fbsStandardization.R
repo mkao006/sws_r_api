@@ -19,7 +19,7 @@ suppressMessages({
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "7fe7cbec-2346-46de-9a3a-8437eca18e2a"
+        token = "1b5cb7c8-6acb-41df-bd73-fa3d42d01be6"
         )
 }
 
@@ -88,7 +88,7 @@ for(areas in areaCodes){
     param = getAupusParameter(areaCode = areas, assignGlobal = FALSE)
 
     ## Get the data sets
-    getAupusDataset()
+    getAupusDataset(aupusParam = param)
 
     ## NOTE (Michael): This is a hack to fill in the missing columns
     missingColumns =
@@ -109,6 +109,7 @@ for(areas in areaCodes){
                     currentTime = endTime
                     cat("Running Aupus module\n")
                 }
+
                 ## Construct the aupus network representation
                 aupusNetwork =
                     suaToNetworkRepresentation(extractionRateData =
@@ -119,14 +120,17 @@ for(areas in areaCodes){
                                                balanceElementData =
                                                    balanceElementData,
                                                itemInfoData = itemInfoData,
-                                               populationData = populationData)
+                                               populationData = populationData,
+                                               aupusParam = param)
 
                 ## Run the aupus to update the data
                 updatedAupusNetwork =
                     with(aupusNetwork,
                          Aupus(nodes = nodes, edges = edges,
                                from = param$keyNames$itemParentName,
-                               to = param$keyNames$itemChildName))
+                               to = param$keyNames$itemChildName,
+                               aupusParam = param))
+                
                 if(verbose){
                     endTime = Sys.time()
                     timeUsed = endTime - currentTime
@@ -143,12 +147,14 @@ for(areas in areaCodes){
                                                        standardizeElement =
                                                            FBSelements,
                                                        from = param$keyNames$itemChildName,
-                                                       to = param$keyNames$itemParentName))
+                                                       to = param$keyNames$itemParentName,
+                                                       aupusParam = param))
 
                 ## Standardize the graph to get the FBS
                 fbs =
                     fbsStandardization(graph = standardizationGraph,
                                        standardizeElement = FBSelements,
+                                       aupusParam = param,
                                        plot = FALSE)
                 
                 if(verbose){
