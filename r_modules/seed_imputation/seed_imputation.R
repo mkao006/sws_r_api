@@ -101,11 +101,11 @@ getAreaData = function(dataContext, areaSownElementCode, areaHarvestedElementCod
 
 ## Function to compute the area sown for calculation of seed, this
 ## function. 
-imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5212",
+imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5025",
     valueAreaHarvested = "Value_measuredElement_5312",
-    flagObsAreaSown = "flagObservationStatus_measuredElement_5212",
+    flagObsAreaSown = "flagObservationStatus_measuredElement_5025",
     flagObsAreaHarvested = "flagObservationStatus_measuredElement_5312",
-    flagMethodAreaSown = "flagMethod_measuredElement_5212",
+    flagMethodAreaSown = "flagMethod_measuredElement_5025",
     imputedObsFlag = "I", imputedMethodFlag = "e"){
     if(all(is.na(data[[valueAreaSown]]))){
         data[[valueAreaSown]] = data[[valueAreaHarvested]]
@@ -191,8 +191,8 @@ imputeSeed = function(data,
     seedValue = "Value_measuredElement_5525",
     seedMethodFlag = "flagMethod_measuredElement_5525",
     seedObsFlag = "flagObservationStatus_measuredElement_5525",
-    areaSownValue = "Value_measuredElement_5212",
-    areaSownObsFlag = "flagObservationStatus_measuredElement_5212",
+    areaSownValue = "Value_measuredElement_5025",
+    areaSownObsFlag = "flagObservationStatus_measuredElement_5025",
     seedRateValue = "Value_seedRate",
     seedRateFlag = "flagObservationStatus_seedRate",
     imputedFlag = "i",
