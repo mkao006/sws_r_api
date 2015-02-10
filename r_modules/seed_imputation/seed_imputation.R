@@ -36,8 +36,7 @@ flagMethodPrefix = "flagMethod_measuredElement_"
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        ## token = "ad7f16e3-d447-48ec-9d62-089f63bbc137"
-        token = "9b359d8e-b14c-4692-a849-d6f7a96fcb28"
+        token = "22384f4e-b506-4a4e-a9cc-a7a1a235123d"
         )
 }
 
@@ -112,8 +111,10 @@ imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5212",
         data[[valueAreaSown]] = data[[valueAreaHarvested]]
         data[[flagObsAreaSown]] = data[[flagObsAreaHarvested]]
     } else {
-        ratio = mean(data[[valueAreaSown]]/data[[valueAreaHarvested]],
-            na.rm = TRUE)
+        ratio =
+            mean(computeRatio(data[[valueAreaSown]],
+                              data[[valueAreaHarvested]]),
+                 na.rm = TRUE)
         replaceIndex =
             is.na(data[[valueAreaSown]]) &
             !is.na(data[[valueAreaHarvested]])
@@ -267,46 +268,18 @@ SaveSeedData = function(data){
 }
 
 
-## Run the whole seed module
-getAreaData(dataContext = swsContext.datasets[[1]],
-            areaSownElementCode = areaSownElementCode,
-            areaHarvestedElementCode = areaHarvestedElementCode,
-            seedElementCode = seedElementCode) %>%
+## Impute the area sown and also the seed
+finalSeedData =
+    getAreaData(dataContext = swsContext.datasets[[1]],
+                areaSownElementCode = areaSownElementCode,
+                areaHarvestedElementCode = areaHarvestedElementCode,
+                seedElementCode = seedElementCode) %>%
     imputeAreaSown %>%
     fillCountrySpecificSeedRate %>%
     fillGeneralSeedRate %>%
-    imputeSeed %>%
+    imputeSeed
+
+## Save the imputed data back.
+finalSeedData%>%
     validTimeData %>% 
     SaveSeedData
-
-
-
-
-
-
-
-
-
-## NOTE (Michael): Need to check whether all the seed rate data has
-##                 been included.
-##
-## NOTE (Michael): Need to check with Adam where the data came from?
-##
-## NOTE (Michael): Need to convert the seed.rate in the AllSeed
-##                 data.frame to numeric.
-##
-## NOTE (Michael): It looks like the seed data is the country and year
-##                 specific rates, while the AllSeed is the default
-##                 rates for each commodity.
-##
-## NOTE (Michael): The multiplication should be done to the next year,
-##                 not the current year.
-##
-## NOTE (Michael): What are the nutrition value for?
-##
-## NOTE (Michael): All the codes are still in FCL
-##
-## NOTE (Michael): Remove the hard coded china, and also 351 is an aggregate.
-##
-## NOTE (Michael): Write the seed module at the item level.
-
