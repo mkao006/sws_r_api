@@ -18,7 +18,8 @@ suppressMessages({
 ## Set up testing environments
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",        
         token = "2dc8e555-2326-4a95-a375-8e5cde82e586"
         )
 }
@@ -26,20 +27,23 @@ if(Sys.getenv("USER") == "mk"){
 ## Setting up variables
 areaVar = "geographicAreaM49"
 yearVar = "timePointYears"
-## TODO (Michael): Change the item and element variable names
-itemVar = "measuredItemSuaFbs"
-elementVar = "measuredElementSuaFbs"
+## TODO (Michael): Change the item and element variable names after
+##                 Nick has corrected the name in the database.
+itemVar = "measuredItem"
+elementVar = "measuredElement"
 ## NOTE (Michael): This module is mis-named, the estimation should
 ##                 corresponds to "losses". However, need to double
 ##                 check which element code corresponds to real
-##                 losses.
-requiredElements = c("5510", "5610", "5712", "5120")
+##                 losses. 
+requiredElements = c("5510", "5600", "5712", "5120")
 names(requiredElements) = c("production", "import", "stockWithdrawl", "loss")
 valuePrefix = "Value_"
 flagObsPrefix = "flagObservationStatus_"
 flagMethodPrefix = "flagMethod_"
+## NOTE (Michael): The years were selected by Klaus
+selectedYear = as.character(1970:2013)
 
-
+## Function to obtain all CPC item 
 getFBSmeasuredItemCPC = function(dataContext){
     itemEdgeList =
         adjacent2edge(
@@ -47,7 +51,6 @@ getFBSmeasuredItemCPC = function(dataContext){
                         dataset = "loss",
                         dimension = itemVar)
         )
-
     itemEdgeGraph = graph.data.frame(itemEdgeList)
     itemDist = shortest.paths(itemEdgeGraph, v = "0", mode = "out")
     fbsItemCodes = colnames(itemDist)[is.finite(itemDist)]
@@ -56,6 +59,7 @@ getFBSmeasuredItemCPC = function(dataContext){
 
 requiredItems = getFBSmeasuredItemCPC(swsContext.datasets[[1]])
 
+## Obtain all the countries in the losses domain
 requiredCountries =
     GetCodeList(domain = "lossWaste",
                 dataset = "loss",
@@ -68,10 +72,8 @@ requiredCountries =
 
 
 ## Function to get the 2 external world bank data sets and merge them
-getLossExternalData = function(){
-
-    ## NOTE (Michael): The years are selected by Klaus
-    
+getLossWorldBankData = function(){
+   
     infrastructureKey =
         DatasetKey(domain = "WorldBank",
                    dataset = "wb_infrastructure",
@@ -82,7 +84,7 @@ getLossExternalData = function(){
                            Dimension(name = "wbIndicator",
                                      keys = "IS.ROD.PAVE.ZS"),
                            Dimension(name = "timePointYears",
-                                     keys = as.character(1969:2013))
+                                     keys = selectedYear)
                        )
                    )
 
@@ -100,8 +102,6 @@ getLossExternalData = function(){
                                      keys = as.character(1969:2013))
                        )
                    )
-
-
     
     gdpKey =
         DatasetKey(domain = "WorldBank",
@@ -118,7 +118,6 @@ getLossExternalData = function(){
                        )
                    )
 
-
     newPivot = c(
         Pivoting(code = "geographicAreaM49", ascending = TRUE),
         Pivoting(code = "wbIndicator", ascending = TRUE),
@@ -130,6 +129,7 @@ getLossExternalData = function(){
                    wbIndicator = character(),
                    timePointYears = character(),
                    Value = numeric())
+
     merged =
         Reduce(f = function(base, key){
             rbind(base, GetData(key, pivoting = newPivot))
@@ -144,7 +144,7 @@ getLossExternalData = function(){
                  "NY.GDP.PCAP.KD", "SWS.FAO.PREC", "SWS.FAO.TEMP"),
              new = c("sharePavedRoad", "gdpPPP", "gdpPerCapita",
                  "precipitation", "temprature"))
-
+    casted
 }
 
 ## Function to load the loss food group classification
@@ -156,6 +156,7 @@ getLossFoodGroup = function(){
                  "measuredItemCPC"))
     lossFoodGroup[, list(measuredItemCPC, foodGroupName,
                          foodGroup, foodGeneralGroup, foodPerishableGroup)]
+    lossFoodGroup
 }
 
 ## Function to load the loss region classification
@@ -168,12 +169,11 @@ getLossRegionClass = function(){
 }
 
 ## Function to load the national fbs dataset
-##
 getNationalFbs = function(){
     nationalFbs = GetTableData(schemaName = "ess", tableName = "national_fbs")
     setnames(nationalFbs, old = colnames(nationalFbs),
              new = c("geographicAreaM49", "timePointYears",
-                 "Value_measuredElement_5510", "Value_measuredElement_5610",
+                 "Value_measuredElement_5510", "Value_measuredElement_5600",
                  "Value_measuredElement_5910", "Value_measuredElement_5712",
                  "Value_measuredElement_5015", "Value_measuredElement_5525",
                  "measuredItemCPC"))
@@ -181,19 +181,16 @@ getNationalFbs = function(){
     nationalFbs
 }
 
-## Function to load the data required for loss estimation
+## Function to obtain the official loss data required for loss estimation
 getOfficialLossData = function(){
     ## Set up the query
-    ##
-    ## NOTE (Michael): The year is set by Klaus
-
     dimensions =
         list(
             Dimension(name = areaVar,
                       keys = requiredCountries),
             Dimension(name = itemVar, keys = requiredItems),
-            Dimension(name = elementVar, keys = "5120"),
-            Dimension(name = yearVar, keys = as.character(1969:2013))
+            Dimension(name = elementVar, keys = requiredElements[["loss"]]),
+            Dimension(name = yearVar, keys = selectedYear)
         )
 
     newDataKey =
@@ -230,15 +227,13 @@ getOfficialLossData = function(){
     ## query[query[[paste0(flagObsPrefix, elementVar, "_5120")]] == "", ]
 }
 
-officialLoss = getOfficialLossData()
-
 
 ## NOTE (Michael): Function to get trade data, however, there are no
 ##                 data in the trade domain. Thus the data in this
 ##                 example is simulated. See hackData function.
 ##
 ## NOTE (Michael): The trade data here is the consolidated trade data,
-##                 not trade flow.
+##                 not trade flow. (dataset: total_trade)
 getTradeData = function(){
     ## Set up the query
     ##
@@ -261,14 +256,13 @@ getTradeData = function(){
                     dimension = "measuredElementTrade")
 
 
-    ## NOTE (Michael): The year is set by Klaus    
     dimensions =
         list(
             Dimension(name = areaVar,
                       keys = requiredCountries),
             Dimension(name = "measuredItemHS", keys = unique(cerealTree$children)),
             Dimension(name = "measuredElementTrade", keys = tradeElements[, code]),
-            Dimension(name = "timePointYears", keys = as.character(2000:2013))
+            Dimension(name = "timePointYears", keys = selectedYear)
         )
 
     newDataKey =
@@ -312,18 +306,21 @@ mergeNationalFbs = function(lossData, nationalFbs){
     
 
 ## Function to merge all the required data
-mergeAllLossData = function(lossData, lossExternalData, lossFoodGroup,
-    lossRegionClass){
+mergeAllLossData = function(lossData, lossWorldBankData, lossFoodGroup,
+    lossRegionClass, ...){
     Reduce(f = function(x, y){
         merge(x, y, all.x = TRUE, by = intersect(colnames(x), colnames(y)))
     },
-           x = list(lossExternalData, lossFoodGroup, lossRegionClass),
+           x = list(lossWorldBankData, lossFoodGroup, lossRegionClass, ...),
            init = lossData
            )
 }
 
 
-## HACK (Michael): Fill in non-classified food group and region
+## Fill in non-classified food group and region.
+##
+## TODO (Michael): Should update the commodities which does not have a
+##                 classified food group.
 fillUnclassifiedFoodGroup = function(data,
     foodGroupClassification = c("foodGroupName", "foodGeneralGroup",
         "foodPerishableGroup")){
@@ -336,6 +333,10 @@ fillUnclassifiedFoodGroup = function(data,
     data
 }
 
+## Fill in undefined region
+##
+## TODO (Michael): All countries which does not have a classified
+##                 region should be mapped.
 fillUnclassifiedRegion = function(data, regionClassification = "lossRegionClass"){
     sapply(regionClassification,
            FUN = function(x){
@@ -348,11 +349,15 @@ fillUnclassifiedRegion = function(data, regionClassification = "lossRegionClass"
 
 ## This function fills in data requirments which are not currently in the data
 dataHack = function(data){
+    importVar =
+        paste0(valuePrefix, elementVar, "_", requiredElements[["import"]])
+    prodVar =
+        paste0(valuePrefix, elementVar, "_", requiredElements[["production"]])
     ## HACK (Michael): This is a hack to simulate trade data
-    data[, Value_measuredElement_5610 :=
-             abs(rnorm(.N,
-                       mean(Value_measuredElement_5510, na.rm = TRUE), 
-                       sd(Value_measuredElement_5510, na.rm = TRUE))),
+    data[, `:=`(c(importVar),
+                abs(rnorm(.N,
+                          mean(data[[prodVar]], na.rm = TRUE), 
+                          sd(data[[prodVar]], na.rm = TRUE)))),
          by = c("geographicAreaM49", "measuredItemCPC")]
     ## HACK (Michael): Since trade and stock variation data are not
     ##                 available, we simulate the loss rate data as well.
@@ -366,25 +371,25 @@ dataHack = function(data){
 ## Function to calculate the ratio
 ##
 calculateLossRatio = function(data,
-    productionValue =
-        paste0(valuePrefix, "measuredElement_", requiredElements["production"]),
-    importValue =
-        paste0(valuePrefix, "measuredElement_", requiredElements["import"]),
-    stockWithdrawlValue =
-        paste0(valuePrefix, "measuredElement_", requiredElements["stockWithdrawl"]),
-    lossValue = paste0(valuePrefix, "measuredElement_", requiredElements["loss"])){
+    productionVar =
+        paste0(valuePrefix, elementVar, "_", requiredElements["production"]),
+    importVar =
+        paste0(valuePrefix, elementVar, "_", requiredElements["import"]),
+    stockWithdrawlVar =
+        paste0(valuePrefix, elementVar, "_", requiredElements["stockWithdrawl"]),
+    lossVar = paste0(valuePrefix, elementVar, "_", requiredElements["loss"])){
 
-    data[data[[stockWithdrawlValue]] >= 0,
+    data[data[[stockWithdrawlVar]] >= 0,
          lossBase := 
-             rowSums(.SD[, c(productionValue, importValue, stockWithdrawlValue),
+             rowSums(.SD[, c(productionVar, importVar, stockWithdrawlVar),
                          with = FALSE],
                      na.rm = TRUE)]
-    data[data[[stockWithdrawlValue]] < 0,
+    data[data[[stockWithdrawlVar]] < 0,
          lossBase := 
-             rowSums(.SD[, c(productionValue, importValue), with = FALSE],
+             rowSums(.SD[, c(productionVar, importVar), with = FALSE],
                      na.rm = TRUE)]
     
-    data[, lossRatio := computeRatio(.SD[[lossValue]], lossBase)]
+    data[, lossRatio := computeRatio(data[[lossVar]], lossBase)]
     data
 }
 
@@ -393,6 +398,7 @@ calculateLossRatio = function(data,
 ## NOTE (Michael): Try to remove the hard code
 ##
 ## Function to perform final manipulation
+##
 preEstimationProcessing = function(data){
     ## Convert variables to factor for modelling
     factorVariables = c("geographicAreaM49", "measuredItemCPC", "foodGroupName",
@@ -400,12 +406,20 @@ preEstimationProcessing = function(data){
     data[, `:=`(c(paste0(factorVariables, "Factor")),
                 lapply(data[, factorVariables, with = FALSE], as.factor))]
     
+    productionVar =
+        paste0(valuePrefix, elementVar, "_", requiredElements["production"])    
+    importVar =
+        paste0(valuePrefix, elementVar, "_", requiredElements["import"])
 
-    ## TODO (Michael): Need to remove these hard coded processing
-    data[is.na(Value_measuredElement_5610), Value_measuredElement_5610 := 0]
-    data[is.na(Value_measuredElement_5510), Value_measuredElement_5510 := 0]
+    ## If import and production are missing, then assume they are zero.
+    data[is.na(data[[importVar]]), `:=`(importVar, 0)]
+    data[is.na(data[[productionVar]]), `:=`(productionVar, 0)]
+
+    ## Compute import to production ratio.
     data[, importToProductionRatio :=
-             computeRatio(Value_measuredElement_5610, Value_measuredElement_5510)]
+             computeRatio(data[[importVar]], data[[productionVar]])]
+
+    ## NOTE (Michael): I don't know why the time should be scaled.
     data[, scaledTimePointYears := timePointYears - 1960]
     data[is.na(fromNationalFbs), fromNationalFbs := 0]
 
@@ -492,10 +506,12 @@ lossRegression = function(estimationData){
 lossModelPrediction = function(model, predictionData, lossRatio){
     imputedData = copy(predictionData)
 
-
+    ## TODO (Michael): Need impose the criteria where at least 3
+    ##                 official observation for losses are required
+    ##                 for imputation.
+    
     ## Split the data for prediction
     splitedData = split(imputedData, imputedData[["measuredItemCPC"]])
-
 
     predicted =
         lapply(splitedData,
@@ -545,21 +561,20 @@ selectRequiredVariable = function(data){
                 
 ## Function to save the data back
 ##
-## NOTE (Michael): This should not be saved back to the production
-##                 domain. Probably should set this up for the loss
-##                 domain.
-SaveLossData = function(data){
+SaveLossData = function(data, rawLossData){
+    ## TODO (Michael): Change this selection rule.
     saveSelection =
-        data[, intersect(colnames(data), colnames(lossData)),
-             with = FALSE]
+        data[, intersect(colnames(data), colnames(rawLossData)), with = FALSE]
     ## HACK (Michael): This is a hack, since there are no flag assignments yet
-    saveSelection[, `:=`(c("flagObservationStatus_measuredElement_5015",
-                           "flagMethod_measuredElement_5015"),
+    observationFlagVar =
+        paste0(flagObsPrefix, elementVar, "_", requiredElements[["loss"]])
+    methodFlagVar =
+        paste0(flagMethodPrefix, elementVar, "_", requiredElements[["loss"]])    
+    saveSelection[, `:=`(c(observationFlagVar, methodFlagVar),
                          list("I", "e"))]
     saveSelection[, timePointYears := as.character(timePointYears)]
-    SaveData(domain = "agriculture", dataset = "agriculture",
-             data = saveSelection,
-             normalized = FALSE)
+    SaveData(domain = "lossWaste", dataset = "loss",
+             data = saveSelection, normalized = FALSE)
 }
 
 ## The full waste estimation, imputation process.
@@ -571,17 +586,17 @@ finalLossData =
         lossData <<- getOfficialLossData()
         nationalFbs <<- getNationalFbs()
         lossDataWithNationalFbs <<- mergeNationalFbs(lossData, nationalFbs)
-        lossExternalData <<- getLossExternalData()
+        lossWorldBankData <<- getLossWorldBankData()
         lossFoodGroup <<- getLossFoodGroup()
         lossRegionClass <<- getLossRegionClass()
         gc()
         list(lossData = lossDataWithNationalFbs,
-             lossExternalData = lossExternalData,
+             lossWorldBankData = lossWorldBankData,
              lossFoodGroup = lossFoodGroup,
              lossRegionClass = lossRegionClass)
     } %>%
     with(.,
-         mergeAllLossData(lossData, lossExternalData, lossFoodGroup,
+         mergeAllLossData(lossData, lossWorldBankData, lossFoodGroup,
                           lossRegionClass)
          )
     
@@ -613,4 +628,4 @@ imputedData =
                         lossRatio = "lossRatio")
 
 ## Save the loss data back
-SaveLossData(imputedData)
+SaveLossData(data = imputedData, rawLossData = lossData)
