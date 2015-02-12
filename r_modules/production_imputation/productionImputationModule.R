@@ -15,7 +15,8 @@ elementVar = "measuredElement"
 ## set up for the test environment and parameters
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
+        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         token = "f76f4012-392f-402c-8108-35f74f0d1564"
         )
 }
@@ -155,9 +156,22 @@ validImputedData = function(imputed, areaName = areaVar,
 ## Function to save data back
 saveImputedData = function(dataContext, data){
     ## Should only the selected country be saved, or the whole set?
+    ##
+    ## NOTE (Michael): We only save the selected data back for now.
+    selectedDimensions = dataContext@dimensions
+    selectedIndex =
+        with(data,
+             which(geographicAreaM49 %in%
+                   selectedDimensions$geographicAreaM49@keys &
+                   measuredItemCPC %in%
+                   selectedDimensions$measuredItemCPC@keys &
+                   timePointYears %in%
+                   selectedDimensions$timePointYears@keys))
+    selectedData = data[selectedIndex, ]
+    
     SaveData(domain = slot(dataContext, "domain"),
              dataset = slot(dataContext, "dataset"),
-             data = data, normalized = FALSE)
+             data = selectedData, normalized = FALSE)
 }
 
 
