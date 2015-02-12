@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Comtrade Mirroring</Name>
+	<Description> Performs Mirror Completion of unreported trade</Description>
+	<Category>Imputation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Datasets>
+		<MainDataset>
+			<Code>ct_raw_tf</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+		<MainDataset>
+			<Code>completed_tf</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
