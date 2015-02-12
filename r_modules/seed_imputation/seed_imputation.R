@@ -35,8 +35,9 @@ flagMethodPrefix = "flagMethod_measuredElement_"
 ## set up for the test environment and parameters
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "22384f4e-b506-4a4e-a9cc-a7a1a235123d"
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
+        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        token = "9a7edc96-ff8e-4428-a1ca-60f383096be6"
         )
 }
 
