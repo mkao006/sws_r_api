@@ -29,8 +29,8 @@ areaVar = "geographicAreaM49"
 yearVar = "timePointYears"
 ## TODO (Michael): Change the item and element variable names after
 ##                 Nick has corrected the name in the database.
-itemVar = "measuredItem"
-elementVar = "measuredElement"
+itemVar = "measuredItemSuaFbs"
+elementVar = "measuredElementSuaFbs"
 ## NOTE (Michael): This module is mis-named, the estimation should
 ##                 corresponds to "losses". However, need to double
 ##                 check which element code corresponds to real
@@ -44,7 +44,7 @@ flagMethodPrefix = "flagMethod_"
 selectedYear = as.character(1970:2013)
 
 ## Function to obtain all CPC item 
-getFBSmeasuredItemCPC = function(dataContext){
+getFBSmeasuredItemCPC = function(){
     itemEdgeList =
         adjacent2edge(
             GetCodeTree(domain = "lossWaste",
@@ -57,7 +57,7 @@ getFBSmeasuredItemCPC = function(dataContext){
     fbsItemCodes
 }
 
-requiredItems = getFBSmeasuredItemCPC(swsContext.datasets[[1]])
+requiredItems = getFBSmeasuredItemCPC()
 
 ## Obtain all the countries in the losses domain
 requiredCountries =
@@ -349,10 +349,17 @@ fillUnclassifiedRegion = function(data, regionClassification = "lossRegionClass"
 
 ## This function fills in data requirments which are not currently in the data
 dataHack = function(data){
-    importVar =
-        paste0(valuePrefix, elementVar, "_", requiredElements[["import"]])
-    prodVar =
-        paste0(valuePrefix, elementVar, "_", requiredElements[["production"]])
+    ## importVar =
+    ##     paste0(valuePrefix, elementVar, "_", requiredElements[["import"]])
+    ## prodVar =
+    ##     paste0(valuePrefix, elementVar, "_", requiredElements[["production"]])
+
+    ## TODO (Michael): This has to be changed when the naming are
+    ## corrected.
+    prodVar = "Value_measuredElement_5510"
+    importVar = "Value_measuredElement_5600"
+    
+    
     ## HACK (Michael): This is a hack to simulate trade data
     data[, `:=`(c(importVar),
                 abs(rnorm(.N,
@@ -372,7 +379,7 @@ dataHack = function(data){
 ##
 calculateLossRatio = function(data,
     productionVar =
-        paste0(valuePrefix, elementVar, "_", requiredElements["production"]),
+        paste0(valuePrefix, "_", requiredElements["production"]),
     importVar =
         paste0(valuePrefix, elementVar, "_", requiredElements["import"]),
     stockWithdrawlVar =
@@ -403,22 +410,35 @@ preEstimationProcessing = function(data){
     ## Convert variables to factor for modelling
     factorVariables = c("geographicAreaM49", "measuredItemCPC", "foodGroupName",
                   "foodGeneralGroup", "foodPerishableGroup", "lossRegionClass")
-    data[, `:=`(c(paste0(factorVariables, "Factor")),
-                lapply(data[, factorVariables, with = FALSE], as.factor))]
-    
-    productionVar =
-        paste0(valuePrefix, elementVar, "_", requiredElements["production"])    
-    importVar =
-        paste0(valuePrefix, elementVar, "_", requiredElements["import"])
+    ## data[, `:=`(c(paste0(factorVariables, "Factor")),
+    ##             lapply(data[, factorVariables, with = FALSE], as.factor))]
 
+    data[, `:=`(c(factorVariables),
+                lapply(data[, factorVariables, with = FALSE], as.factor))]
+
+
+    ## TODO (Michael): This need to be reverted when the name is changed
+    ## productionVar =
+    ##     paste0(valuePrefix, elementVar, "_", requiredElements["production"])    
+    ## importVar =
+    ##     paste0(valuePrefix, elementVar, "_", requiredElements["import"])
+    productionVar = "Value_measuredElement_5510"
+    importVar = "Value_measuredElement_5600"
+    
     ## If import and production are missing, then assume they are zero.
     data[is.na(data[[importVar]]), `:=`(importVar, 0)]
     data[is.na(data[[productionVar]]), `:=`(productionVar, 0)]
 
+    
     ## Compute import to production ratio.
+    ##
+    ## NOTE (Michael): Have no idea why the function fails when I
+    ##                 change the "Value_measuredElement_5510" to
+    ##                 productionVar.
     data[, importToProductionRatio :=
-             computeRatio(data[[importVar]], data[[productionVar]])]
-
+             computeRatio(.SD[["Value_measuredElement_5600"]],
+                          .SD[["Value_measuredElement_5510"]])]
+    
     ## NOTE (Michael): I don't know why the time should be scaled.
     data[, scaledTimePointYears := timePointYears - 1960]
     data[is.na(fromNationalFbs), fromNationalFbs := 0]
@@ -430,10 +450,10 @@ preEstimationProcessing = function(data){
 
     ## NOTE (Klaus): Assume the food group level of meat is the same as
     ##               meat and fishes.
-    levels(data$foodGroupNameFactor) =
+    levels(data$foodGroupName) =
         with(data,
-             ifelse(levels(foodGroupNameFactor) == "meat", "meat and fish",
-                    levels(foodGroupNameFactor)))
+             ifelse(levels(foodGroupName) == "meat", "meat and fish",
+                    levels(foodGroupName)))
 
     data
 }
@@ -553,9 +573,10 @@ selectRequiredVariable = function(data){
               Value_measuredElement_5120,
               flagObservationStatus_measuredElement_5120,
               flagMethod_measuredElement_5120, fromNationalFbs, gdpPerCapita,
-              sharePavedRoad, lossBase, lossRatio, geographicAreaM49Factor,
-              measuredItemCPCFactor, foodGroupNameFactor, foodGeneralGroupFactor,
-              foodPerishableGroupFactor, lossRegionClassFactor,
+              gdpPPP,
+              sharePavedRoad, lossBase, lossRatio, geographicAreaM49,
+              measuredItemCPC, foodGroupName, foodGeneralGroup,
+              foodPerishableGroup, lossRegionClass,
               importToProductionRatio, scaledTimePointYears)]
 }
                 
@@ -565,14 +586,17 @@ SaveLossData = function(data, rawLossData){
     ## TODO (Michael): Change this selection rule.
     saveSelection =
         data[, intersect(colnames(data), colnames(rawLossData)), with = FALSE]
-    ## HACK (Michael): This is a hack, since there are no flag assignments yet
-    observationFlagVar =
-        paste0(flagObsPrefix, elementVar, "_", requiredElements[["loss"]])
-    methodFlagVar =
-        paste0(flagMethodPrefix, elementVar, "_", requiredElements[["loss"]])    
-    saveSelection[, `:=`(c(observationFlagVar, methodFlagVar),
-                         list("I", "e"))]
+    saveSelection[, geographicAreaM49 := as.character(geographicAreaM49)]
+    saveSelection[, measuredItemCPC := as.character(measuredItemCPC)]
     saveSelection[, timePointYears := as.character(timePointYears)]
+
+    ## TODO (Michael): This is a hack, change the name back later
+    setnames(saveSelection, old = "measuredItemCPC", new = "measuredItemSuaFbs")
+    setnames(saveSelection,
+             old = grep("measuredElement", colnames(saveSelection), value = TRUE),
+             new = gsub("measuredElement", "measuredElementSuaFbs",
+                 grep("measuredElement", colnames(saveSelection), value = TRUE)))
+
     SaveData(domain = "lossWaste", dataset = "loss",
              data = saveSelection, normalized = FALSE)
 }
@@ -607,25 +631,81 @@ finalLossData[, timePointYears := as.numeric(timePointYears)]
 
 ## Build the data
 trainPredictData =
-    finalLossData %>%
+    copy(finalLossData) %>%
     fillUnclassifiedFoodGroup %>%
     fillUnclassifiedRegion %>%
-    calculateLossRatio %>%
-    dataHack %>%
+    calculateLossRatio(data = .,
+                       productionVar = "Value_measuredElement_5510",
+                       importVar = "Value_measuredElement_5600",
+                       stockWithdrawlVar = "Value_measuredElement_5712",
+                       lossVar = "Value_measuredElement_5120") %>%
+    ## dataHack %>%
     preEstimationProcessing %>%
     selectRequiredVariable
 
 
-## Estimate the model and then make the prediction
-lossModel =
-    trainPredictData %>%
-    lossRegression
+## Here we read the reconstructed model of Klaus
+itemModel = readRDS("itemModel.rds")
+foodGroupModel = readRDS("foodGroupModel.rds")
 
-## Make imputation
-imputedData =
-    lossModelPrediction(model = lossModel,
-                        predictionData = trainPredictData,
-                        lossRatio = "lossRatio")
+lossItemImputation = function(data, model){
+    predictIndex =
+        with(data,
+             which(as.character(measuredItemCPC) %in%
+                   model$xlevels$measuredItemCPC &
+                       as.character(lossRegionClass) %in%
+                   model$xlevel$lossRegionClass  &
+                       as.character(foodPerishableGroup) %in%
+                   model$xlevel$foodPerishableGroup)
+             )
+    predictedLossRatio = rep(NA, NROW(data))
+   
+    predictedLossRatio[predictIndex] =
+        exp(predict(model, data[predictIndex, ])) - 0.05
+    predictedLossRatio
+}
 
-## Save the loss data back
-SaveLossData(data = imputedData, rawLossData = lossData)
+lossGroupImputation = function(data, model){
+    predictIndex =
+        with(data,
+             which(as.character(foodGroupName) %in%
+                   model$xlevels$foodGroupName &
+                       as.character(lossRegionClass) %in%
+                   model$xlevel$lossRegionClass  &
+                       as.character(foodPerishableGroup) %in%
+                   model$xlevel$foodPerishableGroup)
+             )
+    predictedLossRatio = rep(NA, NROW(data))
+   
+    predictedLossRatio[predictIndex] =
+        exp(predict(model, data[predictIndex, ])) - 0.05
+    predictedLossRatio
+}
+
+lossImputation = function(data, itemModel, foodGroupModel){
+    prediction = copy(data)
+    
+    prediction$itemPredictedLoss =
+        lossItemImputation(prediction, itemModel)
+
+    prediction$groupPredictedLoss =
+        lossGroupImputation(prediction, foodGroupModel)
+
+    prediction$finalPrediction = prediction$itemPredictedLoss
+    prediction[is.na(itemPredictedLoss), itemPredictedLoss := finalPrediction]
+    prediction[finalPrediction < 0, finalPrediction:= 0]
+        
+    prediction[is.na(Value_measuredElement_5120) & !is.na(finalPrediction),
+               `:=`(c("Value_measuredElement_5120",
+                      "flagObservationStatus_measuredElement_5120",
+                      "flagMethod_measuredElement_5120"),
+                    list(finalPrediction, "I", "e"))]
+
+    prediction
+}
+
+copy(trainPredictData) %>%
+    lossImputation(data = .,
+                   itemModel = itemModel,
+                   foodGroupModel = foodGroupModel) %>%
+    SaveLossData(data = ., rawLossData = lossData)
