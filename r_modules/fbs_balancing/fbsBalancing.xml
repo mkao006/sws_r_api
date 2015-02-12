@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>FBS balancing</Name>
+	<Description> Multiway Contingecy Table for Balancing the FBS</Description>
+	<Category>Balancing</Category>
+	<Authors>
+		<Author>
+			<Name>Marco Garieri and Luca Pozzi</Name>
+			<Mail>marco.garieri@fao.org</Mail>
+		</Author>
+	</Authors>
+	<!-- Need to change the dataset when it has been set up. -->
+	<Datasets>
+		<MainDataset>
+			<Code>total_trade</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
