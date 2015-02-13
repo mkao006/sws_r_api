@@ -4,15 +4,11 @@ suppressMessages({
     library(faoswsUtil)
     library(data.table)
     library(magrittr)
-    library(biglm)
 })
 
 ## NOTE (Michael): The hard coded element codes need to be replaced
 ##                 with element table. The production and trade
 ##                 element changes by item.
-
-## TODO (Michael): Check the result of the implementation when the
-##                 trade and production data are available. 
 
 
 ## Set up testing environments
@@ -22,7 +18,12 @@ if(Sys.getenv("USER") == "mk"){
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",        
         token = "2dc8e555-2326-4a95-a375-8e5cde82e586"
         )
+    R_SWS_SHARE_PATH = getwd()
+} else {
+    R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
+    ## R_SWS_SHARE_PATH = "hqlprsws1.hq.un.fao.org/sws_r_share"
 }
+
 
 ## Setting up variables
 areaVar = "geographicAreaM49"
@@ -644,9 +645,12 @@ trainPredictData =
     selectRequiredVariable
 
 
+
+itemModelPath = paste0(R_SWS_SHARE_PATH, "/itemModel.rds")
+foodGroupModelPath = paste0(R_SWS_SHARE_PATH, "/foodGroupModel.rds")
 ## Here we read the reconstructed model of Klaus
-itemModel = readRDS("itemModel.rds")
-foodGroupModel = readRDS("foodGroupModel.rds")
+itemModel = readRDS(itemModelPath)
+foodGroupModel = readRDS(foodGroupModelPath)
 
 lossItemImputation = function(data, model){
     predictIndex =
@@ -709,3 +713,8 @@ copy(trainPredictData) %>%
                    itemModel = itemModel,
                    foodGroupModel = foodGroupModel) %>%
     SaveLossData(data = ., rawLossData = lossData)
+
+
+
+
+
