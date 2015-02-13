@@ -98,7 +98,6 @@ getAreaData = function(dataContext, areaSownElementCode, areaHarvestedElementCod
 }
 
 ## Get the area harvested/sown data
-## areaData = getAreaData(swsContext.datasets[[1]])
 
 ## Function to compute the area sown for calculation of seed, this
 ## function. 
