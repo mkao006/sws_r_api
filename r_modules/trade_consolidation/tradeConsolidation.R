@@ -1,8 +1,3 @@
-## NOTE (Michael): Just need to read data from the completed trade
-##                 flow and then aggregate and write back to total
-##                 trade.
-
-
 suppressMessages({
     library(faosws)
     library(faoswsUtil)
@@ -11,13 +6,19 @@ suppressMessages({
     library(reshape2)
 })
 
-## Year should be a paramameter selected.
-selectedYear = "2010"
-
+## Set up testing environments
+if(Sys.getenv("USER") == "mk"){
+    GetTestEnvironment(
+        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
+        token = "d78da469-ca4a-4e04-896c-1f53bdc537fc"
+        )
+}
 
 ## Setting up variables
 reportingCountryVar = "reportingCountryM49"
 partnerCountryVar = "partnerCountryM49"
+standardCountryVar = "geographicAreaM49"
 yearVar = "timePointYears"
 itemVar = "measuredItemHS"
 elementVar = "measuredElementTrade"
@@ -26,69 +27,67 @@ flagPrefix = "flagTrade_"
 reverseTradePrefix = "reverse_"
 
 
+
 ## Get all reporting country codes
 allReportingCountryCode =
     GetCodeList(domain = "trade",
-                dataset = "ct_raw_tf",
+                dataset = "completed_tf",
                 dimension = reportingCountryVar)[type == "country", code]
 
 ## Get all partner country codes
 allPartnerCountryCode =
     GetCodeList(domain = "trade",
-                dataset = "ct_raw_tf",
+                dataset = "completed_tf",
                 dimension = partnerCountryVar)[type == "country", code]
 
-## Set up testing environments
-if(Sys.getenv("USER") == "mk"){
-    GetTestEnvironment(
-        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "d91934e8-6bf9-4f44-b051-504a18c885fc"
-        )
+getComtradeMirroredData = function(dataContext){
+        dimensions =
+            list(Dimension(name = "reportingCountryM49",
+                           keys = as.character(allReportingCountryCode)),
+                 Dimension(name = "partnerCountryM49",
+                           keys = as.character(allPartnerCountryCode)),
+                 Dimension(name = "measuredItemHS",
+                           keys = dataContext@dimensions$measuredItem@keys),
+                 Dimension(name = "measuredElementTrade",
+                           keys = dataContext@dimensions$measuredElementTrade@keys),
+                 Dimension(name = "timePointYears",
+                           keys = dataContext@dimensions$timePointYears@keys))
+
+    newKey = DatasetKey(domain = "trade", dataset = "completed_tf",
+        dimensions = dimensions)
+
+    newPivot = c(
+        Pivoting(code = "reportingCountryM49", ascending = TRUE),
+        Pivoting(code = "partnerCountryM49", ascending = TRUE),
+        Pivoting(code = "measuredItemHS", ascending = TRUE),
+        Pivoting(code = "timePointYears", ascending = FALSE),
+        Pivoting(code = "measuredElementTrade", ascending = TRUE)
+    )
+
+    mirroredData = GetData(key = newKey, normalized = FALSE, pivoting = newPivot)
+    mirroredData
 }
 
 
-## Get relevant element codes and set names
-##
-## NOTE (Michael): Lets work with set elements first, then expand them
-##                 when we have the formula table.
 
-allElementTable =
-    GetCodeList(domain = "trade",
-                dataset =  "ct_raw_tf",
-                dimension = "measuredElementTrade")
-## elementCode = c("5600", "5612", "5621", "5622", "5630", "5900", "5912", "5921",
-##     "5922", "5930")
-## elementCodeName = c("importQuantity", "reimportQuantity", "importValue",
-##     "reimportValue", "importUnitValue", "exportQuantity", "reexportQuantity",
-##     "exportValue", "reexportValue", "exportUnitValue")
+consolidateTradeFlow = function(mirroredData, key, consolidateFlag = "c"){
+    setnames(mirroredData, reportingCountryVar, standardCountryVar)
+    if(missing(key))
+        key = c(standardCountryVar, itemVar, yearVar)
 
-## NOTE (Michael): This table is for cereal only, need Nick to provide
-##                 the formula table.
-elementTable =
-    data.frame(type = c("quantity", "value", "unit_value"),
-               import = c("5600", "5621", "5630"),
-               reimport = c("5612", "5622", NA),
-               export = c("5900", "5921", "5930"),
-               reexport = c("5912", "5922", NA))
-
-## NOTE (Michael): I think the assignment of the names and variables
-##                 in the global environment is the reason of error on
-##                 the server.
-assignElementName = function(elementTable){
-    meltedElementTable = na.omit(melt(elementTable, id.vars = "type"))
-    elementName = with(meltedElementTable, paste(variable, type, sep = "_"))
-    elementCode = paste0(valuePrefix, elementVar, "_", meltedElementTable$value)
-    mapply(FUN = function(name, colname){
-        assign(x = name, value = colname, envir = .GlobalEnv)
-        assign(x = name, value = colname, envir = .GlobalEnv)        
-        assign(x = paste0(reverseTradePrefix, name),
-               value = paste0(reverseTradePrefix, colname),
-               envir = .GlobalEnv)        
-    }, name = elementName, colname = elementCode)
+    valueColumns = grep(valuePrefix, colnames(mirroredData), value = TRUE)
+    flagColumns = grep(flagPrefix, colnames(mirroredData), value = TRUE)
+    consolidatedData =
+        mirroredData[, lapply(valueColumns,
+                              FUN = function(x) sum(as.numeric(.SD[[x]]))),
+                     by = key]
+    setnames(consolidatedData,
+             old = paste0("V", 1:length(valueColumns)),
+             new = valueColumns)
+    consolidatedData[, `:=`(c(flagColumns), consolidateFlag)]
+    setkeyv(consolidatedData, key)
+    consolidatedData
 }
-
-assignElementName(elementTable)
 
 
 getComtradeStandard49Mapping = function(){
@@ -140,44 +139,16 @@ comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Na
     }
 }
 
-
-getComtradeMirroredData = function(){}
-
-## TODO (Michael): Need to check how we should consolidate the flag,
-##                 or if necessary.
-consolidateTradeFlow = function(balancedData, importQuantity, exportQuantity,
-    importValue, exportValue, reportingCountryVar, itemVar, yearVar,
-    consolidatedFlag = "c"){
-    consolidatedData =
-        balancedData[, list(importQuantity = sum(get(importQuantity)),
-                            exportQuantity = sum(get(exportQuantity)),
-                            importValue = sum(get(importValue)),
-                            exportValue = sum(get(exportValue))),
-                     by = c(reportingCountryVar, itemVar, yearVar)]
-    ## Assign flags
-    consolidatedData[, `:=`(
-        sapply(c(importQuantity, exportQuantity, importValue, exportValue),
-               FUN = function(x) gsub(valuePrefix, flagPrefix, x)),
-        consolidatedFlag)]
-    setnames(consolidatedData,
-             old = c(reportingCountryVar, "importQuantity", "exportQuantity",
-                 "importValue", "exportValue"),
-             new = c("geographicAreaM49", importQuantity, exportQuantity,
-                 importValue, exportValue))
-    consolidatedData
-}
-
-
 saveConsolidatedData = function(consolidatedData){
-    valueColumns = c(import_quantity, import_value, export_quantity, export_value)
-    flagColumns = sapply(valueColumns,
-        FUN = function(x) gsub(valuePrefix, flagPrefix, x))
+    if(is.null(key(consolidatedData)))
+        setkeyv(consolidatedData, c(reportingCountryVar, itemVar, yearVar))
+
+    valueColumns = grep(valuePrefix, colnames(consolidatedData), value = TRUE)
+    flagColumns = grep(flagPrefix, colnames(consolidatedData), value = TRUE)
     pairColumns = vector("character", length = length(valueColumns) * 2)
     pairColumns[as.logical(1:length(pairColumns) %% 2)] = valueColumns
     pairColumns[!as.logical(1:length(pairColumns) %% 2)] = flagColumns
-    consolidatedData =
-        consolidatedData[,c("geographicAreaM49", itemVar, yearVar, pairColumns),
-                         with = FALSE]
+    setcolorder(consolidatedData, c(key(consolidatedData), pairColumns))
     consolidatedData[, timePointYears := as.character(timePointYears)]
     if(NROW(consolidatedData) > 0)
         SaveData(domain = "trade", dataset = "total_trade",
@@ -185,47 +156,27 @@ saveConsolidatedData = function(consolidatedData){
 }
 
 
-selectedItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
-comtradeToStandardM49Mapping = getComtradeStandard49Mapping()
-## i = "1001"
-for(i in selectedItems){
-    try({
-        ## Consolidate the data
-        mirroredData = getComtradeMirroredData()
+mirroredData = getComtradeMirroredData(swsContext.datasets[[1]])
 
-        
-        ## NOTE (Michael): This is to be discussed which data set should
-        ##                 be consolidated and ultimate feed into the Food
-        ##                 Balance Sheet.
-        consolidatedData = 
-            mirroredData %>%
-            consolidateTradeFlow(balancedData = .,
-                                 importQuantity = import_quantity,
-                                 exportQuantity = export_quantity,
-                                 importValue = import_value,
-                                 exportValue = export_value,
-                                 reportingCountryVar = reportingCountryVar,
-                                 itemVar = itemVar,
-                                 yearVar = yearVar,
-                                 consolidatedFlag = "") %>%
-           comtradeM49ToStandardM49(comtradeData = .,
-                                    comtradeM49Name = "geographicAreaM49",
-                                    standardM49Name = "geographicAreaM49",
-                                    translationData = comtradeToStandardM49Mapping,
-                                    translationComtradeM49Name =
-                                        "comtrade_code",
-                                    translationStandardM49Name =
-                                        "translation_code",
-                                    aggregateKey = c(itemVar, yearVar),
-                                    aggregateValueCol =
-                                        grep(valuePrefix, colnames(.),
-                                             value = TRUE))
-        
-        
-        
-        ## Save consolidated data back
-        consolidatedData %>%
-            saveConsolidatedData(consolidatedData = .)
-    }
-        )
-}
+
+## Consolidate the data
+consolidatedData = 
+    mirroredData %>%
+    consolidateTradeFlow(mirroredData = .,
+                         consolidateFlag = "") %>%
+    comtradeM49ToStandardM49(comtradeData = .,
+                             comtradeM49Name = "geographicAreaM49",
+                             standardM49Name = "geographicAreaM49",
+                             translationData = comtradeToStandardM49Mapping,
+                             translationComtradeM49Name =
+                                 "comtrade_code",
+                             translationStandardM49Name =
+                                 "translation_code",
+                             aggregateKey = c(itemVar, yearVar),
+                             aggregateValueCol =
+                                 grep(valuePrefix, colnames(.),
+                                      value = TRUE))
+
+## Save consolidated data back
+consolidatedData %>%
+    saveConsolidatedData(consolidatedData = .)
