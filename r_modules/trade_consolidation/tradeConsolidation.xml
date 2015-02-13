@@ -12,7 +12,6 @@
 	</Authors>
 	<Datasets>
 		<MainDataset>
-		<MainDataset>
 			<Code>completed_tf</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
