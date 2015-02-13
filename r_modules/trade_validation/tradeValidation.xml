@@ -21,6 +21,25 @@
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
+		<MainDataset>
+			<Code>completed_tf</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+		<MainDataset>
+			<Code>total_trade</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
 	</Datasets>
 	<InteractiveValidation>false</InteractiveValidation>
 	<Background>false</Background>

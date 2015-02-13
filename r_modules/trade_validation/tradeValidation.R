@@ -1,5 +1,7 @@
 ## NOTE (Michael): Need to request flag for raw data, the flag are missing.
 
+## Split this module in 3?
+
 suppressMessages({
     library(faosws)
     library(faoswsUtil)
@@ -26,19 +28,27 @@ reverseTradePrefix = "reverse_"
 ## Set up testing environments
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "978d8d5f-94b0-43f5-9979-b77485afbdfb"
+        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
+        token = "d91934e8-6bf9-4f44-b051-504a18c885fc"
         )
 }
 
-## Read in temporary comtrade M49 to standard M49 mapping.
-comtradeToStandardM49Mapping =
-    data.table(read.csv(file = "comtrade_standard_M49_comparison.csv"))
-comtradeToStandardM49Mapping[, `:=`(c(colnames(comtradeToStandardM49Mapping)),
-                                    lapply(colnames(comtradeToStandardM49Mapping),
-                                           FUN = function(x){
-                                               as.character(comtradeToStandardM49Mapping[[x]])}))]
 
+getComtradeStandard49Mapping = function(){
+    mapping =
+        GetTableData(schemaName = "ess", tableName = "comtrade_m49_map")
+    codeColumn = c("comtrade_code", "standard_code", "translation_code")
+    mapping[, `:=`(c(codeColumn),
+                   lapply(codeColumn,
+                          FUN = function(x){
+                              as.character(mapping[[x]])
+                          }))]
+    mapping
+}
+
+
+comtradeToStandardM49Mapping = getComtradeStandard49Mapping()
 
 ## Function to translate the comtrade specific M49 codes to the
 ## standard UNSD M49 country codes.
@@ -113,7 +123,9 @@ elementTable =
                export = c("5900", "5921", "5930"),
                reexport = c("5912", "5922", NA))
 
-
+## NOTE (Michael): I think the assignment of the names and variables
+##                 in the global environment is the reason of error on
+##                 the server.
 assignElementName = function(elementTable){
     meltedElementTable = na.omit(melt(elementTable, id.vars = "type"))
     elementName = with(meltedElementTable, paste(variable, type, sep = "_"))
@@ -133,17 +145,21 @@ assignElementName(elementTable)
 getComtradeRawData = function(measuredItemHSCode){
     dimensions =
         list(Dimension(name = "reportingCountryM49",
-                       keys = allReportingCountryCode),
-             Dimension(name = "partnerCountryM49", keys = allPartnerCountryCode),
+                       keys = as.character(allReportingCountryCode)),
+             Dimension(name = "partnerCountryM49",
+                       keys = as.character(allPartnerCountryCode)),
              Dimension(name = "measuredItemHS",
-                       keys = measuredItemHSCode),
+                       keys = as.character(measuredItemHSCode)),
+             ## Dimension(name = "measuredElementTrade",
+             ##           keys = as.character(with(elementTable,
+             ##               unique(na.omit(c(import, reimport,
+             ##                                export, reexport)))))),
              Dimension(name = "measuredElementTrade",
-                       keys = with(elementTable,
-                           unique(na.omit(c(import, reimport,
-                                            export, reexport))))),
+                       keys = as.character(c("5600", "5621", "5630", "5612",
+                           "5622", "5900", "5921", "5930", "5912", "5922"))),
              Dimension(name = "timePointYears",
-                       keys = selectedYear))
-    
+                       keys = as.character(selectedYear)))
+
     newKey = DatasetKey(domain = "trade", dataset = "ct_raw_tf",
         dimensions = dimensions)
 
@@ -462,7 +478,9 @@ validation = function(data, importUnitValue, exportUnitValue,
                                           ratioBoundary = ratioBoundary,
                                           log = log,
                                           plot = plot))]
-    ## NOTE(Michael): Validation by range is not currently applied
+    ## NOTE(Michael): Validation by range is not currently applied. It
+    ## should be only applied to primary commodities such as wheat
+    ## grain. Livestocks should not be validated by range as well.
     ##
     ## valid[, `:=`(c(importUnitValue, importUnitValueFlag),
     ##              validationByRange(value = .SD[[importUnitValue]],
@@ -564,38 +582,6 @@ updateTradeValue = function(data, unitValue, value, valueFlag, quantity,
     updatedTradeValue
 }
 
-
-## TODO (Michael): Need to change the dataset name
-saveMirroredTradeData = function(data){
-    valueColumns = c(import_quantity, import_value, export_quantity, export_value)
-    flagColumns = sapply(valueColumns,
-        FUN = function(x) gsub(valuePrefix, flagPrefix, x))
-    colIndex = which(colnames(data) %in%
-        c(reportingCountryVar, partnerCountryVar, itemVar, yearVar,
-          valueColumns, flagColumns))
-    mirroredData = data[, colIndex, with = FALSE]
-    mirroredData[, timePointYears := as.character(timePointYears)]
-    if(NROW(mirroredData) > 0)
-        SaveData(domain = "trade", dataset = "completed_tf",
-                 data = mirroredData, normalized = FALSE)
-}
-
-
-saveValidatedTradeData = function(data){
-    valueColumns = c(import_quantity, import_value, export_quantity, export_value)
-    flagColumns = sapply(valueColumns,
-        FUN = function(x) gsub(valuePrefix, flagPrefix, x))
-    colIndex = which(colnames(data) %in%
-        c(reportingCountryVar, partnerCountryVar, itemVar, yearVar,
-          valueColumns, flagColumns))
-    validatedData = data[, colIndex, with = FALSE]
-    validatedData[, timePointYears := as.character(timePointYears)]
-    if(NROW(validatedData) > 0)
-        SaveData(domain = "trade", dataset = "consolidated_tf",
-                 data = validatedData, normalized = FALSE)
-}
-
-
 ## TODO (Michael): Need to check how we should consolidate the flag,
 ##                 or if necessary.
 consolidateTradeFlow = function(balancedData, importQuantity, exportQuantity,
@@ -620,6 +606,47 @@ consolidateTradeFlow = function(balancedData, importQuantity, exportQuantity,
     consolidatedData
 }
 
+
+## TODO (Michael): Need to change the dataset name
+saveMirroredTradeData = function(data){
+    valueColumns = c(import_quantity, import_value, export_quantity, export_value)
+    flagColumns = sapply(valueColumns,
+        FUN = function(x) gsub(valuePrefix, flagPrefix, x))
+    colIndex = which(colnames(data) %in%
+        c(reportingCountryVar, partnerCountryVar, itemVar, yearVar,
+          valueColumns, flagColumns))
+    mirroredData = data[, colIndex, with = FALSE]
+    setcolorder(mirroredData,
+                neworder = c(reportingCountryVar, partnerCountryVar,
+                    colnames(mirroredData)[!colnames(mirroredData) %in%
+                                               c(reportingCountryVar, partnerCountryVar)]))
+    mirroredData[, timePointYears := as.character(timePointYears)]
+    ## NOTE (Michael): We save back to complete trade flow as the
+    ##                 mirror completes all the trade flow possibly
+    ##                 observed.
+    if(NROW(mirroredData) > 0)
+        SaveData(domain = "trade", dataset = "completed_tf",
+                 data = mirroredData, normalized = FALSE)
+        ## SaveData(domain = "trade", dataset = "ct_raw_tf",
+        ##          data = mirroredData, normalized = FALSE)
+}
+
+
+saveValidatedTradeData = function(data){
+    valueColumns = c(import_quantity, import_value, export_quantity, export_value)
+    flagColumns = sapply(valueColumns,
+        FUN = function(x) gsub(valuePrefix, flagPrefix, x))
+    colIndex = which(colnames(data) %in%
+        c(reportingCountryVar, partnerCountryVar, itemVar, yearVar,
+          valueColumns, flagColumns))
+    validatedData = data[, colIndex, with = FALSE]
+    validatedData[, timePointYears := as.character(timePointYears)]
+    if(NROW(validatedData) > 0)
+        SaveData(domain = "trade", dataset = "consolidated_tf",
+                 data = validatedData, normalized = FALSE)
+}
+
+
 saveConsolidatedData = function(consolidatedData){
     valueColumns = c(import_quantity, import_value, export_quantity, export_value)
     flagColumns = sapply(valueColumns,
@@ -631,16 +658,6 @@ saveConsolidatedData = function(consolidatedData){
         consolidatedData[,c("geographicAreaM49", itemVar, yearVar, pairColumns),
                          with = FALSE]
     consolidatedData[, timePointYears := as.character(timePointYears)]
-
-    ## NOTE(Michael): This is a temporary solution for testing, the
-    ##                country should be mapped from comtrade M49 to
-    ##                standard M49.
-    ## standardM49Country =
-    ##     GetCodeList(domain = "trade",
-    ##                 dataset = "total_trade",
-    ##                 dimension = "geographicAreaM49")[type == "country", code]
-    ## consolidatedData =
-    ##     consolidatedData[geographicAreaM49 %in% standardM49Country, ]
     if(NROW(consolidatedData) > 0)
         SaveData(domain = "trade", dataset = "total_trade",
                  data = consolidatedData, normalized = FALSE)
@@ -650,7 +667,8 @@ saveConsolidatedData = function(consolidatedData){
 selectedItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 ## i = "1001"
 for(i in selectedItems){
-    print(i)
+    ## print(i)
+
     rawData =
         getComtradeRawData(measuredItemHSCode = i) %>%
         removeSelfTrade(data = ., reportingCountry = reportingCountryVar,
@@ -707,7 +725,7 @@ for(i in selectedItems){
                            exportTradeQuantity = reverse_export_quantity,
                            calculatedFlag = "")
 
-    ## Save mirrored data back
+    ## ## Save mirrored data back
     mirroredData %>%
         saveMirroredTradeData(data = .)
 
@@ -716,32 +734,32 @@ for(i in selectedItems){
     ## NOTE (Michael): This is to be discussed which data set should
     ##                 be consolidated and ultimate feed into the Food
     ##                 Balance Sheet.
-    consolidatedData = 
-        mirroredData %>%
-        consolidateTradeFlow(balancedData = .,
-                             importQuantity = import_quantity,
-                             exportQuantity = export_quantity,
-                             importValue = import_value,
-                             exportValue = export_value,
-                             reportingCountryVar = reportingCountryVar,
-                             itemVar = itemVar,
-                             yearVar = yearVar,
-                             consolidatedFlag = "")
+    ## consolidatedData = 
+    ##     mirroredData %>%
+    ##     consolidateTradeFlow(balancedData = .,
+    ##                          importQuantity = import_quantity,
+    ##                          exportQuantity = export_quantity,
+    ##                          importValue = import_value,
+    ##                          exportValue = export_value,
+    ##                          reportingCountryVar = reportingCountryVar,
+    ##                          itemVar = itemVar,
+    ##                          yearVar = yearVar,
+    ##                          consolidatedFlag = "") %>%
+    ##    comtradeM49ToStandardM49(comtradeData = .,
+    ##                              comtradeM49Name = "geographicAreaM49",
+    ##                              standardM49Name = "geographicAreaM49",
+    ##                              translationData = comtradeToStandardM49Mapping,
+    ##                              translationComtradeM49Name = "comtrade_code",
+    ##                              translationStandardM49Name = "translation_code",
+    ##                              aggregateKey = c(itemVar, yearVar),
+    ##                              aggregateValueCol =
+    ##                                  grep(valuePrefix, colnames(.), value = TRUE))
 
     
     
-    ## Save consolidated data back
-    consolidatedData %>%
-        comtradeM49ToStandardM49(comtradeData = .,
-                                 comtradeM49Name = "geographicAreaM49",
-                                 standardM49Name = "geographicAreaM49",
-                                 translationData = comtradeToStandardM49Mapping,
-                                 translationComtradeM49Name = "comtrade_code",
-                                 translationStandardM49Name = "translation_code",
-                                 aggregateKey = c(itemVar, yearVar),
-                                 aggregateValueCol =
-                                     grep(valuePrefix, colnames(.), value = TRUE)) %>%                                 
-                                 saveConsolidatedData(consolidatedData = .)
+    ## ## Save consolidated data back
+    ## consolidatedData %>%
+    ##     saveConsolidatedData(consolidatedData = .)
 
     ## ## Validated the data
     ## ## TODO (Michael): Need to change the validated flag back to "v" after
@@ -845,3 +863,7 @@ for(i in selectedItems){
     
 }
 
+
+## ## This is just a test
+## test = GetData(swsContext.datasets[[1]])
+## SaveData(domain = "trade", dataset = "ct_raw_tf", data = test)
