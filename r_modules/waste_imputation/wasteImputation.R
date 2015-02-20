@@ -646,8 +646,8 @@ trainPredictData =
 
 
 
-itemModelPath = paste0(R_SWS_SHARE_PATH, "/itemModel.rds")
-foodGroupModelPath = paste0(R_SWS_SHARE_PATH, "/foodGroupModel.rds")
+itemModelPath = paste0(R_SWS_SHARE_PATH, "/itemModel")
+foodGroupModelPath = paste0(R_SWS_SHARE_PATH, "/foodGroupModel")
 ## Here we read the reconstructed model of Klaus
 itemModel = readRDS(itemModelPath)
 foodGroupModel = readRDS(foodGroupModelPath)
