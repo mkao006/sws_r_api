@@ -18,7 +18,7 @@ suppressMessages({
 ## Set up testing environments
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         token = "1b5cb7c8-6acb-41df-bd73-fa3d42d01be6"
         )
 }
