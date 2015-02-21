@@ -705,6 +705,12 @@ lossImputation = function(data, itemModel, foodGroupModel){
                       "flagMethod_measuredElement_5120"),
                     list(finalPrediction, "I", "e"))]
 
+    ## Also impute for those that were previously estimated or imputed.
+    prediction[flagObservationStatus_measuredElement_5120 %in% c("I", "E"),
+               `:=`(c("Value_measuredElement_5120",
+                      "flagObservationStatus_measuredElement_5120",
+                      "flagMethod_measuredElement_5120"),
+                    list(finalPrediction, "I", "e"))]
     prediction
 }
 
@@ -713,8 +719,3 @@ copy(trainPredictData) %>%
                    itemModel = itemModel,
                    foodGroupModel = foodGroupModel) %>%
     SaveLossData(data = ., rawLossData = lossData)
-
-
-
-
-
