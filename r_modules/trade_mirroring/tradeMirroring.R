@@ -312,8 +312,8 @@ for(i in selectedItems){
     try({
         rawData =
             getComtradeRawData(measuredItemHSCode = i) %>%
-                removeSelfTrade(data = ., reportingCountry = reportingCountryVar,
-            partnerCountry = partnerCountryVar) %>%
+            removeSelfTrade(data = ., reportingCountry = reportingCountryVar,
+                            partnerCountry = partnerCountryVar) %>%
             removeInconsistentQuantityValue(data = ., quantity = import_quantity,
                                             value = import_value) %>%
             removeInconsistentQuantityValue(data = ., quantity = export_quantity,
