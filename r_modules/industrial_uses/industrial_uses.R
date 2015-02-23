@@ -172,3 +172,9 @@ saveIndustrialUses = function(data){
              dataset = "industrialUse",
              data = data)
 }
+
+
+
+## Run the whole industrial use module.
+getBioFuelData() %>%
+    saveIndustrialUses(data = .)
