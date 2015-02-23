@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Industrial Use Estimation</Name>
+	<Description> Performs Estimatino of the Total Industrial Uses</Description>
+	<Category>Estimation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Datasets>
+		<MainDataset>
+			<Code>industrialUse</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+                <Dataset>
+		  <Code>agriculture</Code>
+		</Dataset>
+                <Dataset>
+		  <Code>completed_tf</Code>
+		</Dataset>
+                <Dataset>
+		  <Code>biofuel</Code>
+		</Dataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
