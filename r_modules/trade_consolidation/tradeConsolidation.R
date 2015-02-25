@@ -5,14 +5,17 @@ suppressMessages({
     library(magrittr)
     library(reshape2)
 })
+verbose = FALSE
+
 
 ## Set up testing environments
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "d78da469-ca4a-4e04-896c-1f53bdc537fc"
+        token = "d1eeead4-ba76-4a9a-9ba8-cc6904a5aa3b"
         )
+    verbose = TRUE
 }
 
 ## Setting up variables
@@ -53,8 +56,10 @@ getComtradeMirroredData = function(dataContext){
                  Dimension(name = "timePointYears",
                            keys = dataContext@dimensions$timePointYears@keys))
 
-    newKey = DatasetKey(domain = "trade", dataset = "completed_tf",
-        dimensions = dimensions)
+    newKey =
+        DatasetKey(domain = "trade",
+                   dataset = "completed_tf",
+                   dimensions = dimensions)
 
     newPivot = c(
         Pivoting(code = "reportingCountryM49", ascending = TRUE),
@@ -141,7 +146,8 @@ comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Na
 
 saveConsolidatedData = function(consolidatedData){
     if(is.null(key(consolidatedData)))
-        setkeyv(consolidatedData, c(reportingCountryVar, itemVar, yearVar))
+        setkeyv(x = consolidatedData,
+                cols = c("geographicAreaM49", "measuredItemHS", "timePointYears"))
 
     valueColumns = grep(valuePrefix, colnames(consolidatedData), value = TRUE)
     flagColumns = grep(flagPrefix, colnames(consolidatedData), value = TRUE)
@@ -155,28 +161,85 @@ saveConsolidatedData = function(consolidatedData){
                  data = consolidatedData, normalized = FALSE)
 }
 
+## Get the completely mirrored data
 
-mirroredData = getComtradeMirroredData(swsContext.datasets[[1]])
 
 
 ## Consolidate the data
-consolidatedData = 
-    mirroredData %>%
-    consolidateTradeFlow(mirroredData = .,
-                         consolidateFlag = "") %>%
-    comtradeM49ToStandardM49(comtradeData = .,
-                             comtradeM49Name = "geographicAreaM49",
-                             standardM49Name = "geographicAreaM49",
-                             translationData = comtradeToStandardM49Mapping,
-                             translationComtradeM49Name =
-                                 "comtrade_code",
-                             translationStandardM49Name =
-                                 "translation_code",
-                             aggregateKey = c(itemVar, yearVar),
-                             aggregateValueCol =
-                                 grep(valuePrefix, colnames(.),
-                                      value = TRUE))
 
-## Save consolidated data back
-consolidatedData %>%
-    saveConsolidatedData(consolidatedData = .)
+consolidate =
+    try({
+        ## Get the raw data
+        if(verbose){
+            cat("Extracting raw data\n")
+            currentTime = Sys.time()
+        }
+        mirroredData = getComtradeMirroredData(swsContext.datasets[[1]])
+
+        ## Consolidate the data
+        if(verbose){
+            endTime = Sys.time()
+            timeUsed = endTime - currentTime
+            cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+            currentTime = endTime
+            cat("Performing Consolidation\n")
+        }
+        consolidatedData =
+            copy(mirroredData) %>%
+            consolidateTradeFlow(mirroredData = .,
+                                 consolidateFlag = "") %>%
+            {
+                ## Map UNSD comtrade M49 country codes to standard M49
+                ## country codes
+                if(verbose){
+                    endTime = Sys.time()
+                    timeUsed = endTime - currentTime
+                    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+                    currentTime = endTime
+                    cat("Map UNSD Comtrade M49 to Standard M49\n")
+                }
+
+                comtradeToStandardM49Mapping <<- getComtradeStandard49Mapping()
+                comtradeM49ToStandardM49(comtradeData = .,
+                                         comtradeM49Name = "geographicAreaM49",
+                                         standardM49Name = "geographicAreaM49",
+                                         translationData =
+                                             comtradeToStandardM49Mapping,
+                                         translationComtradeM49Name =
+                                             "comtrade_code",
+                                         translationStandardM49Name =
+                                             "translation_code",
+                                         aggregateKey =
+                                             c(itemVar, yearVar),
+                                         aggregateValueCol =
+                                             grep(valuePrefix, colnames(.),
+                                                  value = TRUE))
+            }
+
+        ## Save the data back to the data base
+        if(verbose){
+            endTime = Sys.time()
+            timeUsed = endTime - currentTime
+            cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+            currentTime = endTime
+            cat("Saving Data back\n")
+        }
+
+
+        ## Save consolidated data back
+        consolidatedData %>%
+            saveConsolidatedData(consolidatedData = .)
+
+        if(verbose){
+            endTime = Sys.time()
+            timeUsed = endTime - currentTime
+            cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+            currentTime = endTime
+        }
+    })
+
+if(inherits(consolidate, "try-error")){
+    print(paste0("Consolidation Module Failed\n", consolidate[1]))
+} else {
+    print("Consolidation Module Executed Successfully")
+}
