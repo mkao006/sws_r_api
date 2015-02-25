@@ -4,6 +4,7 @@ suppressMessages({
     library(faoswsUtil)
     library(data.table)
     library(magrittr)
+    library(faoswsProductionImputation)
 })
 
 ## NOTE (Michael): The hard coded element codes need to be replaced
@@ -16,7 +17,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",        
-        token = "2dc8e555-2326-4a95-a375-8e5cde82e586"
+        token = "97afe028-f181-4b6c-8933-9fc7fa98c71a"
         )
     R_SWS_SHARE_PATH = getwd()
 } else {
@@ -41,8 +42,9 @@ names(requiredElements) = c("production", "import", "stockWithdrawl", "loss")
 valuePrefix = "Value_"
 flagObsPrefix = "flagObservationStatus_"
 flagMethodPrefix = "flagMethod_"
-## NOTE (Michael): The years were selected by Klaus
-selectedYear = as.character(1970:2013)
+## NOTE (Michael): The years were selected by Klaus but we reduced it for testing.
+## selectedYear = as.character(1970:2013)
+selectedYear = as.character(2000:2013)
 
 ## Function to obtain all CPC item 
 getFBSmeasuredItemCPC = function(){
@@ -148,6 +150,14 @@ getLossWorldBankData = function(){
     casted
 }
 
+
+imputePavedRoadData = function(lossWorldBankData){
+    setkeyv(lossWorldBankData, cols = c(areaVar, yearVar))
+    lossWorldBankData[, sharePavedRoad := defaultNaive(sharePavedRoad),
+                      by = areaVar]
+    lossWorldBankData
+}
+
 ## Function to load the loss food group classification
 getLossFoodGroup = function(){
     lossFoodGroup = GetTableData(schemaName = "ess", tableName = "loss_food_group")
@@ -226,6 +236,177 @@ getOfficialLossData = function(){
     
     ## NOTE (Michael): Only return official figures for estimation
     ## query[query[[paste0(flagObsPrefix, elementVar, "_5120")]] == "", ]
+}
+
+getAllLossData = function(){
+    ## Set up the query
+    dimensions =
+        list(
+            Dimension(name = areaVar,
+                      keys = requiredCountries),
+            Dimension(name = itemVar, keys = requiredItems),
+            Dimension(name = elementVar, keys = requiredElements[["loss"]]),
+            Dimension(name = yearVar, keys = selectedYear)
+        )
+
+    newDataKey =
+        DatasetKey(domain = "lossWaste",
+                   dataset = "loss",
+                   dimensions = dimensions)
+
+    newPivot = c(
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = itemVar, ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = elementVar, ascending = TRUE)
+    )
+
+    ## Query the data
+    query = GetData(
+        key = newDataKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = newPivot
+    )
+    ## query[, timePointYears := as.numeric(timePointYears)]
+
+    ## TODO (Michael): Remove this when the names has been changed in
+    ##                 the database.
+    tmp = grep("measuredElementSuaFbs", colnames(query), value = TRUE)
+    setnames(query,
+             old = c("measuredItemSuaFbs", tmp),
+             new = c("measuredItemCPC",
+                 gsub("measuredElementSuaFbs", "measuredElement", tmp)))
+
+    query
+}
+
+## Function to get the yield formula triplets
+getYieldFormula = function(itemCode){
+    condition =
+        paste0("WHERE cpc_code IN (",
+               paste0(shQuote(as.character(itemCode)),
+                      collapse = ", "), ")")
+    yieldFormula =
+        GetTableData(schemaName = "ess",
+                     tableName = "item_yield_elements",
+                     whereClause = condition)
+    setnames(yieldFormula,
+             old = c("cpc_code", "element_31", "element_41",
+                 "element_51", "factor"),
+             new = c(itemVar, "input", "productivity",
+                 "output", "unitConversion")
+             )
+    yieldFormula
+}
+
+
+getProductionElement = function(measuredItemCPC){
+    condition =
+        paste0("WHERE cpc_code IN (",
+               paste0(shQuote(as.character(measuredItemCPC)),
+                      collapse = ", "), ")")
+    yieldFormula =
+        GetTableData(schemaName = "ess",
+                     tableName = "item_yield_elements",
+                     whereClause = condition)
+    yieldFormula
+}
+
+productionElements = getProductionElement(requiredItems)
+
+
+## Get production data
+
+getProductionData = function(){
+
+    ## NOTE (Michael): Need to select all the items, waiting for response
+    ##                 from Nick on the item table.
+    productionKey = DatasetKey(
+        domain = "agriculture",
+        dataset = "agriculture",
+        dimensions = list(
+            Dimension(name = areaVar,
+                      keys = requiredCountries),
+            Dimension(name = "measuredElement",
+                      keys = unique(productionElements$element_51)),
+            Dimension(name = "measuredItemCPC",
+                      keys = requiredItems),
+            Dimension(name = yearVar,
+                      keys = selectedYear)
+        )
+    )
+
+    ## Pivot to vectorize yield computation
+    productionPivot = c(
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = "measuredItemCPC", ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = "measuredElement", ascending = TRUE)
+    )
+
+    ## Query the data
+    ##
+    ## NOTE (Michael): Need to check this, 570 items are queried, but only
+    ##                 105 are returned. Also, there are no value for
+    ##                 element 5518 which caused the type to be logical.
+    productionQuery = GetData(
+        key = productionKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = productionPivot
+    )
+
+
+    ## Convert time to numeric
+    ## productionQuery[, timePointYears := as.numeric(timePointYears)]
+    productionQuery
+}
+
+
+
+getConsolidatedImportData = function(){
+    ## We only take import quantity for the waste module
+    tradeKey = DatasetKey(
+        domain = "trade",
+        dataset = "total_trade_CPC",
+        dimensions = list(
+            Dimension(name = areaVar,
+                      keys = requiredCountries),
+            Dimension(name = "measuredElementTrade",
+                      keys = "5600"),
+            Dimension(name = "measuredItemCPC",
+                      keys = requiredItems),
+            Dimension(name = yearVar,
+                      keys = selectedYear)
+        )
+    )
+
+    ## Pivot to vectorize yield computation
+    tradePivot = c(
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = "measuredItemCPC", ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = "measuredElementTrade", ascending = TRUE)
+    )
+
+    ## Query the data
+    ##
+    ## NOTE (Michael): Need to check this, 570 items are queried, but only
+    ##                 105 are returned. Also, there are no value for
+    ##                 element 5518 which caused the type to be logical.
+    tradeQuery = GetData(
+        key = tradeKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = tradePivot
+    )
+
+
+    ## Convert time to numeric
+    tradeQuery[, timePointYears := as.numeric(timePointYears)]
+    tradeQuery
+
 }
 
 
@@ -387,16 +568,9 @@ calculateLossRatio = function(data,
         paste0(valuePrefix, elementVar, "_", requiredElements["stockWithdrawl"]),
     lossVar = paste0(valuePrefix, elementVar, "_", requiredElements["loss"])){
 
-    data[data[[stockWithdrawlVar]] >= 0,
-         lossBase := 
-             rowSums(.SD[, c(productionVar, importVar, stockWithdrawlVar),
-                         with = FALSE],
-                     na.rm = TRUE)]
-    data[data[[stockWithdrawlVar]] < 0,
-         lossBase := 
-             rowSums(.SD[, c(productionVar, importVar), with = FALSE],
-                     na.rm = TRUE)]
-    
+    data[, lossBase :=  rowSums(.SD[, c(productionVar, importVar), with = FALSE],
+                        na.rm = TRUE)]
+
     data[, lossRatio := computeRatio(data[[lossVar]], lossBase)]
     data
 }
@@ -442,7 +616,7 @@ preEstimationProcessing = function(data){
     
     ## NOTE (Michael): I don't know why the time should be scaled.
     data[, scaledTimePointYears := timePointYears - 1960]
-    data[is.na(fromNationalFbs), fromNationalFbs := 0]
+    ## data[is.na(fromNationalFbs), fromNationalFbs := 0]
 
     ## NOTE (Klaus): GDP per capita over 25000 are truncated and
     ##               assume it does not have any relevant effects on
@@ -569,22 +743,21 @@ lossModelPrediction = function(model, predictionData, lossRatio){
 ## Function to select the required variable and dimension for the
 ## estimation of the model.
 selectRequiredVariable = function(data){
+    ## TODO (Michael): have to add in consolidated import here
     data[foodGeneralGroup == "primary",
          list(geographicAreaM49, measuredItemCPC, timePointYears,
               Value_measuredElement_5120,
+              Value_measuredElement_5510,
               flagObservationStatus_measuredElement_5120,
-              flagMethod_measuredElement_5120, fromNationalFbs, gdpPerCapita,
+              flagMethod_measuredElement_5120, gdpPerCapita,
               gdpPPP,
-              sharePavedRoad, lossBase, lossRatio, geographicAreaM49,
+              sharePavedRoad, lossBase, lossRatio, 
               measuredItemCPC, foodGroupName, foodGeneralGroup,
               foodPerishableGroup, lossRegionClass,
               importToProductionRatio, scaledTimePointYears)]
 }
-                
-## Function to save the data back
-##
-SaveLossData = function(data, rawLossData){
-    ## TODO (Michael): Change this selection rule.
+
+selectSaveData = function(data, rawLossData){
     saveSelection =
         data[, intersect(colnames(data), colnames(rawLossData)), with = FALSE]
     saveSelection[, geographicAreaM49 := as.character(geographicAreaM49)]
@@ -597,38 +770,69 @@ SaveLossData = function(data, rawLossData){
              old = grep("measuredElement", colnames(saveSelection), value = TRUE),
              new = gsub("measuredElement", "measuredElementSuaFbs",
                  grep("measuredElement", colnames(saveSelection), value = TRUE)))
+    saveSelection
+}
 
-    SaveData(domain = "lossWaste", dataset = "loss",
-             data = saveSelection, normalized = FALSE)
+## Function to save the data back
+##
+SaveLossData = function(data){
+    ## SaveData(domain = "lossWaste", dataset = "loss",
+    ##          data = data, normalized = FALSE)
+    ##
+    ## Using the temporary SaveDataNew function to save back large
+    ## datasets.
+    SaveDataNew(domain = "lossWaste", dataset = "loss",
+             data = data, normalized = FALSE)    
 }
 
 ## The full waste estimation, imputation process.
 ## ---------------------------------------------------------------------
 
 ## Build the final data set
+
+## TODO (Michael): Need to add in the consolidated trade data when it
+## is complete.
+
 finalLossData =
     {
-        lossData <<- getOfficialLossData()
-        nationalFbs <<- getNationalFbs()
-        lossDataWithNationalFbs <<- mergeNationalFbs(lossData, nationalFbs)
-        lossWorldBankData <<- getLossWorldBankData()
+        ## lossData <<- getOfficialLossData()
+        lossData <<- getAllLossData()
+        productionData <<- getProductionData()
+        ## consolidatedImportData <<- getConsolidatedImportData()
+
+        ## NOTE (Michael): We don't take data from national FBS
+        ##                 anymore, it does not help with prediction
+        ##                 and also the data is questionable.
+        
+        ## nationalFbs <<- getNationalFbs()
+        ## lossDataWithNationalFbs <<- mergeNationalFbs(lossData, nationalFbs)
+        lossWorldBankData <<-
+            getLossWorldBankData() %>%
+                imputePavedRoadData(lossWorldBankData = .)
         lossFoodGroup <<- getLossFoodGroup()
         lossRegionClass <<- getLossRegionClass()
         gc()
-        list(lossData = lossDataWithNationalFbs,
+        list(lossData = lossData,
+             productionData = productionData,
+             ## consolidatedImportData = consolidatedImportData,
              lossWorldBankData = lossWorldBankData,
              lossFoodGroup = lossFoodGroup,
              lossRegionClass = lossRegionClass)
     } %>%
     with(.,
          mergeAllLossData(lossData, lossWorldBankData, lossFoodGroup,
-                          lossRegionClass)
+                          lossRegionClass, productionData)
          )
     
 
 
 ## TODO (Michael): Need to change year to numeric here.
 finalLossData[, timePointYears := as.numeric(timePointYears)]
+
+finalLossData[, `:=`(c("Value_measuredElement_5600",
+                       "Value_measuredElement_5712"),
+                     list(as.numeric(NA), as.numeric(NA)))]
+
 
 ## Build the data
 trainPredictData =
@@ -695,9 +899,12 @@ lossImputation = function(data, itemModel, foodGroupModel){
     prediction$groupPredictedLoss =
         lossGroupImputation(prediction, foodGroupModel)
 
-    prediction$finalPrediction = prediction$itemPredictedLoss
-    prediction[is.na(itemPredictedLoss), itemPredictedLoss := finalPrediction]
-    prediction[finalPrediction < 0, finalPrediction:= 0]
+
+    prediction[, finalPrediction :=
+                   ifelse(!is.na(itemPredictedLoss),
+                          itemPredictedLoss/100 * lossBase,
+                          groupPredictedLoss/100 * lossBase)]
+    prediction[finalPrediction < 0, finalPrediction := NA]
         
     prediction[is.na(Value_measuredElement_5120) & !is.na(finalPrediction),
                `:=`(c("Value_measuredElement_5120",
@@ -706,7 +913,8 @@ lossImputation = function(data, itemModel, foodGroupModel){
                     list(finalPrediction, "I", "e"))]
 
     ## Also impute for those that were previously estimated or imputed.
-    prediction[flagObservationStatus_measuredElement_5120 %in% c("I", "E"),
+    prediction[flagObservationStatus_measuredElement_5120 %in% c("I", "E", "T") &
+               !is.na(finalPrediction),
                `:=`(c("Value_measuredElement_5120",
                       "flagObservationStatus_measuredElement_5120",
                       "flagMethod_measuredElement_5120"),
@@ -714,8 +922,10 @@ lossImputation = function(data, itemModel, foodGroupModel){
     prediction
 }
 
+
 copy(trainPredictData) %>%
     lossImputation(data = .,
                    itemModel = itemModel,
                    foodGroupModel = foodGroupModel) %>%
-    SaveLossData(data = ., rawLossData = lossData)
+    selectSaveData(data = ., rawLossData = lossData) %>%
+    SaveLossData(data = .)
