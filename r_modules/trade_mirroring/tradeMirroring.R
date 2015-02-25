@@ -8,6 +8,14 @@ suppressMessages({
     library(reshape2)
 })
 
+verbose = FALSE
+
+if(verbose){
+    startingTime = Sys.time()
+    currentTime = startingTime
+}
+
+
 ## Year should be a paramameter selected.
 selectedYear = "2010"
 
@@ -28,8 +36,9 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "d91934e8-6bf9-4f44-b051-504a18c885fc"
+        token = "09aeec5c-2cf5-46f7-90e7-f8b4bdc6dc93"
         )
+    verbose = TRUE
 }
 
 
@@ -285,7 +294,7 @@ calculateUnitValue = function(data, importUnitValue, importUnitValueFlag,
     data
 }
 
-saveMirroredTradeData = function(data){
+subsetRequiredData = function(data){
     valueColumns = c(import_quantity, import_value, export_quantity, export_value)
     flagColumns = sapply(valueColumns,
         FUN = function(x) gsub(valuePrefix, flagPrefix, x))
@@ -296,82 +305,135 @@ saveMirroredTradeData = function(data){
     setcolorder(mirroredData,
                 neworder = c(reportingCountryVar, partnerCountryVar,
                     colnames(mirroredData)[!colnames(mirroredData) %in%
-                                               c(reportingCountryVar, partnerCountryVar)]))
+                                           c(reportingCountryVar,
+                                             partnerCountryVar)]))
     mirroredData[, timePointYears := as.character(timePointYears)]
+    mirroredData
+}
+
+saveMirroredTradeData = function(requiredData){
+
     ## NOTE (Michael): We save back to complete trade flow as the
     ##                 mirror completes all the trade flow possibly
     ##                 observed.
     if(NROW(mirroredData) > 0)
         SaveData(domain = "trade", dataset = "completed_tf",
-                 data = mirroredData, normalized = FALSE)
+                 data = requiredData, normalized = FALSE)
 }
 
 
 selectedItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
+selectedItems = "1001"
 for(i in selectedItems){
-    try({
-        rawData =
-            getComtradeRawData(measuredItemHSCode = i) %>%
-            removeSelfTrade(data = ., reportingCountry = reportingCountryVar,
+    cat("Perform mirroring for HS item:", i, "\n")
+    mirrorProcess = try({
+            if(verbose){
+                cat("Extracting raw data\n")
+                currentTime = Sys.time()
+            }
+            rawData =
+                getComtradeRawData(measuredItemHSCode = i) %>%
+                removeSelfTrade(data = ., reportingCountry = reportingCountryVar,
                             partnerCountry = partnerCountryVar) %>%
-            removeInconsistentQuantityValue(data = ., quantity = import_quantity,
-                                            value = import_value) %>%
-            removeInconsistentQuantityValue(data = ., quantity = export_quantity,
-                                            value = export_value) %>% 
-            addRetradeToTrade(data = .,
-                              importQuantity = import_quantity,
-                              reimportQuantity = reimport_quantity,
-                              exportQuantity = export_quantity,
-                              reexportQuantity = reexport_quantity,
-                              importValue = import_value,
-                              reimportValue = reimport_value,
-                              exportValue = export_value,
-                              reexportValue = reexport_value)
+                removeInconsistentQuantityValue(data = .,
+                                                quantity = import_quantity,
+                                                value = import_value) %>%
+                removeInconsistentQuantityValue(data = ., quantity =
+                                                    export_quantity,
+                                                value = export_value) %>% 
+                addRetradeToTrade(data = .,
+                                  importQuantity = import_quantity,
+                                  reimportQuantity = reimport_quantity,
+                                  exportQuantity = export_quantity,
+                                  reexportQuantity = reexport_quantity,
+                                  importValue = import_value,
+                                  reimportValue = reimport_value,
+                                  exportValue = export_value,
+                                  reexportValue = reexport_value)
+            
+            if(verbose){
+                endTime = Sys.time()
+                timeUsed = endTime - currentTime
+                cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+                currentTime = endTime
+                cat("Performing mirroring\n")
+            }
         
-        ## Mirrored the data and calculate unit value
-        ##
-        ## TODO (Michael): Need to change the flag back to "mr" after
-        ##                 adding it as a valid flag.
-        
-        mirroredData =
-            rawData %>%
-                mirrorTrade(data = .,
-                            reportingCountry = reportingCountryVar,
-                            partnerCountry = partnerCountryVar,
-                            reverseTradePrefix = reverseTradePrefix,
-                            valueColumns = grep(valuePrefix, colnames(.), value = TRUE),
-                            flagColumns = grep(flagPrefix, colnames(.), value = TRUE),
-                            mirrorFlag = "") %>%
-            calculateUnitValue(data = .,
-                               importUnitValue = import_unit_value,
-                               importUnitValueFlag =
-                                   gsub(valuePrefix, flagPrefix, import_unit_value),
-                               importTradeValue = import_value,
-                               importTradeQuantity = import_quantity,
-                               exportUnitValue = export_unit_value,
-                               exportUnitValueFlag =
-                                   gsub(valuePrefix, flagPrefix, export_unit_value),
-                               exportTradeValue = export_value,
-                               exportTradeQuantity = export_quantity,
-                               calculatedFlag = "") %>%
-             ## Calculate the unit value for reverse trade
-             calculateUnitValue(data = .,
-                                importUnitValue = reverse_import_unit_value,
-                                importUnitValueFlag =
-                                    gsub(valuePrefix, flagPrefix, reverse_import_unit_value),
-                                importTradeValue = reverse_import_value,
-                                importTradeQuantity = reverse_import_quantity,
-                                exportUnitValue = reverse_export_unit_value,
-                                exportUnitValueFlag =
-                                    gsub(valuePrefix, flagPrefix, reverse_export_unit_value),
-                                exportTradeValue = reverse_export_value,
-                                exportTradeQuantity = reverse_export_quantity,
-                                calculatedFlag = "")
+            ## Mirrored the data and calculate unit value
+            ##
+            ## TODO (Michael): Need to change the flag back to "mr" after
+            ##                 adding it as a valid flag.
 
-        ## Save mirrored data back
-        mirroredData %>%
-            saveMirroredTradeData(data = .)
+            mirroredData =
+                rawData %>%
+                    mirrorTrade(data = .,
+                                reportingCountry = reportingCountryVar,
+                                partnerCountry = partnerCountryVar,
+                                reverseTradePrefix = reverseTradePrefix,
+                                valueColumns =
+                                    grep(valuePrefix, colnames(.), value = TRUE),
+                                flagColumns =
+                                    grep(flagPrefix, colnames(.), value = TRUE),
+                                mirrorFlag = "") %>%
+                calculateUnitValue(data = .,
+                                   importUnitValue = import_unit_value,
+                                   importUnitValueFlag =
+                                       gsub(valuePrefix, flagPrefix,
+                                            import_unit_value),
+                                   importTradeValue = import_value,
+                                   importTradeQuantity = import_quantity,
+                                   exportUnitValue = export_unit_value,
+                                   exportUnitValueFlag =
+                                       gsub(valuePrefix, flagPrefix,
+                                            export_unit_value),
+                                   exportTradeValue = export_value,
+                                   exportTradeQuantity = export_quantity,
+                                   calculatedFlag = "") %>%
+             ## Calculate the unit value for reverse trade
+                 calculateUnitValue(data = .,
+                                    importUnitValue = reverse_import_unit_value,
+                                    importUnitValueFlag =
+                                        gsub(valuePrefix, flagPrefix,
+                                             reverse_import_unit_value),
+                                    importTradeValue = reverse_import_value,
+                                    importTradeQuantity = reverse_import_quantity,
+                                    exportUnitValue = reverse_export_unit_value,
+                                    exportUnitValueFlag =
+                                        gsub(valuePrefix, flagPrefix,
+                                             reverse_export_unit_value),
+                                    exportTradeValue = reverse_export_value,
+                                    exportTradeQuantity = reverse_export_quantity,
+                                    calculatedFlag = "")
+
+            if(verbose){
+                endTime = Sys.time()
+                timeUsed = endTime - currentTime
+                cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+                currentTime = endTime
+                cat("Saving Data back\n")
+            }
+
+            ## Save mirrored data back
+            ## mirroredData %>%
+            ##     subsetRequiredData(data = .) %>%
+            ##     saveMirroredTradeData(requiredData = .)
+
+            mirroredData %>%
+                subsetRequiredData(data = .) %>%
+                    write.csv(., file = paste0("item_", i, ".csv"), na = "",
+                              row.names = FALSE)
+            if(verbose){
+                endTime = Sys.time()
+                timeUsed = endTime - currentTime
+                cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+                currentTime = endTime
+            }
+        })
+    
+    if(inherits(mirrorProcess, "try-error")){
+        print("Mirror Module Failed")
+    } else {
+        print("Mirror Module Executed Successfully")
     }
-        )
     
 }
