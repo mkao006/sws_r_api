@@ -12,7 +12,7 @@
 	</Authors>
 	<Datasets>
 		<MainDataset>
-			<Code>ct_raw_tf</Code>
+                     <Code>ct_raw_tf</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
 				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
@@ -21,16 +21,9 @@
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
-		<MainDataset>
-			<Code>completed_tf</Code>
-			<SelectableDimensions>
-				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
-				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
-				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
-			</SelectableDimensions>
-		</MainDataset>
+                <Dataset>
+                    <Code>completed_tf</Code>
+	        </Dataset>
 	</Datasets>
 	<InteractiveValidation>false</InteractiveValidation>
 	<Background>false</Background>
