@@ -21,15 +21,9 @@
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
-		<MainDataset>
+		<Dataset>
 			<Code>total_trade</Code>
-			<SelectableDimensions>
-				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
-				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
-			</SelectableDimensions>
-		</MainDataset>
+		</Dataset>
 	</Datasets>
 	<InteractiveValidation>false</InteractiveValidation>
 	<Background>false</Background>
