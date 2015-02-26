@@ -414,14 +414,14 @@ for(i in selectedItems){
             }
 
             ## Save mirrored data back
-            ## mirroredData %>%
-            ##     subsetRequiredData(data = .) %>%
-            ##     saveMirroredTradeData(requiredData = .)
-
             mirroredData %>%
                 subsetRequiredData(data = .) %>%
-                    write.csv(., file = paste0("item_", i, ".csv"), na = "",
-                              row.names = FALSE)
+                saveMirroredTradeData(requiredData = .)
+
+            ## mirroredData %>%
+            ##     subsetRequiredData(data = .) %>%
+            ##         write.csv(., file = paste0("item_", i, ".csv"), na = "",
+            ##                   row.names = FALSE)
             if(verbose){
                 endTime = Sys.time()
                 timeUsed = endTime - currentTime
