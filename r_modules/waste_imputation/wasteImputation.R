@@ -235,7 +235,7 @@ getOfficialLossData = function(){
     query[flagObservationStatus_measuredElement_5120 == "", ]
     
     ## NOTE (Michael): Only return official figures for estimation
-    ## query[query[[paste0(flagObsPrefix, elementVar, "_5120")]] == "", ]
+    query[query[[paste0(flagObsPrefix, elementVar, "_5120")]] == "", ]
 }
 
 getAllLossData = function(){
@@ -346,10 +346,6 @@ getProductionData = function(){
     )
 
     ## Query the data
-    ##
-    ## NOTE (Michael): Need to check this, 570 items are queried, but only
-    ##                 105 are returned. Also, there are no value for
-    ##                 element 5518 which caused the type to be logical.
     productionQuery = GetData(
         key = productionKey,
         flags = TRUE,
@@ -391,10 +387,6 @@ getConsolidatedImportData = function(){
     )
 
     ## Query the data
-    ##
-    ## NOTE (Michael): Need to check this, 570 items are queried, but only
-    ##                 105 are returned. Also, there are no value for
-    ##                 element 5518 which caused the type to be logical.
     tradeQuery = GetData(
         key = tradeKey,
         flags = TRUE,
@@ -402,80 +394,25 @@ getConsolidatedImportData = function(){
         pivoting = tradePivot
     )
 
+    ## NOTE (Michael): The unit for trade is in kg while for
+    ##                 production is ton, so we divide the trade by
+    ##                 1000 to match production.
+    tradeQuery[, Value_measuredElementTrade_5600 :=
+                   computeRatio(Value_measuredElementTrade_5600, 1000)]
+    
+    setnames(tradeQuery,
+             old = grep("measuredElementTrade",
+                 colnames(tradeQuery), value = TRUE),
+             new = gsub("measuredElementTrade", "measuredElement",
+                 grep("measuredElementTrade",
+                      colnames(tradeQuery), value = TRUE)))
+
 
     ## Convert time to numeric
-    tradeQuery[, timePointYears := as.numeric(timePointYears)]
+    ## tradeQuery[, timePointYears := as.numeric(timePointYears)]
     tradeQuery
 
 }
-
-
-## NOTE (Michael): Function to get trade data, however, there are no
-##                 data in the trade domain. Thus the data in this
-##                 example is simulated. See hackData function.
-##
-## NOTE (Michael): The trade data here is the consolidated trade data,
-##                 not trade flow. (dataset: total_trade)
-getTradeData = function(){
-    ## Set up the query
-    ##
-
-    ## TODO (Michael): Should get the total trade from the CPC table.
-    allCountryCodesTable =
-        GetCodeList(domain = "trade",
-                    dataset = "total_trade",
-                    dimension = "geographicAreaM49")
-
-    cerealTree =
-        adjacent2edge(GetCodeTree(domain = "trade",
-                    dataset = "total_trade",
-                    dimension = "measuredItemHS",
-                    roots = "10"))
-
-    tradeElements =
-        GetCodeList(domain = "trade",
-                    dataset = "total_trade",
-                    dimension = "measuredElementTrade")
-
-
-    dimensions =
-        list(
-            Dimension(name = areaVar,
-                      keys = requiredCountries),
-            Dimension(name = "measuredItemHS", keys = unique(cerealTree$children)),
-            Dimension(name = "measuredElementTrade", keys = tradeElements[, code]),
-            Dimension(name = "timePointYears", keys = selectedYear)
-        )
-
-    newDataKey =
-        DatasetKey(domain = "trade",
-                   dataset = "total_trade",
-                   dimensions = dimensions)
-
-    newPivot = c(
-        Pivoting(code = "geographicAreaM49", ascending = TRUE),
-        Pivoting(code = "measuredItemHS", ascending = TRUE),
-        Pivoting(code = "timePointYears", ascending = FALSE),
-        Pivoting(code = "measuredElementTrade", ascending = TRUE)
-    )
-    
-    ## Query the data
-    query = GetData(
-        key = newDataKey,
-        flags = TRUE,
-        normalized = FALSE,
-        pivoting = newPivot
-    )
-    ## query[, timePointYears := as.numeric(timePointYears)]
-    query
-}
-
-
-## This is the function to get stock variation data, however the data
-## does not exist and is simulated.
-##
-## NOTE (Michael): Stock variation is assumed to be zero.
-getStockVariationData = function(){}
 
 
 ## Function to merge the national fbs data to the loss data
@@ -583,11 +520,16 @@ calculateLossRatio = function(data,
 ##
 preEstimationProcessing = function(data){
     ## Convert variables to factor for modelling
+    
+    ## NOTE (Michael): Stock variation is assumed to be zero.
+    data[, Value_measuredElement_5712 := as.numeric(0)]
+
+    ## NOTE (Michael): Need to change year to numeric here.
+    data[, timePointYears := as.numeric(timePointYears)]
+
     factorVariables = c("geographicAreaM49", "measuredItemCPC", "foodGroupName",
                   "foodGeneralGroup", "foodPerishableGroup", "lossRegionClass")
-    ## data[, `:=`(c(paste0(factorVariables, "Factor")),
-    ##             lapply(data[, factorVariables, with = FALSE], as.factor))]
-
+    
     data[, `:=`(c(factorVariables),
                 lapply(data[, factorVariables, with = FALSE], as.factor))]
 
@@ -601,8 +543,8 @@ preEstimationProcessing = function(data){
     importVar = "Value_measuredElement_5600"
     
     ## If import and production are missing, then assume they are zero.
-    data[is.na(data[[importVar]]), `:=`(importVar, 0)]
-    data[is.na(data[[productionVar]]), `:=`(productionVar, 0)]
+    data[is.na(data[[importVar]]), `:=`(c(importVar), 0)]
+    data[is.na(data[[productionVar]]), `:=`(c(productionVar), 0)]
 
     
     ## Compute import to production ratio.
@@ -610,6 +552,8 @@ preEstimationProcessing = function(data){
     ## NOTE (Michael): Have no idea why the function fails when I
     ##                 change the "Value_measuredElement_5510" to
     ##                 productionVar.
+    ##
+
     data[, importToProductionRatio :=
              computeRatio(.SD[["Value_measuredElement_5600"]],
                           .SD[["Value_measuredElement_5510"]])]
@@ -743,18 +687,18 @@ lossModelPrediction = function(model, predictionData, lossRatio){
 ## Function to select the required variable and dimension for the
 ## estimation of the model.
 selectRequiredVariable = function(data){
-    ## TODO (Michael): have to add in consolidated import here
     data[foodGeneralGroup == "primary",
          list(geographicAreaM49, measuredItemCPC, timePointYears,
               Value_measuredElement_5120,
               Value_measuredElement_5510,
+              Value_measuredElement_5600,
               flagObservationStatus_measuredElement_5120,
               flagMethod_measuredElement_5120, gdpPerCapita,
               gdpPPP,
               sharePavedRoad, lossBase, lossRatio, 
               measuredItemCPC, foodGroupName, foodGeneralGroup,
               foodPerishableGroup, lossRegionClass,
-              importToProductionRatio, scaledTimePointYears)]
+              scaledTimePointYears)]
 }
 
 selectSaveData = function(data, rawLossData){
@@ -785,77 +729,9 @@ SaveLossData = function(data){
              data = data, normalized = FALSE)    
 }
 
-## The full waste estimation, imputation process.
-## ---------------------------------------------------------------------
 
-## Build the final data set
-
-## TODO (Michael): Need to add in the consolidated trade data when it
-## is complete.
-
-finalLossData =
-    {
-        ## lossData <<- getOfficialLossData()
-        lossData <<- getAllLossData()
-        productionData <<- getProductionData()
-        ## consolidatedImportData <<- getConsolidatedImportData()
-
-        ## NOTE (Michael): We don't take data from national FBS
-        ##                 anymore, it does not help with prediction
-        ##                 and also the data is questionable.
-        
-        ## nationalFbs <<- getNationalFbs()
-        ## lossDataWithNationalFbs <<- mergeNationalFbs(lossData, nationalFbs)
-        lossWorldBankData <<-
-            getLossWorldBankData() %>%
-                imputePavedRoadData(lossWorldBankData = .)
-        lossFoodGroup <<- getLossFoodGroup()
-        lossRegionClass <<- getLossRegionClass()
-        gc()
-        list(lossData = lossData,
-             productionData = productionData,
-             ## consolidatedImportData = consolidatedImportData,
-             lossWorldBankData = lossWorldBankData,
-             lossFoodGroup = lossFoodGroup,
-             lossRegionClass = lossRegionClass)
-    } %>%
-    with(.,
-         mergeAllLossData(lossData, lossWorldBankData, lossFoodGroup,
-                          lossRegionClass, productionData)
-         )
-    
-
-
-## TODO (Michael): Need to change year to numeric here.
-finalLossData[, timePointYears := as.numeric(timePointYears)]
-
-finalLossData[, `:=`(c("Value_measuredElement_5600",
-                       "Value_measuredElement_5712"),
-                     list(as.numeric(NA), as.numeric(NA)))]
-
-
-## Build the data
-trainPredictData =
-    copy(finalLossData) %>%
-    fillUnclassifiedFoodGroup %>%
-    fillUnclassifiedRegion %>%
-    calculateLossRatio(data = .,
-                       productionVar = "Value_measuredElement_5510",
-                       importVar = "Value_measuredElement_5600",
-                       stockWithdrawlVar = "Value_measuredElement_5712",
-                       lossVar = "Value_measuredElement_5120") %>%
-    ## dataHack %>%
-    preEstimationProcessing %>%
-    selectRequiredVariable
-
-
-
-itemModelPath = paste0(R_SWS_SHARE_PATH, "/itemModel")
-foodGroupModelPath = paste0(R_SWS_SHARE_PATH, "/foodGroupModel")
-## Here we read the reconstructed model of Klaus
-itemModel = readRDS(itemModelPath)
-foodGroupModel = readRDS(foodGroupModelPath)
-
+## The following function just takes the model which were already
+## estimated by Klaus
 lossItemImputation = function(data, model){
     predictIndex =
         with(data,
@@ -922,10 +798,68 @@ lossImputation = function(data, itemModel, foodGroupModel){
     prediction
 }
 
+## The full waste estimation, imputation process.
+## ---------------------------------------------------------------------
 
-copy(trainPredictData) %>%
+## Build the final data set
+
+finalLossData =
+    {
+        ## lossData <<- getOfficialLossData()
+        lossData <<- getAllLossData()
+        productionData <<- getProductionData()
+        consolidatedImportData <<- getConsolidatedImportData()
+
+        ## NOTE (Michael): We don't take data from national FBS
+        ##                 anymore, it does not help with prediction
+        ##                 and also the data is questionable.
+        
+        ## nationalFbs <<- getNationalFbs()
+        ## lossDataWithNationalFbs <<- mergeNationalFbs(lossData, nationalFbs)
+        lossWorldBankData <<-
+            getLossWorldBankData() %>%
+                imputePavedRoadData(lossWorldBankData = .)
+        lossFoodGroup <<- getLossFoodGroup()
+        lossRegionClass <<- getLossRegionClass()
+        gc()
+        list(lossData = lossData,
+             productionData = productionData,
+             ## consolidatedImportData = consolidatedImportData,
+             lossWorldBankData = lossWorldBankData,
+             lossFoodGroup = lossFoodGroup,
+             lossRegionClass = lossRegionClass)
+    } %>%
+    with(.,
+         mergeAllLossData(lossData, lossWorldBankData, lossFoodGroup,
+                          lossRegionClass, productionData, consolidatedImportData)
+         )
+
+## Build the data
+trainPredictData =
+    copy(finalLossData) %>%
+    fillUnclassifiedFoodGroup %>%
+    fillUnclassifiedRegion %>%
+    preEstimationProcessing %>%
+    calculateLossRatio(data = .,
+                       productionVar = "Value_measuredElement_5510",
+                       importVar = "Value_measuredElement_5600",
+                       stockWithdrawlVar = "Value_measuredElement_5712",
+                       lossVar = "Value_measuredElement_5120") %>%
+    selectRequiredVariable
+
+
+predictedLossData = 
+    copy(trainPredictData) %T>%
+        {
+            ## Load the model
+            itemModelPath = paste0(R_SWS_SHARE_PATH, "/itemModel")
+            foodGroupModelPath = paste0(R_SWS_SHARE_PATH, "/foodGroupModel")
+            ## Here we read the reconstructed model of Klaus
+            itemModel = readRDS(itemModelPath)
+            foodGroupModel = readRDS(foodGroupModelPath)
+        } %>%
     lossImputation(data = .,
                    itemModel = itemModel,
-                   foodGroupModel = foodGroupModel) %>%
+                   foodGroupModel = foodGroupModel) %<>%
     selectSaveData(data = ., rawLossData = lossData) %>%
     SaveLossData(data = .)
