@@ -25,7 +25,8 @@ countries.
 
    Finally, we perform the mirroring process. This is carried out by
    filling in all trade reported, but were not recorded by the
-   reciprocal partner.
+   reciprocal partner. Note, at this stage only missing values are
+   mirrored.
 
 5. **Calculate Unit Value**
 
