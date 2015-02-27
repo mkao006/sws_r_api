@@ -1,9 +1,12 @@
-# FAO Statistical Working System R API add-ins.
+# FAO Statistical Working System R API plug-ins.
 
-This is the repository for the development of **computation plug-ins**
-relating to the R API and the new statistical working system.
+This is the repository for the implementation of **computational
+plug-ins** relating to the R API and the new Statistical Working
+System (SWS).
 
 ### Computation Module
 
-In the fold **r_modules/**, there are the R plug-ins. Each page also
-has a description of what it depends on and the latest updates.
+In the fold **r_modules/**, there are numerous R plug-ins. Each module
+has a page providing description of what it depends on and the latest
+updates.
+
