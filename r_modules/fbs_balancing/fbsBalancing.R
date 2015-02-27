@@ -9,7 +9,7 @@ suppressMessages({
 ## NOTE (Michael): The selected country code is in old FAO
 ##                 classification, need to change to M49 codes when
 ##                 the contingency table is set up.
-selectedCountry = "231"
+selectedCountry = "100"
 selectedYear = "2010"
 
 ## Set up testing environments
@@ -32,7 +32,7 @@ getContingencyTable = function(){
 }
 
 ## Function to selecte the best table from the sampling
-sampleBestTable = function(contingencyTable, sanityCheck = FALSE, maxErr = 10,
+sampleBalancedTable = function(contingencyTable, sanityCheck = FALSE, maxErr = 10,
     selectedCountry, selectedYear, ...){
     
     balancingFunction =
@@ -40,18 +40,50 @@ sampleBestTable = function(contingencyTable, sanityCheck = FALSE, maxErr = 10,
                    sanityCheck = sanityCheck, maxErr = maxErr)
     sampledTables =
         balancingFunction(Country = selectedCountry, year = selectedYear, ...)
-    sampledTables@bestTab
+    sampledTables
 }
+
+
+plotItemSamplingDistribution = function(balancingObject,
+    selectedItem = "wheat.and.products"){
+    allSampledTables = balancingObject@tables
+
+    itemIndex = which(rownames(balancingObject@bestTab) == selectedItem)
+    print(itemIndex)
+
+    samplingDistribution =
+        do.call("rbind",
+                lapply(allSampledTables, FUN = function(x) x[itemIndex, ]))
+
+    samplingRange = range(samplingDistribution, na.rm = TRUE)
+
+    numberOfElements = NCOL(samplingDistribution)
+    opar = par()
+    par(mfrow = c(3, ceiling(numberOfElements/3)))
+    for(i in 1:numberOfElements){
+        hist(samplingDistribution[, i], breaks = length(allSampledTables)/10,
+             xlim = samplingRange,
+             main = colnames(samplingDistribution)[i], xlab = "", ylab = "")
+    }
+    par(opar)
+}
+
 
 ## Carry out the balancing
 bestBalancedTable =
-    getContingencyTable() %>%
-    sampleBestTable(contingencyTable = .,
-                    selectedCountry = selectedCountry,
-                    selectedYear = selectedYear,
-                    oset = c(30, 30, 30, 30, 30, 10000),
-                    prop = NULL,
-                    nIter = 1000,
-                    verbose = TRUE,
-                    checks = "none",
-                    feedShift = 30)
+    ## getContingencyTable() %>%
+    test %>%
+    sampleBalancedTable(contingencyTable = .,
+                        selectedCountry = selectedCountry,
+                        selectedYear = selectedYear,
+                        oset = c(30, 30, 30, 30, 30, 10000),
+                        prop = NULL,
+                        nIter = 10000,
+                        verbose = TRUE,
+                        checks = "none",
+                        feedShift = 30) %>%
+    {
+        bestTable <<- .@bestTab
+        balancingObject <<- .
+        plotItemSamplingDistribution(balancingObject = .)
+    }
