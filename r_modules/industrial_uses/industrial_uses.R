@@ -135,13 +135,68 @@ getBioFuelData = function(){
 }
 
 
+getConsolidatedTradeData = function(){
+
+    ## NOTE (Michael): Need to select all the items, waiting for
+    ##                 response from Nick.
+    consolidatedTradeKey = DatasetKey(
+        domain = "trade",
+        dataset = "total_tf_CPC",
+        dimensions = list(
+            Dimension(name = areaVar,
+                      keys = selectedCountry),
+            Dimension(name = "measuredElementTrade",
+                      keys = "5150"),
+            Dimension(name = itemVar,
+                      keys = ),
+            Dimension(name = yearVar,
+                      keys = selectedYear)
+        )
+    )
+
+    ## Pivot to vectorize yield computation
+    consolidatedTradePivot = c(
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = itemVar, ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = "measuredElementTrade", ascending = TRUE)
+    )
+
+    ## Query the data
+    ##
+    ## NOTE (Michael): Need to check this, 570 items are queried, but only
+    ##                 105 are returned. Also, there are no value for
+    ##                 element 5518 which caused the type to be logical.
+    consolidatedTradeQuery = GetData(
+        key = consolidatedTradeKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = consolidatedTradePivot
+    )
+
+    setnames(consolidatedTradeQuery,
+             old = "measuredElementTrade",
+             new = "measuredElement")
+
+    ## Convert time to numeric
+    consolidatedTradeQuery[, timePointYears := as.numeric(timePointYears)]
+    consolidatedTradeQuery
+}
+
+
 ## Get production data and then trade consolidated data of primary
 ## products. Adam assumed that only primary commodity are subject to
 ## industrial uses.
 
 ## Merge the two data set
 
-## Calculate non-oil seed industrial uses as 5% of the production and trade
+mergeProductionTrade = function(productionData, consolidatedTradeData,
+                                key = c(areaVar, yearVar, "measuredElement")){
+    merge(productionData, consolidatedTradeData, by = key)
+}
+
+## Calculate primary non-oil seed industrial uses as 5% of the
+## production and trade
 calculateNonOilSeedIndustrialUses = function(){
 }
 
@@ -155,7 +210,7 @@ calculateOilSeedIndustrialUses = function(){
 ## Calculate industrial uses both energy and protein for palm
 ## fruit. It is defined as domestic supply - production * 0.03. Where
 ## is the reamining 3 percent going?
-calculateSpecialIndustrialUses = functino(){}
+calculateSpecialIndustrialUses = function(){}
 
 calculateIndustrialUses = function(){}
 
@@ -176,5 +231,14 @@ saveIndustrialUses = function(data){
 
 
 ## Run the whole industrial use module.
+##
+## NOTE (Michael): Need the new target dataset and the element code of
+##                 industrial uses.
 getBioFuelData() %>%
     saveIndustrialUses(data = .)
+
+
+## In Adam's implementation, he assume that palm fruit is fully
+## subject to industrial uses. However, this is incorrect. Palm oil is
+## edible and is mainly used for food, it is the oll and cake derived
+## from kernel that is subject to industrial uses and feed.
