@@ -161,8 +161,6 @@ saveConsolidatedData = function(consolidatedData){
                  data = consolidatedData, normalized = FALSE)
 }
 
-## Get the completely mirrored data
-
 
 
 ## Consolidate the data
