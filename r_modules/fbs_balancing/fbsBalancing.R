@@ -49,7 +49,6 @@ plotItemSamplingDistribution = function(balancingObject,
     allSampledTables = balancingObject@tables
 
     itemIndex = which(rownames(balancingObject@bestTab) == selectedItem)
-    print(itemIndex)
 
     samplingDistribution =
         do.call("rbind",
@@ -64,6 +63,7 @@ plotItemSamplingDistribution = function(balancingObject,
         hist(samplingDistribution[, i], breaks = length(allSampledTables)/10,
              xlim = samplingRange,
              main = colnames(samplingDistribution)[i], xlab = "", ylab = "")
+        abline(v = balancingObject@bestTab[itemIndex, i], col = "red", lty = 2)
     }
     par(opar)
 }
@@ -87,3 +87,6 @@ bestBalancedTable =
         balancingObject <<- .
         plotItemSamplingDistribution(balancingObject = .)
     }
+
+plotItemSamplingDistribution(balancingObject = balancingObject,
+                             selectedItem = "cassava.and.products")
