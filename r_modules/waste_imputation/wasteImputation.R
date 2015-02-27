@@ -802,7 +802,6 @@ lossImputation = function(data, itemModel, foodGroupModel){
 ## ---------------------------------------------------------------------
 
 ## Build the final data set
-
 finalLossData =
     {
         ## lossData <<- getOfficialLossData()
@@ -847,7 +846,7 @@ trainPredictData =
                        lossVar = "Value_measuredElement_5120") %>%
     selectRequiredVariable
 
-
+## Predict and save the predicted data back
 predictedLossData = 
     copy(trainPredictData) %T>%
         {
