@@ -295,7 +295,8 @@ calculateUnitValue = function(data, importUnitValue, importUnitValueFlag,
 }
 
 subsetRequiredData = function(data){
-    valueColumns = c(import_quantity, import_value, export_quantity, export_value)
+    valueColumns = c(import_quantity, import_value, export_quantity, export_value,
+                     import_unit_value, export_unit_value)
     flagColumns = sapply(valueColumns,
         FUN = function(x) gsub(valuePrefix, flagPrefix, x))
     colIndex = which(colnames(data) %in%
@@ -323,7 +324,6 @@ saveMirroredTradeData = function(requiredData){
 
 
 selectedItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
-selectedItems = "1001"
 for(i in selectedItems){
     cat("Perform mirroring for HS item:", i, "\n")
     mirrorProcess = try({
