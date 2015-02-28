@@ -11,6 +11,13 @@ suppressMessages({
 ##                 with element table. The production and trade
 ##                 element changes by item.
 
+verbose = FALSE
+
+if(verbose){
+    startingTime = Sys.time()
+    currentTime = startingTime
+}
+
 
 ## Set up testing environments
 if(Sys.getenv("USER") == "mk"){
@@ -20,6 +27,7 @@ if(Sys.getenv("USER") == "mk"){
         token = "97afe028-f181-4b6c-8933-9fc7fa98c71a"
         )
     R_SWS_SHARE_PATH = getwd()
+    verbose = TRUE
 } else {
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
     ## R_SWS_SHARE_PATH = "hqlprsws1.hq.un.fao.org/sws_r_share"
@@ -804,6 +812,10 @@ lossImputation = function(data, itemModel, foodGroupModel){
 ## Build the final data set
 finalLossData =
     {
+        if(verbose){
+            cat("Extracting raw data\n")
+            currentTime = Sys.time()
+        }
         ## lossData <<- getOfficialLossData()
         lossData <<- getAllLossData()
         productionData <<- getProductionData()
@@ -828,12 +840,29 @@ finalLossData =
              lossFoodGroup = lossFoodGroup,
              lossRegionClass = lossRegionClass)
     } %>%
-    with(.,
-         mergeAllLossData(lossData, lossWorldBankData, lossFoodGroup,
-                          lossRegionClass, productionData, consolidatedImportData)
-         )
+        {
+            if(verbose){
+                endTime = Sys.time()
+                timeUsed = endTime - currentTime
+                cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+                currentTime = endTime
+                cat("Merge All Loss Required Data\n")
+            }
+            with(.,
+                 mergeAllLossData(lossData, lossWorldBankData, lossFoodGroup,
+                                  lossRegionClass, productionData,
+                                  consolidatedImportData)
+                 )
+        }
 
 ## Build the data
+if(verbose){
+    endTime = Sys.time()
+    timeUsed = endTime - currentTime
+    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+    currentTime = endTime
+    cat("Process Merged Data\n")
+}
 trainPredictData =
     copy(finalLossData) %>%
     fillUnclassifiedFoodGroup %>%
@@ -847,6 +876,13 @@ trainPredictData =
     selectRequiredVariable
 
 ## Predict and save the predicted data back
+if(verbose){
+    endTime = Sys.time()
+    timeUsed = endTime - currentTime
+    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+    currentTime = endTime
+    cat("Impute Loss\n")
+}
 predictedLossData = 
     copy(trainPredictData) %T>%
         {
@@ -854,11 +890,20 @@ predictedLossData =
             itemModelPath = paste0(R_SWS_SHARE_PATH, "/itemModel")
             foodGroupModelPath = paste0(R_SWS_SHARE_PATH, "/foodGroupModel")
             ## Here we read the reconstructed model of Klaus
-            itemModel = readRDS(itemModelPath)
-            foodGroupModel = readRDS(foodGroupModelPath)
+            itemModel <<- readRDS(itemModelPath)
+            foodGroupModel <<- readRDS(foodGroupModelPath)
         } %>%
     lossImputation(data = .,
                    itemModel = itemModel,
                    foodGroupModel = foodGroupModel) %<>%
-    selectSaveData(data = ., rawLossData = lossData) %>%
+    selectSaveData(data = ., rawLossData = lossData)
+
+if(verbose){
+    endTime = Sys.time()
+    timeUsed = endTime - currentTime
+    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+    currentTime = endTime
+    cat("Save Imputed Loss Data Back\n")
+}
+predictedLossData %>%
     SaveLossData(data = .)
