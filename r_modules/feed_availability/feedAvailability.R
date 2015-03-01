@@ -379,6 +379,8 @@ calculateFeedAvailability = function(){
     ## multiply by the crush rate and meal/oil extraction rates
     
 
+    ## If feed availablility is negative, then there is no
+    ## availability and we assign zero to the feed availability.
 }
 
 
