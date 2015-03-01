@@ -30,6 +30,8 @@ This is the module for computing the feed availability.
 
 
 
+The detailed list of the composition can be found under the `cpcFeedClassification.csv` file.
+
 ## The algorithm
 
 Below we describe the algorithm assuming all other elements has been
