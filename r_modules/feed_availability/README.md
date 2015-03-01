@@ -41,20 +41,27 @@ calculated and merged into a single dataset.
 
    * Feed Only Commodities
 
-      * All production and trade are summed up and allocated to feed availability.
+      All production and trade are summed up and allocated to feed
+      availability.
 
    * Potential For Feed Items
 
-      * The feed availability is taken as the residual after supply
-        has taken account of all utilization elements.
+      The feed availability is taken as the residual after supply has
+      taken account of all utilization elements.
 
    * Oil Seeds
  
-      * Similar to potential for feed items, we first take the
-        residual, but then the commodities are then converted to oil
-        and cakes based on the crush rate and oil/meal extaction rate.
+      Similar to potential for feed items, we first take the residual,
+      but then the commodities are then converted to oil and cakes
+      based on the crush rate and oil/meal extaction rate.
 
    * Not for feed items
 
-      * The feed availability will be zero for these items.
+      The feed availability will be zero for these items.
 
+
+2. **Remove Negative Availablility**
+
+   If a commodity has negative availability based on the above
+   calculation, then means there is no availability of the item for
+   feed. Thus we assign zero to the item.
