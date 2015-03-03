@@ -4,6 +4,7 @@ suppressMessages({
     library(data.table)
     library(magrittr)
     library(conSTable)
+    library(reshape2)
 })
 
 ## NOTE (Michael): The selected country code is in old FAO
@@ -54,8 +55,16 @@ plotItemSamplingDistribution = function(balancingObject,
         do.call("rbind",
                 lapply(allSampledTables, FUN = function(x) x[itemIndex, ]))
 
-    samplingRange = range(samplingDistribution, na.rm = TRUE)
+    
 
+    samplingDistribution.df = melt(data.frame(samplingDistribution))
+    ## ggplot(data = samplingDistribution.df, aes(x = value)) +
+    ##     ## geom_histogram(aes(y = ..density..)) +
+    ##     ## geom_density() + 
+    ##     geom_histogram(binwidth = 1) +
+    ##     facet_wrap(~variable)
+    
+    samplingRange = range(samplingDistribution, na.rm = TRUE)    
     numberOfElements = NCOL(samplingDistribution)
     opar = par()
     par(mfrow = c(3, ceiling(numberOfElements/3)))
@@ -71,8 +80,8 @@ plotItemSamplingDistribution = function(balancingObject,
 
 ## Carry out the balancing
 bestBalancedTable =
-    ## getContingencyTable() %>%
-    test %>%
+    getContingencyTable() %>%
+    ## test %>%
     sampleBalancedTable(contingencyTable = .,
                         selectedCountry = selectedCountry,
                         selectedYear = selectedYear,
@@ -85,8 +94,9 @@ bestBalancedTable =
     {
         bestTable <<- .@bestTab
         balancingObject <<- .
-        plotItemSamplingDistribution(balancingObject = .)
     }
 
 plotItemSamplingDistribution(balancingObject = balancingObject,
                              selectedItem = "cassava.and.products")
+
+
