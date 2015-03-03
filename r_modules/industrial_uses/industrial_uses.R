@@ -11,7 +11,6 @@ yearVar = "timePointYears"
 itemVar = "measuredItemCPC"
 elementVar = "induseElement"
 ## Make this a parameter in the module
-selectedCountry = "840"
 selectedYear = "2010"
 
 
@@ -23,6 +22,29 @@ if(Sys.getenv("USER") == "mk"){
         )
 }
 
+getCPCTreeItem = function(dataContext){
+    ## itemTable =
+    ##     GetCodeList(domain = slot(dataContext, "domain"),
+    ##                 dataset = slot(dataContext, "dataset"),
+    ##                 dimension = itemVar)
+    ## HACK (Michael): Since we don't have the columne 'type' ready
+    ##                 for selection, we will select all item which
+    ##                 are under the CPC heading '0'.
+    require(igraph)
+    require(faoswsUtil)
+    itemEdgeList =
+        adjacent2edge(
+            GetCodeTree(domain = "agriculture",
+                        dataset = "agriculture",
+                        dimension = itemVar)
+        )
+
+    itemEdgeGraph = graph.data.frame(itemEdgeList)
+    itemDist = shortest.paths(itemEdgeGraph, v = "CPC", mode = "out")
+    fbsItemCodes = colnames(itemDist)[is.finite(itemDist) &
+                                          colnames(itemDist) != "CPC"]
+    fbsItemCodes
+}
 
 
 getProductionElement = function(measuredItemCPC){
@@ -50,7 +72,7 @@ getProductionData = function(){
         dataset = "agriculture",
         dimensions = list(
             Dimension(name = areaVar,
-                      keys = selectedCountry),
+                      keys = swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys),
             Dimension(name = elementVar,
                       keys = unique(productionElements$element_51)),
             Dimension(name = itemVar,
@@ -98,11 +120,11 @@ getBioFuelData = function(){
         dataset = "biofuel",
         dimensions = list(
             Dimension(name = areaVar,
-                      keys = selectedCountry),
+                      keys = swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys),
             Dimension(name = elementVar,
                       keys = "5150"),
             Dimension(name = itemVar,
-                      keys = FBSmeasuredItemCPC),
+                      keys = allCPCItem),
             Dimension(name = yearVar,
                       keys = selectedYear)
         )
@@ -127,6 +149,11 @@ getBioFuelData = function(){
         normalized = FALSE,
         pivoting = bioFuelPivot
     )
+    setnames(bioFuelQuery,
+             old = grep("induseElement", colnames(bioFuelQuery), value = TRUE),
+             new = gsub("induseElement", "measuredElement",
+                        grep("induseElement", colnames(bioFuelQuery),
+                             value = TRUE)))
 
 
     ## Convert time to numeric
@@ -224,11 +251,13 @@ calculateIndustrialUses = function(){}
 
 saveIndustrialUses = function(data){
     SaveData(domain = "industrialUse",
-             dataset = "industrialUse",
+             dataset = "industrialuse",
+             normalized = FALSE,
              data = data)
 }
 
 
+allCPCItem = getCPCTreeItem()
 
 ## Run the whole industrial use module.
 ##
