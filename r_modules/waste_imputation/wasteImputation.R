@@ -808,102 +808,119 @@ lossImputation = function(data, itemModel, foodGroupModel){
 
 ## The full waste estimation, imputation process.
 ## ---------------------------------------------------------------------
-
-## Build the final data set
-finalLossData =
-    {
-        if(verbose){
-            cat("Extracting raw data\n")
-            currentTime = Sys.time()
-        }
-        ## lossData <<- getOfficialLossData()
-        lossData <<- getAllLossData()
-        productionData <<- getProductionData()
-        consolidatedImportData <<- getConsolidatedImportData()
-
-        ## NOTE (Michael): We don't take data from national FBS
-        ##                 anymore, it does not help with prediction
-        ##                 and also the data is questionable.
-        
-        ## nationalFbs <<- getNationalFbs()
-        ## lossDataWithNationalFbs <<- mergeNationalFbs(lossData, nationalFbs)
-        lossWorldBankData <<-
-            getLossWorldBankData() %>%
-                imputePavedRoadData(lossWorldBankData = .)
-        lossFoodGroup <<- getLossFoodGroup()
-        lossRegionClass <<- getLossRegionClass()
-        gc()
-        list(lossData = lossData,
-             productionData = productionData,
-             ## consolidatedImportData = consolidatedImportData,
-             lossWorldBankData = lossWorldBankData,
-             lossFoodGroup = lossFoodGroup,
-             lossRegionClass = lossRegionClass)
-    } %>%
+wasteImputation =
+    try(
+        {
+    ## Build the final data set
+    finalLossData =
         {
             if(verbose){
-                endTime = Sys.time()
-                timeUsed = endTime - currentTime
-                cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
-                currentTime = endTime
-                cat("Merge All Loss Required Data\n")
+                cat("Extracting raw data\n")
+                currentTime = Sys.time()
             }
-            with(.,
-                 mergeAllLossData(lossData, lossWorldBankData, lossFoodGroup,
-                                  lossRegionClass, productionData,
-                                  consolidatedImportData)
-                 )
-        }
-
-## Build the data
-if(verbose){
-    endTime = Sys.time()
-    timeUsed = endTime - currentTime
-    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
-    currentTime = endTime
-    cat("Process Merged Data\n")
-}
-trainPredictData =
-    copy(finalLossData) %>%
-    fillUnclassifiedFoodGroup %>%
-    fillUnclassifiedRegion %>%
-    preEstimationProcessing %>%
-    calculateLossRatio(data = .,
-                       productionVar = "Value_measuredElement_5510",
-                       importVar = "Value_measuredElement_5600",
-                       stockWithdrawlVar = "Value_measuredElement_5712",
-                       lossVar = "Value_measuredElement_5120") %>%
-    selectRequiredVariable
-
-## Predict and save the predicted data back
-if(verbose){
-    endTime = Sys.time()
-    timeUsed = endTime - currentTime
-    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
-    currentTime = endTime
-    cat("Impute Loss\n")
-}
-predictedLossData = 
-    copy(trainPredictData) %T>%
-        {
-            ## Load the model
-            itemModelPath = paste0(R_SWS_SHARE_PATH, "/itemModel")
-            foodGroupModelPath = paste0(R_SWS_SHARE_PATH, "/foodGroupModel")
-            ## Here we read the reconstructed model of Klaus
-            itemModel <<- readRDS(itemModelPath)
-            foodGroupModel <<- readRDS(foodGroupModelPath)
+            ## lossData <<- getOfficialLossData()
+            lossData <<- getAllLossData()
+            productionData <<- getProductionData()
+            consolidatedImportData <<- getConsolidatedImportData()
+    
+            ## NOTE (Michael): We don't take data from national FBS
+            ##                 anymore, it does not help with prediction
+            ##                 and also the data is questionable.
+            
+            ## nationalFbs <<- getNationalFbs()
+            ## lossDataWithNationalFbs <<- mergeNationalFbs(lossData, nationalFbs)
+            lossWorldBankData <<-
+                getLossWorldBankData() %>%
+                    imputePavedRoadData(lossWorldBankData = .)
+            lossFoodGroup <<- getLossFoodGroup()
+            lossRegionClass <<- getLossRegionClass()
+            gc()
+            list(lossData = lossData,
+                 productionData = productionData,
+                 ## consolidatedImportData = consolidatedImportData,
+                 lossWorldBankData = lossWorldBankData,
+                 lossFoodGroup = lossFoodGroup,
+                 lossRegionClass = lossRegionClass)
         } %>%
-    lossImputation(data = .,
-                   itemModel = itemModel,
-                   foodGroupModel = foodGroupModel) %<>%
-    selectSaveData(data = ., rawLossData = lossData)
+            {
+                if(verbose){
+                    endTime = Sys.time()
+                    timeUsed = endTime - currentTime
+                    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+                    currentTime = endTime
+                    cat("Merge All Loss Required Data\n")
+                }
+                with(.,
+                     mergeAllLossData(lossData, lossWorldBankData, lossFoodGroup,
+                                      lossRegionClass, productionData,
+                                      consolidatedImportData)
+                     )
+            }
+    
+    ## Build the data
+    if(verbose){
+        endTime = Sys.time()
+        timeUsed = endTime - currentTime
+        cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+        currentTime = endTime
+        cat("Process Merged Data\n")
+    }
+    trainPredictData =
+        copy(finalLossData) %>%
+        fillUnclassifiedFoodGroup %>%
+        fillUnclassifiedRegion %>%
+        preEstimationProcessing %>%
+        calculateLossRatio(data = .,
+                           productionVar = "Value_measuredElement_5510",
+                           importVar = "Value_measuredElement_5600",
+                           stockWithdrawlVar = "Value_measuredElement_5712",
+                           lossVar = "Value_measuredElement_5120") %>%
+        selectRequiredVariable
+    
+    ## Predict and save the predicted data back
+    if(verbose){
+        endTime = Sys.time()
+        timeUsed = endTime - currentTime
+        cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+        currentTime = endTime
+        cat("Impute Loss\n")
+    }
+    predictedLossData = 
+        copy(trainPredictData) %T>%
+            {
+                ## Load the model
+                itemModelPath = paste0(R_SWS_SHARE_PATH, "/itemModel")
+                foodGroupModelPath = paste0(R_SWS_SHARE_PATH, "/foodGroupModel")
+                ## Here we read the reconstructed model of Klaus
+                itemModel <<- readRDS(itemModelPath)
+                foodGroupModel <<- readRDS(foodGroupModelPath)
+            } %>%
+        lossImputation(data = .,
+                       itemModel = itemModel,
+                       foodGroupModel = foodGroupModel) %<>%
+        selectSaveData(data = ., rawLossData = lossData)
+    
+    if(verbose){
+        endTime = Sys.time()
+        timeUsed = endTime - currentTime
+        cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+        currentTime = endTime
+        cat("Save Imputed Loss Data Back\n")
+    }
+    
+    predictedLossData %>%
+        SaveLossData(data = .)
+    
+    if(verbose){
+        endTime = Sys.time()
+        timeUsed = endTime - currentTime
+        cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+        currentTime = endTime
+    }
+})
 
-if(verbose){
-    endTime = Sys.time()
-    timeUsed = endTime - currentTime
-    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
-    currentTime = endTime
-    cat("Save Imputed Loss Data Back\n")
+if(inherits(wasteImputation, "try-error")){
+    print("Imputation Module Failed")
+} else {
+    print("Imputation Module Executed Successfully")
 }
-predictedLossData %>%
-    SaveLossData(data = .)
