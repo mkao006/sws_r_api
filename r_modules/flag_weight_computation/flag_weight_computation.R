@@ -11,7 +11,7 @@ library(entropy)
 ## Set up for the test environment
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         token = "7bc2ab09-72b9-4e54-b79f-d9132a4e72fe"
         )
 }
