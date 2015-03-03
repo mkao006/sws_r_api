@@ -110,16 +110,6 @@ calorieStandardization = function(data, commodityTree, standardizeVariable,
 }
 
 
-    
-
-## NOTE (Michael): In order to build the production profile, we need
-##                 to know how to calculate the "production". Do we
-##                 include processed?  If no, then need the set of
-##                 primary commodities, and meat for livestock; if
-##                 yes, then we should only mapped to all the
-##                 commodities which are within the standardization
-##                 path.
-
 
 commodityTreePath = paste0(R_SWS_SHARE_PATH, "/cpcCommodityTreeReconstructed.csv")
 cpcCommodityTree.dt =
