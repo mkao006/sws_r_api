@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Comtrade Balancing</Name>
+	<Description> This module performs balancing for the trade
+	flow, at the same time it calculate the reliability of
+	reporting and standard deviation of trade.</Description>
+	<Category>Computation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Datasets>
+		<MainDataset>
+                     <Code>completed_tf</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+                <Dataset>
+                    <Code>ct_published_tf</Code>
+	        </Dataset>
+                <!-- <Dataset> -->
+                <!--     <Code>reliability index data</Code> -->
+	        <!-- </Dataset> -->
+                <!-- <Dataset> -->
+                <!--     <Code>standard deviation data</Code> -->
+	        <!-- </Dataset> -->
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
