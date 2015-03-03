@@ -12,7 +12,7 @@
 	</Authors>
 	<Datasets>
 		<MainDataset>
-			<Code>industrialUse</Code>
+			<Code>industrialuse</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
 				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
@@ -20,12 +20,6 @@
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
-                <Dataset>
-		  <Code>agriculture</Code>
-		</Dataset>
-                <Dataset>
-		  <Code>completed_tf</Code>
-		</Dataset>
                 <Dataset>
 		  <Code>biofuel</Code>
 		</Dataset>
