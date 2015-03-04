@@ -38,7 +38,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "09aeec5c-2cf5-46f7-90e7-f8b4bdc6dc93"
+        token = "1e5c87fe-320f-4faa-9485-fde92f5b8fef"
         )
     verbose = TRUE
 }
@@ -132,7 +132,6 @@ getComtradeMirroredData = function(dataContext){
     mirroredData = GetData(key = newKey, pivoting = newPivot)
     mirroredData
 }
-test = getComtradeMirroredData(swsContext.datasets[[1]])
 
 
 mergeReverseTrade = function(data){
@@ -164,17 +163,7 @@ mergeReverseTrade = function(data){
 }
 
 
-calculateReliability = function(data, mirroredFlag = "m", tolerance = 0.05){
-    reliability =
-        data[(!data[[flagPrefix]] %in% mirroredFlag) &
-             (!data[[paste0("reverse_", flagPrefix)]] %in% mirroredFlag),
-             (sum(data[[valuePrefix]] - data[[paste0("reverse_", valuePrefix)]])/
-                 data[[valuePrefix]] <= tolerance)/.N,
-             by = reportingCountryVar]
-    setnames(reliability, old = c(reportingCountryVar, "V1"),
-             new = c(areaVar, "reliability"))
-    unique(reliability)
-}
+getReliabilityIndex = function(){}
 
 mergeReliability = function(data, reliability){
     reliabilityCopy = copy(reliability)
@@ -218,11 +207,6 @@ balanceTrade = function(data){
     list(balanceData = balanceData, stdData = stdData)
 }
 
-saveReliabilityIndex = function(reliability){
-    SaveDataNew(domain = "trade",
-                dataset = "reliability",
-                data = reliability)
-}
 
 saveTradeStandardDeviation = function(stdData){
     SaveDataNew(domain = "trade",
@@ -230,8 +214,7 @@ saveTradeStandardDeviation = function(stdData){
                 data = stdData)
 }
 
-selectSaveSelection = function(data){
-    
+selectSaveSelection = function(data){    
     saveSelection =
         data[, c(names(swsContext.datasets[[1]]@dimensions),
                  "reliableValue", "reliabilityFlag"), with = FALSE]
@@ -248,15 +231,13 @@ saveBalancedData = function(data){
 }
     
 
-
     
 mirroredData = getComtradeMirroredData(dataContext = swsContext.datasets[[1]])
 
 mirroredData %>%
     mergeReverseTrade(data = .) %>%
         {
-            reliability <<- calculateReliability(data = .)
-            ## saveReliabilityIndex(reliability = reliability)
+            reliability <<- getReliabilityIndex()
             mergeReliability(data = ., reliability = reliability)
         } %>%
     balanceTrade(data = .) %>%
@@ -265,3 +246,4 @@ mirroredData %>%
             selectSaveSelection(data = .$balanceData)
         } %>%
     saveBalancedData(data = .)
+
