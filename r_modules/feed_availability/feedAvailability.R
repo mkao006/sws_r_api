@@ -116,7 +116,7 @@ getProductionData = function(){
 
 }
 
-getConsolidatedTradeData = function(){
+getTradeData = function(){
     ## We only take import quantity for the waste module
     tradeKey = DatasetKey(
         domain = "trade",
@@ -210,9 +210,35 @@ getSeedData = function(){
 
 getLossData = function(){
 
+    ## HACK (Michael): This is a hack, beacause the item hierachy
+    ##                 configuration is different in the loss data set
+    getLossItemCPC = function(){
+        itemEdgeList =
+            ## TODO (Michael): Have to change this back to feed
+            ##                 availability when the data set is set up.
+            ## adjacent2edge(
+            ##     GetCodeTree(domain = "feed",
+            ##                 dataset = "feedAvailability",
+            ##                 dimension = itemVar)
+            ## )
+            adjacent2edge(
+                GetCodeTree(domain = "lossWaste",
+                            dataset = "loss",
+                            dimension = "measuredItemSuaFbs")
+            )
+        itemEdgeGraph = graph.data.frame(itemEdgeList)
+        itemDist = shortest.paths(itemEdgeGraph, v = "0", mode = "out")
+        fbsItemCodes = colnames(itemDist)[is.finite(itemDist)]
+        fbsItemCodes
+    }
+
+    lossItems = getLossItemCPC()
+   
+    
     ## NOTE (Michael): The cpc tree loaded in the loss data set is
     ##                 different to the rest. Thus I can not query
     ##                 item such as 0419.
+
     lossKey = DatasetKey(
         domain = "lossWaste",
         dataset = "loss",
@@ -222,7 +248,7 @@ getLossData = function(){
             Dimension(name = "measuredElementSuaFbs",
                       keys = "5120"),
             Dimension(name = "measuredItemSuaFbs",
-                      keys = requiredItems),
+                      keys = lossItems),
             Dimension(name = yearVar,
                       keys = selectedYear)
         )
@@ -255,12 +281,12 @@ getIndustrialUseData = function(){
     ## Need the element code of industrial uses
     industrialUseKey = DatasetKey(
         domain = "industrialUse",
-        dataset = "industrialUse",
+        dataset = "industrialuse",
         dimensions = list(
             Dimension(name = areaVar,
                       keys = requiredCountries),
             Dimension(name = elementVar,
-                      keys = "5525"),
+                      keys = "5150"),
             Dimension(name = itemVar,
                       keys = requiredItems),
             Dimension(name = yearVar,
@@ -340,6 +366,9 @@ getFeedItemClassification = function(){
     data.table(read.csv(file = "cpcFeedClassification.csv"))
 }
 
+
+getOCBSData = function(){}
+
 getOCBSPrimaryMapping = function(){}
 
 getOCBSProcessedMapping = function(){}
@@ -385,4 +414,11 @@ calculateFeedAvailability = function(){
 
 
 
+production = getProductionData()
+trade = getTradeData()
+seed = getSeedData()
+loss = getLossData()
+indUse = getIndustrialUseData()
 
+## getOCBSData()
+## getFoodData()
