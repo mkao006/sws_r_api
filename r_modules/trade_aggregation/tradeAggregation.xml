@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
-	<Name>Comtrade Consolidation</Name>
-	<Description> Performs Consolidation of Comtrade Trade Flow to Aggregated Trade</Description>
-	<Category>Aggregaion</Category>
+	<Name>Trade Flow Aggregation</Name>
+	<Description> Performs Trade Flow Aggregation of Comtrade Trade Flow to Aggregated Trade</Description>
+	<Category>Aggregation</Category>
 	<Authors>
 		<Author>
 			<Name>Michael. C. J. Kao</Name>

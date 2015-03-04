@@ -75,23 +75,23 @@ getComtradeMirroredData = function(dataContext){
 
 
 
-consolidateTradeFlow = function(mirroredData, key, consolidateFlag = "c"){
+aggregateTradeFlow = function(mirroredData, key, aggregateFlag = "c"){
     setnames(mirroredData, reportingCountryVar, standardCountryVar)
     if(missing(key))
         key = c(standardCountryVar, itemVar, yearVar)
 
     valueColumns = grep(valuePrefix, colnames(mirroredData), value = TRUE)
     flagColumns = grep(flagPrefix, colnames(mirroredData), value = TRUE)
-    consolidatedData =
+    aggregatedData =
         mirroredData[, lapply(valueColumns,
                               FUN = function(x) sum(as.numeric(.SD[[x]]))),
                      by = key]
-    setnames(consolidatedData,
+    setnames(aggregatedData,
              old = paste0("V", 1:length(valueColumns)),
              new = valueColumns)
-    consolidatedData[, `:=`(c(flagColumns), consolidateFlag)]
-    setkeyv(consolidatedData, key)
-    consolidatedData
+    aggregatedData[, `:=`(c(flagColumns), aggregateFlag)]
+    setkeyv(aggregatedData, key)
+    aggregatedData
 }
 
 
@@ -144,28 +144,28 @@ comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Na
     }
 }
 
-saveConsolidatedData = function(consolidatedData){
-    if(is.null(key(consolidatedData)))
-        setkeyv(x = consolidatedData,
+saveAggregatedData = function(aggregatedData){
+    if(is.null(key(aggregatedData)))
+        setkeyv(x = aggregatedData,
                 cols = c("geographicAreaM49", "measuredItemHS", "timePointYears"))
 
-    valueColumns = grep(valuePrefix, colnames(consolidatedData), value = TRUE)
-    flagColumns = grep(flagPrefix, colnames(consolidatedData), value = TRUE)
+    valueColumns = grep(valuePrefix, colnames(aggregatedData), value = TRUE)
+    flagColumns = grep(flagPrefix, colnames(aggregatedData), value = TRUE)
     pairColumns = vector("character", length = length(valueColumns) * 2)
     pairColumns[as.logical(1:length(pairColumns) %% 2)] = valueColumns
     pairColumns[!as.logical(1:length(pairColumns) %% 2)] = flagColumns
-    setcolorder(consolidatedData, c(key(consolidatedData), pairColumns))
-    consolidatedData[, timePointYears := as.character(timePointYears)]
-    if(NROW(consolidatedData) > 0)
+    setcolorder(aggregatedData, c(key(aggregatedData), pairColumns))
+    aggregatedData[, timePointYears := as.character(timePointYears)]
+    if(NROW(aggregatedData) > 0)
         SaveData(domain = "trade", dataset = "total_trade",
-                 data = consolidatedData, normalized = FALSE)
+                 data = aggregatedData, normalized = FALSE)
 }
 
 
 
-## Consolidate the data
+## Aggregate the data
 
-consolidate =
+aggregate =
     try({
         ## Get the raw data
         if(verbose){
@@ -174,18 +174,18 @@ consolidate =
         }
         mirroredData = getComtradeMirroredData(swsContext.datasets[[1]])
 
-        ## Consolidate the data
+        ## Aggregate the data
         if(verbose){
             endTime = Sys.time()
             timeUsed = endTime - currentTime
             cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
             currentTime = endTime
-            cat("Performing Consolidation\n")
+            cat("Performing Trade Flow Aggregation\n")
         }
-        consolidatedData =
+        aggregatedData =
             copy(mirroredData) %>%
-            consolidateTradeFlow(mirroredData = .,
-                                 consolidateFlag = "") %>%
+            aggregateTradeFlow(mirroredData = .,
+                                 aggregateFlag = "") %>%
             {
                 ## Map UNSD comtrade M49 country codes to standard M49
                 ## country codes
@@ -224,9 +224,9 @@ consolidate =
         }
 
 
-        ## Save consolidated data back
-        consolidatedData %>%
-            saveConsolidatedData(consolidatedData = .)
+        ## Save aggregated data back
+        aggregatedData %>%
+            saveAggregatedData(aggregatedData = .)
 
         if(verbose){
             endTime = Sys.time()
@@ -236,8 +236,8 @@ consolidate =
         }
     })
 
-if(inherits(consolidate, "try-error")){
-    print(paste0("Consolidation Module Failed\n", consolidate[1]))
+if(inherits(aggregate, "try-error")){
+    print(paste0("Trade Flow Aggregation Module Failed\n", aggregate[1]))
 } else {
-    print("Consolidation Module Executed Successfully")
+    print("Trade Flow Aggregation Module Executed Successfully")
 }
