@@ -360,6 +360,9 @@ getFoodData = function(){
 }
 
 getFeedItemClassification = function(){
+    ## HACK (Michael): This is a hack to read the classification from
+    ##                 the shared drive. Change this after the mapping
+    ##                 has been loaded.
     ## classificationFilePath = paste0(R_SWS_SHARE_PATH, "/cpcFeedClassification.csv")
     ## data.table(read.csv(file = classificationFilePath,
     ##                     colClass = rep("character", 3)))
@@ -367,11 +370,14 @@ getFeedItemClassification = function(){
 }
 
 
-getOCBSData = function(){}
-
-getOCBSPrimaryMapping = function(){}
-
-getOCBSProcessedMapping = function(){}
+getOCBSData = function(){
+    ## HACK (Michael): This is a hack to read the data from the shared
+    ##                 drive. Change this after the data has been
+    ##                 loaded.
+    ## ocbsFilePath = paste0(R_SWS_SHARE_PATH, "/fullOCBSData.csv")
+    ## data.table(read.csv(file = ocbsFilePath))
+    data.table(read.csv(file = "fullOCBSData.csv"))
+}
 
 
 computeOilDerivatives = function(data, extractionRateData){
@@ -419,6 +425,8 @@ trade = getTradeData()
 seed = getSeedData()
 loss = getLossData()
 indUse = getIndustrialUseData()
-
-## getOCBSData()
+ocbs = getOCBSData()
 ## getFoodData()
+
+## After getting the food data, we merge everything together, make
+## sure to set the keys to speed up the merge.
