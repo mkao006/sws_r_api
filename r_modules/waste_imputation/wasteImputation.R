@@ -30,7 +30,6 @@ if(Sys.getenv("USER") == "mk"){
     verbose = TRUE
 } else {
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
-    ## R_SWS_SHARE_PATH = "hqlprsws1.hq.un.fao.org/sws_r_share"
 }
 
 
@@ -436,7 +435,10 @@ mergeNationalFbs = function(lossData, nationalFbs){
 mergeAllLossData = function(lossData, lossWorldBankData, lossFoodGroup,
     lossRegionClass, ...){
     Reduce(f = function(x, y){
-        merge(x, y, all.x = TRUE, by = intersect(colnames(x), colnames(y)))
+        keys = intersect(colnames(x), colnames(y))
+        setkeyv(x, keys)
+        setkeyv(y, keys)
+        merge(x, y, all.x = TRUE)
     },
            x = list(lossWorldBankData, lossFoodGroup, lossRegionClass, ...),
            init = lossData
