@@ -40,8 +40,12 @@ if(Sys.getenv("USER") == "mk"){
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         token = "1e5c87fe-320f-4faa-9485-fde92f5b8fef"
         )
+    R_SWS_SHARE_PATH = getwd()
     verbose = TRUE
+} else {
+    R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
 }
+
 
 
 ## Get all reporting country codes
@@ -173,14 +177,14 @@ mergeReliability = function(data, reliability){
              old = c(areaVar, "reliability"),
              new = c(reportingCountryVar, "reportingReliability"))
     dataWithReportingReliability =
-        merge(dataCopy, reliabilityCopy, by = reportingCountryVar)
+        merge(dataCopy, reliabilityCopy, by = c(reportingCountryVar, yearVar))
 
     setnames(reliabilityCopy,
              old = c(reportingCountryVar, "reportingReliability"),
              new = c(partnerCountryVar, "partnerReliability"))
     reliabilityFull =
         merge(dataWithReportingReliability, reliabilityCopy,
-              by = partnerCountryVar)
+              by = c(partnerCountryVar, yearVar))
     reliabilityFull
 }
 
