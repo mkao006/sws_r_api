@@ -37,7 +37,13 @@ The detailed list of the composition can be found under the `cpcFeedClassificati
 Below we describe the algorithm assuming all other elements has been
 calculated and merged into a single dataset.
 
-1. **Compute Feed Availability based on the classification**
+1. ** Impute oil seed crush rate and oil/meal extraction rate**
+
+   For missing rates, we first impute them by countries based on
+   available data. For countries or commodities with missing rates, we
+   take the global commodity average rates.
+
+2. **Compute Feed Availability based on the classification**
 
    * Feed Only Commodities
 
@@ -60,7 +66,7 @@ calculated and merged into a single dataset.
       The feed availability will be zero for these items.
 
 
-2. **Remove Negative Availablility**
+3. **Remove Negative Availablility**
 
    If a commodity has negative availability based on the above
    calculation, then means there is no availability of the item for
