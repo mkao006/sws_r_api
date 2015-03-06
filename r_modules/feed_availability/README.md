@@ -40,8 +40,8 @@ calculated and merged into a single dataset.
 1. **Impute oil seed crush rate and oil/meal extraction rate**
 
    For missing rates, we first impute them by countries based on
-   available data. For countries or commodities with missing rates, we
-   take the global commodity average rates.
+   available data. For countries or commodities does not have
+   available data, we take the global commodity average rates.
 
 2. **Compute Feed Availability based on the classification**
 
