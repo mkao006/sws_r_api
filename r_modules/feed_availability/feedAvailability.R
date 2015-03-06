@@ -550,7 +550,7 @@ saveFeedData = function(){
              dataset = "feed_availability",
              data = data[, c(areaVar, itemVar, yearVar,
                  paste0(c(valuePrefix, flagObsPrefix, flagMethodPrefix),
-                        elementVar, "_5520")), with = FALSE]
+                        elementVar, "_5520")), with = FALSE],
              normalized = FALSE)
 }
 
