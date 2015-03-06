@@ -1,6 +1,11 @@
+## NOTE (Michael): Feed availability should be computed with all
+##                 commodities, thus so that the weight allocation is
+##                 not mis-calculated.
+
 suppressMessages({
     library(faosws)
     library(faoswsUtil)
+    library(faoswsProductionImputation)
     library(data.table)
     library(magrittr)
     library(reshape2)
@@ -154,6 +159,8 @@ getTradeData = function(){
     ##                 1000 to match production.
     tradeQuery[, Value_measuredElementTrade_5600 :=
                    computeRatio(Value_measuredElementTrade_5600, 1000)]
+    tradeQuery[, Value_measuredElementTrade_5900 :=
+                   computeRatio(Value_measuredElementTrade_5900, 1000)]
     
     setnames(tradeQuery,
              old = grep("measuredElementTrade",
@@ -270,6 +277,17 @@ getLossData = function(){
         pivoting = lossPivot
     )
 
+    setnames(lossQuery,
+             old = grep("measuredElementSuaFbs",
+                 colnames(lossQuery), value = TRUE),
+             new = gsub("measuredElementSuaFbs", "measuredElement",
+                 grep("measuredElementSuaFbs",
+                      colnames(lossQuery), value = TRUE)))
+    setnames(lossQuery,
+             old = "measuredItemSuaFbs",
+             new = "measuredItemCPC")
+
+
     ## Convert time to numeric
     lossQuery[, timePointYears := as.numeric(timePointYears)]
     lossQuery
@@ -328,9 +346,9 @@ getFoodData = function(){
         dimensions = list(
             Dimension(name = areaVar,
                       keys = requiredCountries),
-            Dimension(name = elementVar
+            Dimension(name = elementVar,
                       keys = ),
-            Dimension(name = itemVar
+            Dimension(name = itemVar,
                       keys = ),
             Dimension(name = yearVar,
                       keys = selectedYear)
@@ -366,7 +384,9 @@ getFeedItemClassification = function(){
     ## classificationFilePath = paste0(R_SWS_SHARE_PATH, "/cpcFeedClassification.csv")
     ## data.table(read.csv(file = classificationFilePath,
     ##                     colClass = rep("character", 3)))
-    data.table(read.csv(file = "cpcFeedClassification.csv"))
+    tmp = data.table(read.csv(file = "cpcFeedClassification.csv"))
+    setnames(tmp, old = "code", new = "measuredItemCPC")
+    tmp
 }
 
 
@@ -376,57 +396,254 @@ getOCBSData = function(){
     ##                 loaded.
     ## ocbsFilePath = paste0(R_SWS_SHARE_PATH, "/fullOCBSData.csv")
     ## data.table(read.csv(file = ocbsFilePath))
-    data.table(read.csv(file = "fullOCBSData.csv"))
+    tmp = data.table(read.csv(file = "fullOCBSData.csv",
+        colClass = rep("character", 7)))
+    tmp[, Value := as.numeric(Value)]
+    tmp[, timePointYears := as.numeric(timePointYears)]
+    tmp       
+}
+
+## Function to impute missing crush rate
+imputeCrushExtractionRates = function(data, countryVar, itemVar, yearVar,
+    crushRateVar, oilExtractionRateVarDom,
+    oilExtractionRateVarTrade, mealExtractionRateVarDom,
+    mealExtractionRateVarTrade){
+
+    dataCopy = copy(data)
+    setkeyv(dataCopy, c(countryVar, itemVar, yearVar))
+
+    ## Replace 0 with NA and then naive impute
+    dataCopy[feedClassification == "oil seed",
+             `:=`(c(crushRateVar,
+                    oilExtractionRateVarDom,
+                    oilExtractionRateVarTrade,
+                    mealExtractionRateVarDom,
+                    mealExtractionRateVarTrade),
+                  lapply(c(crushRateVar,
+                           oilExtractionRateVarDom,
+                           oilExtractionRateVarTrade,
+                           mealExtractionRateVarDom,
+                           mealExtractionRateVarTrade),
+                         FUN = function(x){
+                             tmp = .SD[[x]]
+                             tmp[tmp == 0] = NA
+                             defaultNaive(tmp)
+                         })),
+             by = key(dataCopy)]
+
+    dataCopy[feedClassification == "oil seed",
+             `:=`(c("averageCrushRate",
+                    "averageOilExtractionRateDom",
+                    "averageOilExtractionRateTrade",
+                    "averageMealExtractionRateDom",
+                    "averageMealExtractionRateTrade"),
+                  lapply(c(crushRateVar,
+                           oilExtractionRateVarDom,
+                           oilExtractionRateVarTrade,
+                           mealExtractionRateVarDom,
+                           mealExtractionRateVarTrade),
+                         FUN = function(x) mean(.SD[[x]], na.rm = TRUE))),
+             by = c(itemVar, yearVar)]
+
+    dataCopy[is.na(dataCopy[[crushRateVar]]),
+             `:=`(c(crushRateVar), averageCrushRate)]
+    dataCopy[is.na(dataCopy[[oilExtractionRateVarDom]]),
+             `:=`(c(oilExtractionRateVarDom), averageOilExtractionRateDom)]
+    dataCopy[is.na(dataCopy[[oilExtractionRateVarTrade]]),
+             `:=`(c(oilExtractionRateVarTrade), averageOilExtractionRateTrade)]
+    dataCopy[is.na(dataCopy[[mealExtractionRateVarDom]]),
+             `:=`(c(mealExtractionRateVarDom), averageMealExtractionRateDom)]
+    dataCopy[is.na(dataCopy[[mealExtractionRateVarTrade]]),
+             `:=`(c(mealExtractionRateVarTrade), averageMealExtractionRateTrade)]
+    dataCopy[,`:=`(c("averageCrushRate",
+                     "averageOilExtractionRateDom",
+                     "averageOilExtractionRateTrade",
+                     "averageMealExtractionRateDom",
+                     "averageMealExtractionRateTrade"), NULL)]
+    dataCopy
 }
 
 
-computeOilDerivatives = function(data, extractionRateData){
 
-    ## Aloowing cartesian join as one parent can have multiple child derivatives
-    merged = merge(data, extractionRateData, allow.cartesian = TRUE)
-    data[, value * crush_rate * extractionRate]
-}
-
+    
 ## This will be saved back to a new dataset called feed availability
-calculateFeedAvailability = function(){
+calculateFeedAvailability = function(data, itemVar, childItemVar, yearVar,
+    feedVariable,
+    productionVar, importVar, exportVar, seedVar, industrialUseVar, lossVar,
+    foodVar, crushRateVar,
+    oilExtractionRateVarDom, oilExtractionRateVarTrade, mealExtractionRateVarDom,
+    mealExtractionRateVarTrade){
     ## Assume the data has been merged
 
     dataCopy = copy(data)
 
-    ## Split the data based on classification for calculation
-    nonFeedItem = subset(dataCopy, feedClassification == "not for feed")
-    potentialFeedItem = subest(dataCopy, feedClassification == "potential feed")
-    pureFeedItem = subset(dataCopy, feedClassification == "feedOnly")
+    ## Calculate trade to production ratio for weighting meal/oil
+    ## extraction rates
+    dataCopy[, netTrade := dataCopy[[importVar]] - dataCopy[[exportVar]]]
+    dataCopy[netTrade < 0, netTrade := 0]
+    dataCopy[is.na(dataCopy[[productionVar]]), `:=`(c(productionVar), 0)]
+    dataCopy[, productionRatio :=
+                 dataCopy[[productionVar]]/(dataCopy[[productionVar]] + netTrade)]
 
-    nonFeedItem[, `:=`(c(feedVariable), 0)]
-    potentialFeedItem[, `:=`(c(feedVariable),
-                             .SD[[productionVar]] + .SD[[importVar]] -
-                             .SD[[exportVar]] - .SD[[seedVar]] -
-                             .SD[[industrialUseVar]] - .SD[[lossVar]] -
-                             .SD[[foodVar]])]
 
-    ## For pure feed item we don't need to account for other utilizations
-    pureFeedItem[, `:=`(c(feedVariable),
-                        .SD[[productionVar]] + .SD[[importVar]] -
-                        .SD[[exportVar]])]
-
-    ## For oil item we have to first derive the availability then
-    ## multiply by the crush rate and meal/oil extraction rates
+    dataCopy[feedClassification == "not for feed",
+             `:=`(c(feedVariable), 0)]
+    dataCopy[feedClassification == "potential feed",
+             `:=`(c(feedVariable),
+                  rowSums(.SD[, c(productionVar, importVar), with = FALSE],
+                          na.rm = TRUE) -
+                  rowSums(.SD[, c(exportVar, seedVar, industrialUseVar, lossVar,
+                                  foodVar), with = FALSE],
+                          na.rm = TRUE))]
+    dataCopy[feedClassification == "feedOnly",
+             `:=`(c(feedVariable),
+                  rowSums(.SD[, c(productionVar, importVar), with = FALSE],
+                          na.rm = TRUE) -
+                  rowSums(.SD[, exportVar, with = FALSE], na.rm = TRUE))]
     
+    dataCopy[feedClassification == "oil seed",
+             `:=`(c(feedVariable),
+                  (rowSums(.SD[, c(productionVar, importVar), with = FALSE],
+                           na.rm = TRUE) -
+                   rowSums(.SD[, c(exportVar, seedVar, industrialUseVar, lossVar,
+                                   foodVar), with = FALSE], na.rm = TRUE)) *
+                  .SD[[crushRateVar]] *
+                  (.SD[[oilExtractionRateVarDom]] * productionRatio +
+                  .SD[[oilExtractionRateVarTrade]] * (1 - productionRatio)) *
+                  (.SD[[mealExtractionRateVarDom]] * productionRatio +
+                  .SD[[mealExtractionRateVarTrade]] * (1 - productionRatio)))]
 
-    ## If feed availablility is negative, then there is no
-    ## availability and we assign zero to the feed availability.
+    dataCopy[!is.na(dataCopy[[childItemVar]]),
+             `:=`(c(itemVar), .SD[[childItemVar]])]
+
+    dataCopy[, `:=`(c("netTrade", "productionRatio"), NULL)]
+    dataCopy[dataCopy[[feedVariable]] < 0, `:=`(c(feedVariable), 0)]
+    dataCopy
 }
 
 
 
-production = getProductionData()
-trade = getTradeData()
-seed = getSeedData()
-loss = getLossData()
-indUse = getIndustrialUseData()
-ocbs = getOCBSData()
-## getFoodData()
+## Function to merge all necessary data
+mergeAllData = function(...){
+    datasets = list(...)
+    Reduce(f = function(x, y){
+        keys = intersect(colnames(x), colnames(y))
+        setkeyv(x, keys)
+        setkeyv(y, keys)
+        merge(x, y, all = TRUE)
+    },
+           x = datasets[-1], init = datasets[[1]])
+}
 
-## After getting the food data, we merge everything together, make
-## sure to set the keys to speed up the merge.
+
+{
+    if(verbose){
+        cat("Extracting raw data\n")
+        currentTime = Sys.time()
+    }
+    production <<- getProductionData()
+    trade <<- getTradeData()
+    seed <<- getSeedData()
+    loss <<- getLossData()
+    indUse <<- getIndustrialUseData()
+    ocbs <<- getOCBSData()
+    ## getFoodData()
+    feedClassification <<- getFeedItemClassification()
+
+    ## Hack (Michael): Data transformation for ocbs data
+    ocbs[, measuredElementNames := NULL]
+    ocbs[, measuredElements := paste0("Value_measuredElement_", measuredElements)]
+    castedOCBS <<-
+        dcast.data.table(ocbs,
+                         geographicAreaM49 + measuredItemCPC +
+                         measuredItemCPCChild + timePointYears ~
+                         measuredElements, value.var = "Value")
+} %>%
+    {
+        if(verbose){
+            endTime = Sys.time()
+            timeUsed = endTime - currentTime
+            cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+            currentTime = endTime
+            cat("Merge All Required Data\n")
+        }
+    ## Merge all the data together
+        mergeAllData(production, trade, seed, loss, indUse) %>%
+        merge(x = ., y = castedOCBS,
+              by = intersect(colnames(.), colnames(castedOCBS)),
+              all = TRUE, allow.cartesian = TRUE) %>%
+        merge(x = ., feedClassification, all.x = TRUE,
+              by = "measuredItemCPC")
+   } %>%
+   {
+       ## Simulate food data as 30% of domestic supply
+       .[, Value_measuredElement_141 :=
+                      (Value_measuredElement_5510 +
+                      Value_measuredElement_5600 -
+                      Value_measuredElement_5900) * 0.3]
+   } %>%
+   {
+       if(verbose){
+           endTime = Sys.time()
+           timeUsed = endTime - currentTime
+           cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+           currentTime = endTime
+           cat("Impute extraction rates\n")
+       }
+       ## Impute crush and oil/meal extraction rates
+       imputeCrushExtractionRates(data = .,
+                                  countryVar = "geographicAreaM49",
+                                  itemVar = "measuredItemCPC",
+                                  yearVar = "timePointYears",
+                                  crushRateVar = "Value_measuredElement_52",
+                                  oilExtractionRateVarDom =
+                                      "Value_measuredElement_53",
+                                  oilExtractionRateVarTrade =
+                                      "Value_measuredElement_54",
+                                  mealExtractionRateVarDom =
+                                      "Value_measuredElement_63",
+                                  mealExtractionRateVarTrade =
+                                      "Value_measuredElement_64")
+    } %>%
+    {
+        if(verbose){
+            endTime = Sys.time()
+            timeUsed = endTime - currentTime
+            cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+            currentTime = endTime
+            cat("Calculate Feed Availability\n")
+        }
+
+        ## Calculate feed availability
+        calculateFeedAvailability(data = .,
+                                  itemVar = "measuredItemCPC",
+                                  childItemVar = "measuredItemCPCChild",
+                                  yearVar = "timePointYears",
+                                  feedVariable = "Value_measuredElement_5520",
+                                  productionVar = "Value_measuredElement_5510",
+                                  importVar = "Value_measuredElement_5600",
+                                  exportVar = "Value_measuredElement_5900",
+                                  seedVar = "Value_measuredElement_5525",
+                                  industrialUseVar = "Value_measuredElement_5150",
+                                  lossVar = "Value_measuredElement_5120",
+                                  foodVar = "Value_measuredElement_141",
+                                  crushRateVar = "Value_measuredElement_52",
+                                  oilExtractionRateVarDom =
+                                      "Value_measuredElement_53",
+                                  oilExtractionRateVarTrade =
+                                      "Value_measuredElement_54",
+                                  mealExtractionRateVarDom =
+                                      "Value_measuredElement_63",
+                                  mealExtractionRateVarTrade =
+                                      "Value_measuredElement_64")
+        if(verbose){
+            endTime = Sys.time()
+            timeUsed = endTime - currentTime
+            cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
+            currentTime = endTime
+        }
+    }
+
+
+## NOTE (Michael): Need to check the units for all of the data.
+
