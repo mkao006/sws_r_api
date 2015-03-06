@@ -37,7 +37,7 @@ The detailed list of the composition can be found under the `cpcFeedClassificati
 Below we describe the algorithm assuming all other elements has been
 calculated and merged into a single dataset.
 
-1. ** Impute oil seed crush rate and oil/meal extraction rate**
+1. **Impute oil seed crush rate and oil/meal extraction rate**
 
    For missing rates, we first impute them by countries based on
    available data. For countries or commodities with missing rates, we
