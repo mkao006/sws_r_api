@@ -1,3 +1,16 @@
+## NOTE (Michael): Need a function to get primary commodities
+getPrimaryMeasuredItemCPC = function(dataContext){
+
+    itemTable =
+        GetCodeList(domain = "agriculture",
+                    dataset = "agriculture",
+                    dimension = itemVar)
+
+    ## This is a hack to get primary commodities
+    ## itemTable[nchar(gsub("[^0-9]", "", code)) == 4 & nchar(code) == 4 &
+    ##           !is.na(type), code]
+    itemTable[!is.na(type), code]
+}
 
 ## Get nutrient data
 getNutrientData = function(){
