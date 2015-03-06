@@ -644,6 +644,3 @@ mergeAllData = function(...){
         }
     }
 
-
-## NOTE (Michael): Need to check the units for all of the data.
-
