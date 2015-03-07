@@ -45,6 +45,18 @@ getTradeData = function(){
 }
 
 
+getTradeStandardDeviation = function(){}
+
+standardizeTradeStd = function(data, weightVariable,
+    tradeStandardDeviationVariable){
+
+    data[, lapply(tradeStandardDeviationVariable,
+                  FUN = function(x){
+                      sqrt(sum(.SD[[weightVariable]]^2 * .SD[[x]]^2))
+                  }),
+         by = c(areaVar, yearVar, standardizedItemVar)]
+}
+
 
     
 
