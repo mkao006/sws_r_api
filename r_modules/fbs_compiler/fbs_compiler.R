@@ -107,6 +107,22 @@ standardizedTrade =
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
 
+## NOTE (Michael): Need the trade standard deviation function
+##                 defined.
+##
+## standardizedTradeStandardDeviation =
+##     {
+##         tradeStandardDeviation <<- getTradeStandardDeviation()
+##     } %>%
+##         merge(., nutrientData, by = itemVar) %>%
+##         standardizeTradeStd(data = .,
+##                             weightVariable =
+##                                 "Value_measuredElementNutritive_904",
+##                             tradeStandardDeviationVariable =
+##                                 c("Value_measuredElementCalorie_5600",
+##                                  "Value_measuredElementCalorie_5900"))
+                                          
+
 
 ## Full seed compiler
 standardizedSeed = 
@@ -242,6 +258,11 @@ standardizedFeed =
 ## Merge all standardized data
 ##
 ## NOTE (Michael): Need to add in standardized food when finished
+##
+## NOTE (Michael): Need to convert to per capita per day, the same
+##                 formula can also be applied for the standard
+##                 deviation, since there is no summation. It's a
+##                 simple linear transformation.
 allStandardizedData =
     mergeAllData(standardizedProduction, standardizedTrade, standardizedSeed,
                  standardizedFeed, standardizedLoss, standardizedIndustrialUse)
