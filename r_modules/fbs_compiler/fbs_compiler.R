@@ -9,7 +9,6 @@ suppressWarnings({
 })
 
 
-
 ## Setting up variables
 areaVar = "geographicAreaM49"
 yearVar = "timePointYears"
@@ -140,7 +139,6 @@ standardizedSeed =
 
 ## Full loss compiler
 ##
-## NOTE (Michael): This doesn't work, because the context is wrong
 standardizedLoss = 
     {
         ## Obtain loss and nutrient data
@@ -198,11 +196,11 @@ standardizedIndustrialUse =
 ## Full feed compiler
 standardizedFeed = 
     {
-        ## Obtain industrialUse and nutrient data
+        ## Obtain feed availability and requirement data
         feedAvailability <<- getFeedAvailabilityData()
         feedRequirement <<- getFeedRequirementData()
     } %>%
-    ## Merge the industrialUse and nutrient data
+    ## Merge the feed availability and nutrient data
     with(., merge(feedAvailability, nutrientData, by = itemVar)) %>%
     ## Compute the calorie
     computeCalorie(data = .,
@@ -213,15 +211,13 @@ standardizedFeed =
                    outputName = "Value_measuredElementCalorie_feedAvail") %>%
     ## Perform calorie standardization
     ##
-    ## NOTE (Michael): Need to check those cpc items which are not mapped
-    ##                 in the commodity tree
     calorieStandardization(data = .,
                            commodityTree = cpcCommodityTree.dt,
                            standardizeVariable =
                                "Value_measuredElementCalorie_feedAvail",
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code")) %>%
-    ## Merge supply with requirements
+    ## Merge availability with requirements
     merge(., feedRequirement,
           by = c("geographicAreaM49", "timePointYears"),
           all = TRUE) %>%
@@ -240,3 +236,12 @@ standardizedFeed =
                       "Value_measuredElementCalorie_5520"))
 
 
+
+## Full food compiler
+
+## Merge all standardized data
+##
+## NOTE (Michael): Need to add in standardized food when finished
+allStandardizedData =
+    mergeAllData(standardizedProduction, standardizedTrade, standardizedSeed,
+                 standardizedFeed, standardizedLoss, standardizedIndustrialUse)
