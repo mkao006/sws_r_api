@@ -14,6 +14,7 @@ suppressWarnings({
 areaVar = "geographicAreaM49"
 yearVar = "timePointYears"
 itemVar = "measuredItemCPC"
+standardizedItemVar = "cpc_standardized_code"
 elementVar = "measuredElement"
 ## Make this a parameter in the module
 selectedCountry = "840"
@@ -43,7 +44,7 @@ cpcCommodityTree.dt =
     data.table(read.csv(file = commodityTreePath,
                         colClass = rep("character", 7)))
 
-
+nutrientData = getNutrientData()
 
 ## Full production compiler
 standardizedProduction = 
@@ -51,9 +52,6 @@ standardizedProduction =
         ## Obtain production and nutrient data
         productionElements <<- getProductionElement(primaryMeasuredItemCPC)        
         productionData <<- getProductionData()
-        nutrientData <<- getNutrientData()
-        list(productionData = productionData,
-             nutrientData = nutrientData)
     } %>%
     ## Merge the production and nutrient data
     with(., merge(productionData, nutrientData, by = itemVar)) %>%
@@ -82,9 +80,6 @@ standardizedTrade =
     {
         ## Obtain trade and nutrient data
         tradeData <<- getTradeData()
-        nutrientData <<- getNutrientData()
-        list(tradeData = tradeData,
-             nutrientData = nutrientData)
     } %>%
     ## Merge the trade and nutrient data
     with(., merge(tradeData, nutrientData, by = itemVar)) %>%
@@ -119,9 +114,6 @@ standardizedSeed =
     {
         ## Obtain seed and nutrient data
         seedData <<- getSeedData()
-        nutrientData <<- getNutrientData()
-        list(seedData = seedData,
-             nutrientData = nutrientData)
     } %>%
         ## Merge the seed and nutrient data
         with(., merge(seedData, nutrientData, by = itemVar)) %>%
@@ -153,9 +145,6 @@ standardizedLoss =
     {
         ## Obtain loss and nutrient data
         lossData <<- getLossData()
-        nutrientData <<- getNutrientData()
-        list(lossData = lossData,
-             nutrientData = nutrientData)
     } %>%
         ## Merge the loss and nutrient data
         with(., merge(lossData, nutrientData, by = itemVar)) %>%
@@ -183,9 +172,6 @@ standardizedIndustrialUse =
     {
         ## Obtain industrialUse and nutrient data
         industrialUseData <<- getIndustrialUseData()
-        nutrientData <<- getNutrientData()
-        list(industrialUseData = industrialUseData,
-             nutrientData = nutrientData)
     } %>%
     ## Merge the industrialUse and nutrient data
     with(., merge(industrialUseData, nutrientData, by = itemVar)) %>%
@@ -206,5 +192,51 @@ standardizedIndustrialUse =
                                "Value_measuredElementCalorie_5150",
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
+
+
+
+## Full feed compiler
+standardizedFeed = 
+    {
+        ## Obtain industrialUse and nutrient data
+        feedAvailability <<- getFeedAvailabilityData()
+        feedRequirement <<- getFeedRequirementData()
+    } %>%
+    ## Merge the industrialUse and nutrient data
+    with(., merge(feedAvailability, nutrientData, by = itemVar)) %>%
+    ## Compute the calorie
+    computeCalorie(data = .,
+                   quantityVariable = "Value_measuredElement_feedAvail",
+                   calorieVariable = "Value_measuredElementNutritive_904",
+                   quantityToTonMultiplier = 1000,
+                   calorieToTonMultiplier = 10,
+                   outputName = "Value_measuredElementCalorie_feedAvail") %>%
+    ## Perform calorie standardization
+    ##
+    ## NOTE (Michael): Need to check those cpc items which are not mapped
+    ##                 in the commodity tree
+    calorieStandardization(data = .,
+                           commodityTree = cpcCommodityTree.dt,
+                           standardizeVariable =
+                               "Value_measuredElementCalorie_feedAvail",
+                           standardizationKey =
+                               c(areaVar, yearVar, "cpc_standardized_code")) %>%
+    ## Merge supply with requirements
+    merge(., feedRequirement,
+          by = c("geographicAreaM49", "timePointYears"),
+          all = TRUE) %>%
+    ## Use feed availability to disaggregate feed requirements to
+    ## standardized commotities.
+    disaggregateFeedRequirement(data = .,
+                                areaVar = areaVar,
+                                yearVar = yearVar,
+                                feedAvailabilityVar =
+                                    "Value_measuredElementCalorie_feedAvail",
+                                feedRequirementPointVar =
+                                    "Value_estimator_1",
+                                feedUtilizationVar =
+                                    "Value_measuredElementCalorie_5520") %>%
+    subset(x = ., select = c(areaVar, standardizedItemVar, yearVar,
+                      "Value_measuredElementCalorie_5520"))
 
 
