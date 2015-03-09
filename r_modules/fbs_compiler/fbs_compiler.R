@@ -266,3 +266,6 @@ standardizedFeed =
 allStandardizedData =
     mergeAllData(standardizedProduction, standardizedTrade, standardizedSeed,
                  standardizedFeed, standardizedLoss, standardizedIndustrialUse)
+
+## NOTE (Michael): Compile the standardized trade calorie standard
+##                 deviation and save back to a new dataset.

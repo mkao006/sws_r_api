@@ -32,6 +32,9 @@ getContingencyTable = function(){
             filef = "adjustedFeedRange.csv")
 }
 
+getCaloricTradeStandardDeviation = function(){}
+
+
 ## Function to selecte the best table from the sampling
 sampleBalancedTable = function(contingencyTable, sanityCheck = FALSE, maxErr = 10,
     selectedCountry, selectedYear, ...){
