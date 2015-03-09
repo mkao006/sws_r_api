@@ -107,20 +107,27 @@ standardizedTrade =
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
 
-## NOTE (Michael): Need the trade standard deviation function
-##                 defined.
-##
-## standardizedTradeStandardDeviation =
-##     {
-##         tradeStandardDeviation <<- getTradeStandardDeviation()
-##     } %>%
-##         merge(., nutrientData, by = itemVar) %>%
-##         standardizeTradeStd(data = .,
-##                             weightVariable =
-##                                 "Value_measuredElementNutritive_904",
-##                             tradeStandardDeviationVariable =
-##                                 c("Value_measuredElementCalorie_5600",
-##                                  "Value_measuredElementCalorie_5900"))
+
+## NOTE (Michael): After the trade std is converted to CPC, then we
+##                 convert to calorie.
+standardizedTradeStandardDeviation =
+    {
+        tradeStandardDeviation <<- getTradeStandardDeviation()
+        ## tradeStandardDeviation <<-
+        ##     data.table(read.csv("trade_standard_deviation_quantity_example.csv",
+        ##                         colClass = c(rep("character", 3),
+        ##                             rep("numeric", 2))))
+    } %>%
+        merge(., nutrientData, by = itemVar) %>%
+        standardizeTradeStd(data = .,
+                            commodityTree = cpcCommodityTree.dt,
+                            weightVariable =
+                                "Value_measuredElementNutritive_904",
+                            tradeStandardDeviationVariable =
+                                "standard_deviation",
+                            standardizationKey =
+                               c(areaVar, yearVar, "measuredElementTrade",
+                                 "cpc_standardized_code"))
                                           
 
 
