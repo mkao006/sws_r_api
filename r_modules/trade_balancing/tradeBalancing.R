@@ -217,9 +217,84 @@ balanceTrade = function(data){
 
 saveTradeStandardDeviation = function(stdData){
     SaveDataNew(domain = "trade",
-                dataset = "tradestd",
+                dataset = "tradestdcpc",
                 data = stdData)
 }
+
+
+
+## HACK (Michael): This is a hack function to map HS to CPC. The std
+##                 data will be saved back as HS then converted to
+##                 CPC.
+getHStoCPCMapping = function(){
+    mapping = GetTableData(schemaName = "ess", tableName = "hs_2_cpc")
+    setnames(mapping,
+             old = c("hs", "cpc"),
+             new = c("measuredItemHS", "measuredItemCPC"))
+    mapping
+}
+
+mapHStoCPCTradeStd = function(tradeStdData, mapping){    
+    tradeStdMap = merge(tradeStdData, mapping, by = "measuredItemHS")
+    tradeStdMapped =
+        tradeStdMap[, sqrt(sum((split * conversion_factor)^2 *
+                                   standard_deviation^2)),
+                    by = c("geographicAreaM49", "measuredItemCPC",
+                        "measuredElementTrade", "timePointYears")]
+    setnames(tradeStdMapped, old = "V1", new = "quantity_standard_deviation")
+    tradeStdMapped
+}
+
+getComtradeStandard49Mapping = function(){
+    mapping =
+        GetTableData(schemaName = "ess", tableName = "comtrade_m49_map")
+    codeColumn = c("comtrade_code", "standard_code", "translation_code")
+    mapping[, `:=`(c(codeColumn),
+                   lapply(codeColumn,
+                          FUN = function(x){
+                              as.character(mapping[[x]])
+                          }))]
+    mapping
+}
+
+
+## Function to translate the comtrade specific M49 codes to the
+## standard UNSD M49 country codes.
+comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Name,
+    translationData, translationComtradeM49Name, translationStandardM49Name,
+    aggregateKey, aggregateValueCol){
+    if(NROW(comtradeData) > 0){
+        
+        ## Merge comtrade data with translation data
+        setnames(comtradeData,
+                 old = comtradeM49Name,
+                 new = translationComtradeM49Name)
+        translate = merge(comtradeData,
+            translationData[, c(translationComtradeM49Name,
+                                translationStandardM49Name), with = FALSE],
+            by = c(translationComtradeM49Name))
+        translate[, `:=`(c(translationComtradeM49Name), NULL)]
+
+        ## NOTE (Michael): If mapping is missing, then aggregate to the
+        ##                 code for "world".
+        translate[is.na(translate[[translationStandardM49Name]]),
+                  `:=`(c(translationStandardM49Name), "0")]
+
+        translated =
+            translate[, `:=`(c(aggregateValueCol),
+                             lapply(aggregateValueCol,
+                                    FUN = function(x) sum(.SD[[x]]))),
+                      by = c(unique(c(translationStandardM49Name, aggregateKey)))]
+        setnames(translated,
+                 old = translationStandardM49Name,
+                 new = standardM49Name)
+        return(translated)
+    } else {
+        return(comtradeData)
+    }
+}
+
+## End of HACK
 
 selectSaveSelection = function(data){    
     saveSelection =
@@ -258,8 +333,46 @@ for(i in allItems){
             } %>%
             balanceTrade(data = .) %>%
             {
-                ## saveTradeStandardDeviation(data = .$stdData)
+                ## NOTE (Michael): The section on mapping HS to CPC
+                ##                 and also the country code is not
+                ##                 required, it should be removed
+                ##                 later when the database is set up
+                ##                 correctly.
+                hsToCPCMapping <<- getHStoCPCMapping()
+                comtradeToStandardM49Mapping <<- getComtradeStandard49Mapping()
+                finalStdData <<-
+                    mapHStoCPCTradeStd(tradeStdData = .$stdData,
+                                       mapping = hsToCPCMapping) %>%
+                    comtradeM49ToStandardM49(comtradeData = .,
+                                             comtradeM49Name = "geographicAreaM49",
+                                             standardM49Name = "geographicAreaM49",
+                                             translationData =
+                                                 comtradeToStandardM49Mapping,
+                                             translationComtradeM49Name =
+                                                 "comtrade_code",
+                                             translationStandardM49Name =
+                                                 "translation_code",
+                                             aggregateKey =
+                                                 c("measuredItemCPC", yearVar),
+                                             aggregateValueCol =
+                                                 grep(valuePrefix, colnames(.),
+                                                      value = TRUE)) %>%
+                    setcolorder(.,
+                                neworder = c("geographicAreaM49",
+                                    "measuredItemCPC",
+                                    "measuredElementTrade", "timePointYears",
+                                    "quantity_standard_deviation")) %>%
+                    setnames(.,
+                             old = "quantity_standard_deviation",
+                             new = "standard_deviation")
+                ## saveTradeStandardDeviation(stdData = finalStdData)
+                ## write.csv(finalStdData,
+                ##           file = "trade_standard_deviation_quantity_example.csv",
+                ##           row.names = FALSE, na = "")
+
                 selectSaveSelection(data = .$balanceData)
             } %>%
             saveBalancedData(data = .)
 }
+
+
