@@ -238,19 +238,28 @@ saveBalancedData = function(data){
 }
     
 
+## NOTE (Michael): Should do this by item
+allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
+subContext = swsContext.datasets[[1]]
+## allItems = "1001"
+for(i in allItems){
+    cat("Perform Balancing for HS item:", i, "\n")
+    subContext@dimensions$measuredItemHS@keys = i
+
+    mirroredData = getComtradeMirroredData(dataContext = subContext)
+    if(NROW(mirroredData) == 0)
+        next
     
-mirroredData = getComtradeMirroredData(dataContext = swsContext.datasets[[1]])
-
-mirroredData %>%
-    mergeReverseTrade(data = .) %>%
-        {
-            reliability <<- getReliabilityIndex()
-            mergeReliability(data = ., reliability = reliability)
-        } %>%
-    balanceTrade(data = .) %>%
-        {
-            ## saveTradeStandardDeviation(data = .$stdData)
-            selectSaveSelection(data = .$balanceData)
-        } %>%
-    saveBalancedData(data = .)
-
+    mirroredData %>%
+        mergeReverseTrade(data = .) %>%
+            {
+                reliability <<- getReliabilityIndex()
+                mergeReliability(data = ., reliability = reliability)
+            } %>%
+                balanceTrade(data = .) %>%
+                    {
+                        ## saveTradeStandardDeviation(data = .$stdData)
+                        selectSaveSelection(data = .$balanceData)
+                    } %>%
+                        saveBalancedData(data = .)
+}
