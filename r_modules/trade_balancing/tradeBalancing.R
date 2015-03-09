@@ -241,7 +241,7 @@ saveBalancedData = function(data){
 ## NOTE (Michael): Should do this by item
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 subContext = swsContext.datasets[[1]]
-## allItems = "1001"
+allItems = "1001"
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
     subContext@dimensions$measuredItemHS@keys = i
@@ -256,10 +256,10 @@ for(i in allItems){
                 reliability <<- getReliabilityIndex()
                 mergeReliability(data = ., reliability = reliability)
             } %>%
-                balanceTrade(data = .) %>%
-                    {
-                        ## saveTradeStandardDeviation(data = .$stdData)
-                        selectSaveSelection(data = .$balanceData)
-                    } %>%
-                        saveBalancedData(data = .)
+            balanceTrade(data = .) %>%
+            {
+                ## saveTradeStandardDeviation(data = .$stdData)
+                selectSaveSelection(data = .$balanceData)
+            } %>%
+            saveBalancedData(data = .)
 }
