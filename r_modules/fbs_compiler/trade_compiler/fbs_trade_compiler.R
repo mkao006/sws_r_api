@@ -47,14 +47,25 @@ getTradeData = function(){
 
 getTradeStandardDeviation = function(){}
 
-standardizeTradeStd = function(data, weightVariable,
-    tradeStandardDeviationVariable){
 
-    data[, lapply(tradeStandardDeviationVariable,
-                  FUN = function(x){
-                      sqrt(sum(.SD[[weightVariable]]^2 * .SD[[x]]^2))
-                  }),
-         by = c(areaVar, yearVar, standardizedItemVar)]
+
+standardizeTradeStd = function(data, commodityTree, weightVariable,
+    tradeStandardDeviationVariable, standardizationKey){
+    commodityTreeCopy = copy(commodityTree)
+    setnames(commodityTreeCopy, old = "cpc_children_code", new = itemVar)
+
+    dataTree = merge(data, commodityTreeCopy, by = itemVar, all.x = TRUE)
+    standardized =
+        dataTree[, lapply(tradeStandardDeviationVariable,
+                          FUN = function(x) {
+                              sqrt(sum(.SD[[weightVariable]]^2 * .SD[[x]]^2))
+                          }),
+                 by = c(standardizationKey)]
+
+    setnames(standardized,
+             old = paste0("V", 1:length(tradeStandardDeviationVariable)),
+             new = tradeStandardDeviationVariable)
+    standardized
 }
 
 
