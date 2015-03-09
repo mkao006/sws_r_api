@@ -22,7 +22,7 @@ selectedYear = "2010"
 
 
 ## Setting up variables
-areaVar = "geographicAreaM49"
+standardCountryVar = "geographicAreaM49"
 reportingCountryVar = "reportingCountryM49"
 partnerCountryVar = "partnerCountryM49"
 yearVar = "timePointYears"
@@ -167,14 +167,17 @@ mergeReverseTrade = function(data){
 }
 
 
-getReliabilityIndex = function(){}
+getReliabilityIndex = function(){
+    data.table(read.csv(file = "reliability_example.csv",
+                        colClass = c("character", "character", "numeric")))
+}
 
 mergeReliability = function(data, reliability){
     reliabilityCopy = copy(reliability)
     dataCopy = copy(data)
     
     setnames(reliabilityCopy,
-             old = c(areaVar, "reliability"),
+             old = c(standardCountryVar, "reliability"),
              new = c(reportingCountryVar, "reportingReliability"))
     dataWithReportingReliability =
         merge(dataCopy, reliabilityCopy, by = c(reportingCountryVar, yearVar))
@@ -207,7 +210,7 @@ balanceTrade = function(data){
                  by = c(reportingCountryVar, elementVar, itemVar, yearVar)]
     setnames(stdData,
              old = c(reportingCountryVar, "V1"),
-             new = c(areaVar, "standard_deviation"))
+             new = c(standardCountryVar, "standard_deviation"))
     list(balanceData = balanceData, stdData = stdData)
 }
 
