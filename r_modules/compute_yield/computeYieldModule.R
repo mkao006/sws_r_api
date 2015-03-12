@@ -20,11 +20,16 @@ elementVar = "measuredElement"
 ## set up for the test environment and parameters
 if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "ad7f16e3-d447-48ec-9d62-089f63bbc137"
-        token = "5d9b8d4a-0989-4b50-869f-cd0bc566fd18"
+        token = "75fda6cf-0bf5-4f37-aa44-94feae639fba"
         )
+    R_SWS_SHARE_PATH = getwd()
+    verbose = TRUE
+} else {
+    R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
 }
+
 
 
 ## Function to get the yield formula triplets
@@ -137,8 +142,6 @@ executeYieldModule = function(){
         ## print(paste0("Computing Yield for item: ", singleItem))
         compute = try({
             datasets = getYieldData(subKey)
-            datasets$query =
-                as.data.table(lapply(datasets$query, FUN = NULLtoNA))
             with(datasets,
                  {
                      computeYieldData(data = query,
@@ -155,6 +158,7 @@ executeYieldModule = function(){
         
         if(inherits(compute, "try-error")){
             print("Yield Module Failed")
+            cat(singleItem, "\n", file = paste0(R_SWS_SHARE_PATH, "/failed_item.csv"))
         } else {
             print("Yield Module Executed Successfully")
         }
