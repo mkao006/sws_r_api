@@ -18,7 +18,7 @@ for future prediction.
 
 Current the module consists of five models, a committee voting
 approach is taken. The prediction of the models are summed up to
-produce a final `severity` level. For example, if only one model
+produce a final `Severity` level. For example, if only one model
 classified the value as invalid, then the value will have a severity
 level of 1 and deserves some attention; on the other hand, if all 5
 models flagged the value, then it will have a severity level of 5 and
@@ -35,5 +35,5 @@ Currently, the following 5 models are implemented.
 5. Bagged Multivariate Adaptive Regression Splines.
 
 
-** Warning: The algorithm is very computational heavy, and should not
+**Warning: The algorithm is very computational heavy, and should not
    be executed unless on a very small dataset**
