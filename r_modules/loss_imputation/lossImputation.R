@@ -8,15 +8,7 @@ suppressMessages({
     library(igraph)
 })
 
-verbose = FALSE
 updateModel = TRUE
-## updateModel = as.logical(swsContext.computationParams$updateModel)
-
-
-if(verbose){
-    startingTime = Sys.time()
-    currentTime = startingTime
-}
 
 
 ## Year should be a paramameter selected.
@@ -38,10 +30,10 @@ if(Sys.getenv("USER") == "mk"){
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         token = "007e9eea-5766-41c8-9495-8ad7be4124cc"
         )
-    verbose = TRUE
     R_SWS_SHARE_PATH = getwd()
 } else {
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
+    updateModel = as.logical(swsContext.computationParams$updateModel)
 }
 
 
@@ -560,3 +552,12 @@ finalPredictData %>%
                lossMethodFlagVar = "flagMethod_measuredElement_5120",
                lossModel = lossLmeModel) %>%
     saveImputedLoss(data = .)
+
+
+## par(mfrow = c(1, 2))
+## hist(finalModelData[Value_measuredElement_5120 < Value_measuredElement_5510,
+##                     Value_measuredElement_5120/Value_measuredElement_5510],
+##      breaks = 100, xlim = c(0, 1))
+## hist(finalPredictData[Value_measuredElement_5120 < Value_measuredElement_5510,
+##                       Value_measuredElement_5120/Value_measuredElement_5510],
+##      breaks = 100, xlim = c(0, 1))
