@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Statistical Learning Algorithm Based Validation </Name>
+	<Description>
+	  The validation is based on 5 seperate statistical learning
+	  model, and employs a committee voting based scheme to
+	  determine the severity.
+	</Description>
+	<Category>Validation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Params>
+		<Param xsi:type="List">
+			<Code>updateModel</Code>
+			<Label>Update Model</Label>
+			<Description> 
+			  This is a parameter specifying whether the
+			  model should be updated, the model will
+			  learn from the latest update.
+			</Description>
+			<Compulsory>FALSE</Compulsory>
+			<Options>
+				<Option>
+					<Label>TRUE</Label>
+					<Value>TRUE</Value>
+				</Option>
+				<Option>
+					<Label>FALSE</Label>
+					<Value>FALSE</Value>
+				</Option>							
+			</Options>
+		</Param>
+	</Params>
+	<Datasets>
+		<MainDataset>
+			<Code>agriculture</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>true</InteractiveValidation>
+	<Background>true</Background>
+</RScript>
+
