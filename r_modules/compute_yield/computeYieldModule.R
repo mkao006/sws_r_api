@@ -22,7 +22,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "ad7f16e3-d447-48ec-9d62-089f63bbc137"
-        token = "75fda6cf-0bf5-4f37-aa44-94feae639fba"
+        token = "2c673acb-1d47-4000-aa14-4b45ebcd81d4"
         )
     R_SWS_SHARE_PATH = getwd()
     verbose = TRUE
@@ -158,7 +158,7 @@ executeYieldModule = function(){
         
         if(inherits(compute, "try-error")){
             print("Yield Module Failed")
-            cat(singleItem, "\n", file = paste0(R_SWS_SHARE_PATH, "/failed_item.csv"))
+            ## cat(singleItem, "\n", file = paste0(R_SWS_SHARE_PATH, "/failed_item.csv"))
         } else {
             print("Yield Module Executed Successfully")
         }
