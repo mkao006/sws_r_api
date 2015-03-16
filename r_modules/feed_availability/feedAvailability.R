@@ -327,29 +327,21 @@ getIndustrialUseData = function(){
 
 getFoodData = function(){
 
-    getFoodItemCPC = function(){
-        itemEdgeList =
-            adjacent2edge(
-                GetCodeTree(domain = "suafbs",
-                            dataset = "sua",
-                            dimension = "measuredItemSuaFbs")
-            )
-        itemEdgeGraph = graph.data.frame(itemEdgeList)
-        itemDist = shortest.paths(itemEdgeGraph, v = "0", mode = "out")
-        fbsItemCodes = colnames(itemDist)[is.finite(itemDist)]
-        fbsItemCodes
-    }
-
-    foodItems = getFoodItemCPC()
+    standardizedFoodItem =
+        GetCodeList(domain = "suafbs",
+                    dataset = "fbs",
+                    dimension = "measuredItemSuaFbs")[, code]
+    
+    foodItems = standardizedFoodItem[grepl("^S", standardizedFoodItem)]
 
     foodKey = DatasetKey(
         domain = "suafbs",
-        dataset = "sua",
+        dataset = "fbs",
         dimensions = list(
             Dimension(name = areaVar,
                       keys = requiredCountries),
             Dimension(name = "measuredElementSuaFbs",
-                      keys = "5141"),
+                      keys = "5142"),
             Dimension(name = "measuredItemSuaFbs",
                       keys = foodItems),
             Dimension(name = yearVar,
@@ -384,6 +376,16 @@ getFoodData = function(){
              old = "measuredItemSuaFbs",
              new = "measuredItemCPC")
 
+    ## The value is in 1000t so we convert to tonnes.
+    foodQuery[, Value_measuredElement_5142 :=
+                  Value_measuredElement_5142 * 1000]
+
+    ## HACK (Michael): This is a hack, we convert standardized item to
+    ##                 the primary item. This is only acceptable if
+    ##                 the current FBS framework works only with
+    ##                 primary items.
+    foodQuery[, measuredItemCPC := gsub("S", "", measuredItemCPC)]
+    
     ## Convert time to numeric
     foodQuery[, timePointYears := as.numeric(timePointYears)]
     foodQuery
@@ -398,7 +400,7 @@ getFeedItemClassification = function(){
     ## data.table(read.csv(file = classificationFilePath,
     ##                     colClass = rep("character", 3)))
     tmp = data.table(read.csv(file = "cpcFeedClassification.csv"))
-    setnames(tmp, old = "code", new = "measuredItemCPC")
+    ## setnames(tmp, old = "code", new = "measuredItemCPC")
     tmp
 }
 
@@ -521,24 +523,35 @@ calculateFeedAvailability = function(data, itemVar, childItemVar, yearVar,
                   rowSums(.SD[, c(productionVar, importVar), with = FALSE],
                           na.rm = TRUE) -
                   rowSums(.SD[, exportVar, with = FALSE], na.rm = TRUE))]
-    
-    dataCopy[feedClassification == "oil seed",
-             `:=`(c(feedVariable),
-                  (rowSums(.SD[, c(productionVar, importVar), with = FALSE],
-                           na.rm = TRUE) -
-                   rowSums(.SD[, c(exportVar, seedVar, industrialUseVar, lossVar,
-                                   foodVar), with = FALSE], na.rm = TRUE)) *
-                  .SD[[crushRateVar]] *
-                  (.SD[[oilExtractionRateVarDom]] * productionRatio +
-                  .SD[[oilExtractionRateVarTrade]] * (1 - productionRatio)) *
-                  (.SD[[mealExtractionRateVarDom]] * productionRatio +
-                  .SD[[mealExtractionRateVarTrade]] * (1 - productionRatio)))]
 
-    ## Change the item name after the oil seeds has been converted to
-    ## oil or meal.
-    dataCopy[!is.na(dataCopy[[childItemVar]]),
-             `:=`(c(itemVar), .SD[[childItemVar]])]
-    dataCopy[, `:=`(c("netTrade", "productionRatio"), NULL)]
+    ## NOTE (Michael): This is temporary, oil seeds will have to be
+    ##                 converted to oil and meals when the "roll down"
+    ##                 procedure is implemented overall.
+    dataCopy[feedClassification == "oil seeds",
+             `:=`(c(feedVariable),
+                  rowSums(.SD[, c(productionVar, importVar), with = FALSE],
+                          na.rm = TRUE) -
+                  rowSums(.SD[, c(exportVar, seedVar, industrialUseVar, lossVar,
+                                  foodVar), with = FALSE],
+                          na.rm = TRUE))]
+    
+    ## dataCopy[feedClassification == "oil seed",
+    ##          `:=`(c(feedVariable),
+    ##               (rowSums(.SD[, c(productionVar, importVar), with = FALSE],
+    ##                        na.rm = TRUE) -
+    ##                rowSums(.SD[, c(exportVar, seedVar, industrialUseVar, lossVar,
+    ##                                foodVar), with = FALSE], na.rm = TRUE)) *
+    ##               .SD[[crushRateVar]] *
+    ##               (.SD[[oilExtractionRateVarDom]] * productionRatio +
+    ##               .SD[[oilExtractionRateVarTrade]] * (1 - productionRatio)) *
+    ##               (.SD[[mealExtractionRateVarDom]] * productionRatio +
+    ##               .SD[[mealExtractionRateVarTrade]] * (1 - productionRatio)))]
+
+    ## ## Change the item name after the oil seeds has been converted to
+    ## ## oil or meal.
+    ## dataCopy[!is.na(dataCopy[[childItemVar]]),
+    ##          `:=`(c(itemVar), .SD[[childItemVar]])]
+    ## dataCopy[, `:=`(c("netTrade", "productionRatio"), NULL)]
 
     ## If feed availability is negative, then assign zero symboling no
     ## availability.
@@ -593,14 +606,14 @@ feedAvailability =
         feedClassification <<- getFeedItemClassification()
     
         ## Hack (Michael): Data transformation for ocbs data
-        ocbs[, measuredElementNames := NULL]
-        ocbs[, measuredElements :=
-                 paste0("Value_measuredElement_", measuredElements)]
-        castedOCBS <<-
-            dcast.data.table(ocbs,
-                             geographicAreaM49 + measuredItemCPC +
-                             measuredItemCPCChild + timePointYears ~
-                             measuredElements, value.var = "Value")
+        ## ocbs[, measuredElementNames := NULL]
+        ## ocbs[, measuredElements :=
+        ##          paste0("Value_measuredElement_", measuredElements)]
+        ## castedOCBS <<-
+        ##     dcast.data.table(ocbs,
+        ##                      geographicAreaM49 + measuredItemCPC +
+        ##                      measuredItemCPCChild + timePointYears ~
+        ##                      measuredElements, value.var = "Value")
     } %>%
     {
         if(verbose){
@@ -612,9 +625,9 @@ feedAvailability =
         }
         ## Merge all the data together
         mergeAllData(production, trade, seed, loss, indUse, food) %>%
-        merge(x = ., y = castedOCBS,
-              by = intersect(colnames(.), colnames(castedOCBS)),
-              all = TRUE, allow.cartesian = TRUE) %>%
+        ## merge(x = ., y = castedOCBS,
+        ##       by = intersect(colnames(.), colnames(castedOCBS)),
+        ##       all = TRUE, allow.cartesian = TRUE) %>%
         merge(x = ., feedClassification, all.x = TRUE,
               by = "measuredItemCPC")
     } %>%
@@ -663,7 +676,7 @@ feedAvailability =
                                   industrialUseVar =
                                       "Value_measuredElement_5150",
                                   lossVar = "Value_measuredElement_5120",
-                                  foodVar = "Value_measuredElement_5141",
+                                  foodVar = "Value_measuredElement_5142",
                                   crushRateVar = "Value_measuredElement_52",
                                   oilExtractionRateVarDom =
                                       "Value_measuredElement_53",
@@ -694,3 +707,5 @@ if(verbose){
 ## setnames(usafa, old = grep("Value", colnames(usafa), value = TRUE),
 ##          new = c("production", "export", "import", "seed", "loss", "industrialUse",
 ##          "food", "feedAvailability"))
+## write.csv(usafa, file = "~/Desktop/usa2010FeedAvailability.csv",
+##           row.names = FALSE, na = "")
