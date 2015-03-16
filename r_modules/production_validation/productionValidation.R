@@ -8,7 +8,7 @@ suppressMessages({
 })
 
 updateModel = FALSE
-updateModel = as.logical(swsContext.computationParams$updateModel)
+
 
 ## Year should be a paramameter selected.
 selectedYear = "2010"
@@ -35,6 +35,7 @@ if(Sys.getenv("USER") == "mk"){
     R_SWS_SHARE_PATH = getwd()
 } else {
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
+    updateModel = as.logical(swsContext.computationParams$updateModel)
 }
 
 
