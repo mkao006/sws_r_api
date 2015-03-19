@@ -29,10 +29,10 @@ requires immediate attention and revision.
 Currently, the following 5 models are implemented.
 
 1. Boosted Logistic Regression
-2. Least Squares Support Vector Machine with Radial Basis Function Kernel
+2. Neural Network
 3. Simple Random Forest
 4. Flexible Discriminant Analysis
-5. Bagged Multivariate Adaptive Regression Splines.
+5. Partial Least Squares
 
 
 **Warning: The algorithm is very computational heavy, and should not
