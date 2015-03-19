@@ -2,9 +2,6 @@
 ##                 commodities, thus so that the weight allocation is
 ##                 not mis-calculated.
 
-## NOTE (Michael): Need Nick to load OCBS data, SUA Food data, and
-##                 also cpc feed classification. Further, need to set
-##                 up the feed availability domain.
 
 suppressMessages({
     library(faosws)
@@ -393,29 +390,12 @@ getFoodData = function(){
 }
 
 getFeedItemClassification = function(){
-    ## HACK (Michael): This is a hack to read the classification from
-    ##                 the shared drive. Change this after the mapping
-    ##                 has been loaded.
-    ## classificationFilePath = paste0(R_SWS_SHARE_PATH, "/cpcFeedClassification.csv")
-    ## data.table(read.csv(file = classificationFilePath,
-    ##                     colClass = rep("character", 3)))
-    tmp = data.table(read.csv(file = "cpcFeedClassification.csv"))
-    ## setnames(tmp, old = "code", new = "measuredItemCPC")
-    tmp
-}
-
-
-getOCBSData = function(){
-    ## HACK (Michael): This is a hack to read the data from the shared
-    ##                 drive. Change this after the data has been
-    ##                 loaded.
-    ## ocbsFilePath = paste0(R_SWS_SHARE_PATH, "/fullOCBSData.csv")
-    ## data.table(read.csv(file = ocbsFilePath))
-    tmp = data.table(read.csv(file = "fullOCBSData.csv",
-        colClass = rep("character", 7)))
-    tmp[, Value := as.numeric(Value)]
-    tmp[, timePointYears := as.numeric(timePointYears)]
-    tmp       
+    feedClassification =
+        GetTableData(schemaName = "ess", tableName = "feed_classification")
+    setnames(feedClassification,
+             old = c("cpc", "classification"),
+             new = c("measuredItemCPC", "feedClassification"))
+    feedClassification
 }
 
 ## Function to impute missing crush rate
@@ -535,24 +515,6 @@ calculateFeedAvailability = function(data, itemVar, childItemVar, yearVar,
                                   foodVar), with = FALSE],
                           na.rm = TRUE))]
     
-    ## dataCopy[feedClassification == "oil seed",
-    ##          `:=`(c(feedVariable),
-    ##               (rowSums(.SD[, c(productionVar, importVar), with = FALSE],
-    ##                        na.rm = TRUE) -
-    ##                rowSums(.SD[, c(exportVar, seedVar, industrialUseVar, lossVar,
-    ##                                foodVar), with = FALSE], na.rm = TRUE)) *
-    ##               .SD[[crushRateVar]] *
-    ##               (.SD[[oilExtractionRateVarDom]] * productionRatio +
-    ##               .SD[[oilExtractionRateVarTrade]] * (1 - productionRatio)) *
-    ##               (.SD[[mealExtractionRateVarDom]] * productionRatio +
-    ##               .SD[[mealExtractionRateVarTrade]] * (1 - productionRatio)))]
-
-    ## ## Change the item name after the oil seeds has been converted to
-    ## ## oil or meal.
-    ## dataCopy[!is.na(dataCopy[[childItemVar]]),
-    ##          `:=`(c(itemVar), .SD[[childItemVar]])]
-    ## dataCopy[, `:=`(c("netTrade", "productionRatio"), NULL)]
-
     ## If feed availability is negative, then assign zero symboling no
     ## availability.
     dataCopy[dataCopy[[feedVariable]] < 0, `:=`(c(feedVariable), 0)]
@@ -579,13 +541,13 @@ mergeAllData = function(...){
 }
 
 
-saveFeedData = function(){
+saveFeedData = function(data){
     SaveData(domain = "feed",
-             dataset = "feed_availability",
-             data = data[, c(areaVar, itemVar, yearVar,
-                 paste0(c(valuePrefix, flagObsPrefix, flagMethodPrefix),
-                        elementVar, "_5520")), with = FALSE],
-             normalized = FALSE)
+                dataset = "feed_availability",
+                data = data[, c(areaVar, itemVar, yearVar,
+                    paste0(c(valuePrefix, flagObsPrefix, flagMethodPrefix),
+                           elementVar, "_5033")), with = FALSE],
+                normalized = FALSE)
 }
 
 
@@ -601,19 +563,8 @@ feedAvailability =
         seed <<- getSeedData()
         loss <<- getLossData()
         indUse <<- getIndustrialUseData()
-        ocbs <<- getOCBSData()
         food <<- getFoodData()
         feedClassification <<- getFeedItemClassification()
-    
-        ## Hack (Michael): Data transformation for ocbs data
-        ## ocbs[, measuredElementNames := NULL]
-        ## ocbs[, measuredElements :=
-        ##          paste0("Value_measuredElement_", measuredElements)]
-        ## castedOCBS <<-
-        ##     dcast.data.table(ocbs,
-        ##                      geographicAreaM49 + measuredItemCPC +
-        ##                      measuredItemCPCChild + timePointYears ~
-        ##                      measuredElements, value.var = "Value")
     } %>%
     {
         if(verbose){
@@ -625,9 +576,6 @@ feedAvailability =
         }
         ## Merge all the data together
         mergeAllData(production, trade, seed, loss, indUse, food) %>%
-        ## merge(x = ., y = castedOCBS,
-        ##       by = intersect(colnames(.), colnames(castedOCBS)),
-        ##       all = TRUE, allow.cartesian = TRUE) %>%
         merge(x = ., feedClassification, all.x = TRUE,
               by = "measuredItemCPC")
     } %>%
@@ -668,7 +616,7 @@ feedAvailability =
                                   itemVar = "measuredItemCPC",
                                   childItemVar = "measuredItemCPCChild",
                                   yearVar = "timePointYears",
-                                  feedVariable = "Value_measuredElement_5520",
+                                  feedVariable = "Value_measuredElement_5033",
                                   productionVar = "Value_measuredElement_5510",
                                   importVar = "Value_measuredElement_5600",
                                   exportVar = "Value_measuredElement_5900",
@@ -686,8 +634,8 @@ feedAvailability =
                                       "Value_measuredElement_63",
                                   mealExtractionRateVarTrade =
                                       "Value_measuredElement_64")
-    } ## %>%
-    ## SaveFeedData(data = .)
+    } %>%
+    saveFeedData(data = .)
 
 
 if(verbose){
