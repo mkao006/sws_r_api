@@ -74,7 +74,6 @@ getAllHistory = function(){
                       keys = allItems),
             Dimension(name = yearVar,
                       keys = as.character(allYears))
-                      ## keys = c("2009", "2010"))
             )
         )
 
@@ -120,7 +119,7 @@ getAllHistory = function(){
 allHistory = getAllHistory()
 
 validationRule =
-    valid ~ geographicAreaM49 + measuredItemCPC + measuredElement +
+    valid ~ -1 + geographicAreaM49 + measuredItemCPC + measuredElement +
         timePointYears + flagObservationStatus + flagMethod + Value
 
 ## validationRule =
@@ -131,38 +130,46 @@ validationRule =
 ## Model paths
 ## ---------------------------------------------------------------------
 logisticModelPath = paste0(R_SWS_SHARE_PATH, "/boostedLogisticValidationModel")
-lssvmModelPath = paste0(R_SWS_SHARE_PATH, "/lssvmValidationModel")
+nnetModelPath = paste0(R_SWS_SHARE_PATH, "/nnetValidationModel")
 rfModelPath = paste0(R_SWS_SHARE_PATH, "/rfValidationModel")
 fdaModelPath = paste0(R_SWS_SHARE_PATH, "/fdaValidationModel")
-bagEarthModelPath = paste0(R_SWS_SHARE_PATH, "/bagEarthValidationModel")
+plsModelPath = paste0(R_SWS_SHARE_PATH, "/plsValidationModel")
 
 
 ## Control parameters
 ## ---------------------------------------------------------------------
 logisticControl = trainControl(classProbs = TRUE,
     summaryFunction = twoClassSummary)
-svmControl = trainControl(method = "cv", number = 5)
+nnetControl = trainControl()
 rfControl = trainControl(method = "cv", number = 5)
 fdaControl = trainControl(method = "cv", number = 5)
-bagEarthControl = trainControl(method = "cv", number = 3)
+plsControl = trainControl(method = "cv", number = 3)
 
 
 
-## ## This is for testing
-## ## ---------------------------------------------------------------------
-## subHistory = allHistory[sample(NROW(allHistory), 1250), ]
+## This is for testing
+## ---------------------------------------------------------------------
+subHistory = allHistory[sample(NROW(allHistory), 2000), ]
 
 
-## inTrain = createDataPartition(y = subHistory$valid, p = 0.75, list = FALSE)
-## training = subHistory[inTrain[, 1], ]
-## testing = subHistory[-inTrain[, 1], ]
+inTrain = createDataPartition(y = subHistory$valid, p = 0.75, list = FALSE)
+training = subHistory[inTrain[, 1], ]
+testing = subHistory[-inTrain[, 1], ]
 
-## logitBoostFit =
-##     train(validationRule,
-##           data = data.frame(training), method = "LogitBoost", metric = "ROC",
-##           trControl = logisticControl)
-## logitBoostPredicted = predict(logitBoostFit, testing)
-## confusionMatrix(data = logitBoostPredicted, testing$valid)
+logitBoostFit =
+    train(validationRule,
+          data = data.frame(training), method = "LogitBoost", metric = "ROC",
+          trControl = logisticControl)
+logitBoostPredicted = predict(logitBoostFit, testing)
+confusionMatrix(data = logitBoostPredicted, testing$valid)
+
+nnetFit =
+    train(validationRule,
+          data = data.frame(training),
+          method = "nnet",
+          tuneGrid = expand.grid(size = 1, decay = seq(0, 10, by = 1)/1000))
+nnetPredicted = predict(nnetFit, testing)
+confusionMatrix(data = nnetPredicted, testing$valid)
 
 ## lssvmRadialFit =
 ##     lssvm(validationRule,
@@ -171,30 +178,68 @@ bagEarthControl = trainControl(method = "cv", number = 3)
 ## confusionMatrix(data = lssvmRadialPredicted, testing$valid)
 
 
-## rfFit =
-##     train(validationRule,
-##           data = data.frame(training), 
-##           method = "rf", prox = TRUE, allowParallel = TRUE,
-##           trControl = rfControl)
-## rfPredicted = predict(rfFit, testing)
-## confusionMatrix(data = rfPredicted, testing$valid)
+rfFit =
+    train(validationRule,
+          data = data.frame(training), 
+          method = "rf", prox = TRUE, allowParallel = TRUE,
+          trControl = rfControl)
+rfPredicted = predict(rfFit, testing)
+confusionMatrix(data = rfPredicted, testing$valid)
 
 
-## fdaFit =
-##     train(validationRule, 
-##           data = data.frame(training),
-##           method = "fda",  trControl = fdaControl)
-## fdaPredicted = predict(fdaFit, testing)
-## confusionMatrix(data = fdaPredicted, testing$valid)
+fdaFit =
+    train(validationRule, 
+          data = data.frame(training),
+          method = "fda",  trControl = fdaControl)
+fdaPredicted = predict(fdaFit, testing)
+confusionMatrix(data = fdaPredicted, testing$valid)
+
+
+system.time({
+plsFit =
+    train(validationRule,
+          data = data.frame(training),
+          method = "pls", 
+          tuneGrid = data.frame(ncomp = 1:10))
+})
+plsPredicted = predict(plsFit, testing)
+confusionMatrix(data = plsPredicted, testing$valid)
+
+
+system.time({
+somFit =
+    train(validationRule,
+          data = data.frame(training),
+          method = "xyf", 
+          tuneGrid = data.frame(xdim = 20, ydim = 10, xweight = 0.5,
+              topo = "hexagonal"))
+})
+somPredicted = predict(somFit, testing)
+confusionMatrix(data = somPredicted, testing$valid)
+
+
+system.time({
+knnFit =
+    train(validationRule,
+          data = data.frame(training),
+          method = "knn", 
+          tuneGrid = data.frame(k = 100))
+})
+knnPredicted = predict(knnFit, testing)
+confusionMatrix(data = knnPredicted, testing$valid)
 
 
 bagEarthFit =
     train(validationRule,
           data = data.frame(training),
           method = "bagEarth",  trControl = bagEarthControl,
-          tuneGrid = data.frame(degree = 1, nprune = 20))
+          tuneGrid = expand.grid(degree = 1,
+              nprune = seq(1, length(attr(terms(validationRule), "term.labels")),
+                  by = 3)))
 bagEarthPredicted = predict(bagEarthFit, testing)
 confusionMatrix(data = bagEarthPredicted, testing$valid)
+
+
 
 
 ## The actual validation estimation starts from here
@@ -215,26 +260,17 @@ if(updateModel){
     load(logisticModelPath)
 }
 
-## Model (2): least squares svm radial basis function kernel 
-
-## system.time(
-##     {
-##         lssvmRadialFit =
-##             train(valid ~ geographicAreaM49 + measuredItemCPC + timePointYears +
-##                   flagObservationStatus + flagMethod,
-##                   data = copy(training), method = "lssvmLinear",
-##                   trControl = svmControl)
-##     }
-## )
+## Model (2): Neural network
 
 if(updateModel){
-    library(kernlab)
-    lssvmRadialFit =
-        lssvm(validationRule,
-              data = data.frame(allHistory), kernel = "rbfdot")
-    save(logitBoostFit, file = lssvmModelPath)
+    nnetFit =
+        train(validationRule,
+              data = data.frame(allHistory),
+              method = "nnet",
+              tuneGrid = expand.grid(size = 0:2, decay = c(1:10)/1000))
+    save(nnetfit, file = nnetModelPath)
 } else {
-    load(lssvmModelPath)
+    load(nnetModelPath)
 }
 
 
@@ -274,14 +310,14 @@ if(updateModel){
 ## Model (5): bagged MARS
 
 if(updateModel){
-    bagEarthFit =
+    plsFit =
         train(validationRule,
-              data = data.frame(allHistory),
-              method = "bagEarth",  trControl = bagEarthControl,
-              tuneGrid = data.frame(degree = 1, nprune = 20))
-    save(bagEarthFit, file = bagEarthModelPath)
+              data = data.frame(training),
+              method = "pls", 
+              tuneGrid = data.frame(ncomp = 1:10))    
+    save(plsFit, file = plsModelPath)
 } else {
-    load(bagEarthModelPath)
+    load(plsModelPath)
 }
 
     
@@ -338,26 +374,23 @@ validateData = function(validationData,
               Description :=
                   paste0("Marked value requires revision, with Severity of (",
                          Severity, ")")]    
-    validated[, `:=`(c(predictedClass), NULL)]
+    ## validated[, `:=`(c(predictedClass), NULL)]
     validated
 }
 
 
 getValidationData() %>%
+    ## The flagmethod "s" is an error, probably a test by someone.
     .[!flagMethod %in% c("s", "n"), ] %>%
-    .[, flagMethod := factor(flagMethod)] %>%
     validateData(.,
-                 validationModel = list("logitBoostFit", "fdaFit",
-                     "rfFit", "bagEarthFit")) %>%
+                 validationModel = list("logitBoostFit", "nnetFit", "fdaFit",
+                     "rfFit", "plsFit")) %>%
     SaveValidation(domain = "agriculture",
                    dataset = "agriculture",
                    validation = .)
-
-## NOTE (Michael): Need to watch out for new levels.
 
 ## Actually, it is actually ok to misclassify valid value. because
 ## they are just value which has not been validated. The important
 ## thing is that of the values which were overwritten (invalid), how
 ## many were marked as invalid by the algorithms.
-
 
