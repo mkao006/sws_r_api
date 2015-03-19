@@ -733,9 +733,9 @@ SaveLossData = function(data){
     ## SaveData(domain = "lossWaste", dataset = "loss",
     ##          data = data, normalized = FALSE)
     ##
-    ## Using the temporary SaveDataNew function to save back large
+    ## Using the temporary SaveData function to save back large
     ## datasets.
-    SaveDataNew(domain = "lossWaste", dataset = "loss",
+    SaveData(domain = "lossWaste", dataset = "loss",
              data = data, normalized = FALSE)    
 }
 
