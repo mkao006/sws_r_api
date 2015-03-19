@@ -12,17 +12,15 @@
 	</Authors>
 	<Datasets>
 		<MainDataset>
-			<Code>completed_tf</Code>
+			<Code>reliability_index</Code>
 			<SelectableDimensions>
-				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
-				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
 		<Dataset>
-			<Code>reliability_index</Code>
+			<Code>completed_tf</Code>
 		</Dataset>
 	</Datasets>
 	<InteractiveValidation>false</InteractiveValidation>
