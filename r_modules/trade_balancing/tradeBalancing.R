@@ -210,14 +210,17 @@ balanceTrade = function(data){
                  by = c(reportingCountryVar, elementVar, itemVar, yearVar)]
     setnames(stdData,
              old = c(reportingCountryVar, "V1"),
-             new = c(standardCountryVar, "standard_deviation"))
+             new = c(standardCountryVar, "Value"))
+    stdData[, measuredElementTrade := paste0("SD", measuredElementTrade)]
+    stdData[, `:=`(c("flagObservationStatus", "flagMethod"),
+                   list("E", "e"))]
     list(balanceData = balanceData, stdData = stdData)
 }
 
 
 saveTradeStandardDeviation = function(stdData){
-    SaveDataNew(domain = "trade",
-                dataset = "tradestdcpc",
+    SaveData(domain = "trade",
+                dataset = "stddev_quantity",
                 data = stdData)
 }
 
@@ -234,14 +237,18 @@ getHStoCPCMapping = function(){
     mapping
 }
 
-mapHStoCPCTradeStd = function(tradeStdData, mapping){    
-    tradeStdMap = merge(tradeStdData, mapping, by = "measuredItemHS")
+mapHStoCPCTradeStd = function(tradeStdData, tradeStdVar, mapping){
+    tradeStdMap = merge(tradeStdData, mapping, by = "measuredItemHS",
+        allow.cartesian = TRUE)
     tradeStdMapped =
-        tradeStdMap[, sqrt(sum((split * conversion_factor)^2 *
-                                   standard_deviation^2)),
+        tradeStdMap[, list(quantity_standard_deviation =
+                               sqrt(sum((split * conversion_factor)^2 *
+                                            .SD[[tradeStdVar]]^2)),
+                          flagObservationStatus = "E",
+                          flagMethod = "e"),
                     by = c("geographicAreaM49", "measuredItemCPC",
                         "measuredElementTrade", "timePointYears")]
-    setnames(tradeStdMapped, old = "V1", new = "quantity_standard_deviation")
+    ## setnames(tradeStdMapped, old = "V1", new = "quantity_standard_deviation")
     tradeStdMapped
 }
 
@@ -285,6 +292,8 @@ comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Na
                              lapply(aggregateValueCol,
                                     FUN = function(x) sum(.SD[[x]]))),
                       by = c(unique(c(translationStandardM49Name, aggregateKey)))]
+        translated[, `:=`(c("flagObservationStatus", "flagMethod"),
+                          list("E", "e"))]
         setnames(translated,
                  old = translationStandardM49Name,
                  new = standardM49Name)
@@ -307,7 +316,7 @@ selectSaveSelection = function(data){
 }
 
 saveBalancedData = function(data){
-    SaveDataNew(domain = "trade",
+    SaveData(domain = "trade",
                 dataset = "ct_published_tf",
                 data = data)
 }
@@ -316,7 +325,7 @@ saveBalancedData = function(data){
 ## NOTE (Michael): Should do this by item
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 subContext = swsContext.datasets[[1]]
-allItems = "1001"
+## allItems = "1001"
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
     subContext@dimensions$measuredItemHS@keys = i
@@ -342,6 +351,7 @@ for(i in allItems){
                 comtradeToStandardM49Mapping <<- getComtradeStandard49Mapping()
                 finalStdData <<-
                     mapHStoCPCTradeStd(tradeStdData = .$stdData,
+                                       tradeStdVar = "Value",
                                        mapping = hsToCPCMapping) %>%
                     comtradeM49ToStandardM49(comtradeData = .,
                                              comtradeM49Name = "geographicAreaM49",
@@ -361,15 +371,13 @@ for(i in allItems){
                                 neworder = c("geographicAreaM49",
                                     "measuredItemCPC",
                                     "measuredElementTrade", "timePointYears",
-                                    "quantity_standard_deviation")) %>%
+                                    "quantity_standard_deviation",
+                                    "flagObservationStatus", "flagMethod")) %>%
                     setnames(.,
                              old = "quantity_standard_deviation",
-                             new = "standard_deviation")
-                ## saveTradeStandardDeviation(stdData = finalStdData)
-                ## write.csv(finalStdData,
-                ##           file = "trade_standard_deviation_quantity_example.csv",
-                ##           row.names = FALSE, na = "")
-
+                             new = "Value")
+                if(NROW(finalStdData) > 0)
+                    saveTradeStandardDeviation(stdData = finalStdData)
                 selectSaveSelection(data = .$balanceData)
             } %>%
             saveBalancedData(data = .)
