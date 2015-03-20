@@ -3,6 +3,7 @@
 suppressMessages({
     library(faosws)
     library(faoswsUtil)
+    library(faoswsFlag)
     library(data.table)
     library(magrittr)
     library(reshape2)
@@ -20,6 +21,10 @@ if(verbose){
 selectedYear = "2010"
 
 
+faoswsTradeFlagTable =
+    data.table(flagObservationStatus = c("", "m", "b"),
+               flagObservationWeights = c(1, 0.5, 0.25))
+
 ## Setting up variables
 reportingCountryVar = "reportingCountryM49"
 partnerCountryVar = "partnerCountryM49"
@@ -36,7 +41,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "09aeec5c-2cf5-46f7-90e7-f8b4bdc6dc93"
+        token = "b6356e91-e90c-451d-b52b-01eee7a313c2"
         )
     verbose = TRUE
 }
@@ -271,8 +276,10 @@ mirrorTrade = function(data, reportingCountry, partnerCountry, reverseTradePrefi
 
 
 calculateUnitValue = function(data, importUnitValue, importUnitValueFlag,
-    importTradeValue, importTradeQuantity, exportUnitValue, exportUnitValueFlag,
-    exportTradeValue, exportTradeQuantity, calculatedFlag = "c"){
+    importTradeValue, importTradeValueFlag, importTradeQuantity,
+    importTradeQuantityFlag, exportUnitValue, exportUnitValueFlag,
+    exportTradeValue, exportTradeValueFlag, exportTradeQuantity,
+    exportTradeQuantityFlag, flagTable = faoswsTradeFlagTable){
 
     missingCol = setdiff(c(importUnitValue, importTradeValue, importTradeQuantity,
         exportUnitValue, exportUnitValue, exportTradeQuantity), colnames(data))
@@ -283,13 +290,17 @@ calculateUnitValue = function(data, importUnitValue, importUnitValueFlag,
          `:=`(c(importUnitValue, importUnitValueFlag),
                 list(computeRatio(.SD[[importTradeValue]],
                                   .SD[[importTradeQuantity]]),
-                     calculatedFlag))]
+                     aggregateObservationFlag(.SD[[importTradeValueFlag]],
+                                              .SD[[importTradeQuantityFlag]],
+                                              flagTable = flagTable)))]
 
     data[!is.na(data[[exportTradeValue]]) & !is.na(data[[exportTradeQuantity]]),
          `:=`(c(exportUnitValue, exportUnitValueFlag),
                 list(computeRatio(.SD[[exportTradeValue]],
                                   .SD[[exportTradeQuantity]]),
-                     calculatedFlag))]
+                     aggregateObservationFlag(.SD[[exportTradeValueFlag]],
+                                              .SD[[exportTradeQuantityFlag]],
+                                              flagTable = flagTable)))]
     
     data
 }
@@ -331,6 +342,7 @@ for(i in selectedItems){
                 cat("Extracting raw data\n")
                 currentTime = Sys.time()
             }
+
             rawData =
                 getComtradeRawData(measuredItemHSCode = i) %>%
                 removeSelfTrade(data = ., reportingCountry = reportingCountryVar,
@@ -374,36 +386,33 @@ for(i in selectedItems){
                                     grep(valuePrefix, colnames(.), value = TRUE),
                                 flagColumns =
                                     grep(flagPrefix, colnames(.), value = TRUE),
-                                mirrorFlag = "") %>%
-                calculateUnitValue(data = .,
-                                   importUnitValue = import_unit_value,
-                                   importUnitValueFlag =
-                                       gsub(valuePrefix, flagPrefix,
-                                            import_unit_value),
-                                   importTradeValue = import_value,
-                                   importTradeQuantity = import_quantity,
-                                   exportUnitValue = export_unit_value,
-                                   exportUnitValueFlag =
-                                       gsub(valuePrefix, flagPrefix,
-                                            export_unit_value),
-                                   exportTradeValue = export_value,
-                                   exportTradeQuantity = export_quantity,
-                                   calculatedFlag = "") %>%
-             ## Calculate the unit value for reverse trade
+                                mirrorFlag = "m") %>%
                  calculateUnitValue(data = .,
-                                    importUnitValue = reverse_import_unit_value,
+                                    importUnitValue = import_unit_value,
                                     importUnitValueFlag =
                                         gsub(valuePrefix, flagPrefix,
-                                             reverse_import_unit_value),
-                                    importTradeValue = reverse_import_value,
-                                    importTradeQuantity = reverse_import_quantity,
-                                    exportUnitValue = reverse_export_unit_value,
+                                             import_unit_value),
+                                    importTradeValue = import_value,
+                                    importTradeValueFlag =
+                                        gsub(valuePrefix, flagPrefix,
+                                             import_value),
+                                    importTradeQuantity = import_quantity,
+                                    importTradeQuantityFlag =
+                                        gsub(valuePrefix, flagPrefix,
+                                             import_quantity),
+                                    exportUnitValue = export_unit_value,
                                     exportUnitValueFlag =
                                         gsub(valuePrefix, flagPrefix,
-                                             reverse_export_unit_value),
-                                    exportTradeValue = reverse_export_value,
-                                    exportTradeQuantity = reverse_export_quantity,
-                                    calculatedFlag = "")
+                                             export_unit_value),
+                                    exportTradeValue = export_value,
+                                    exportTradeValueFlag =
+                                        gsub(valuePrefix, flagPrefix,
+                                             export_value),
+                                    exportTradeQuantity = export_quantity,
+                                    exportTradeQuantityFlag =
+                                        gsub(valuePrefix, flagPrefix,
+                                             export_quantity),
+                                    flagTable = faoswsTradeFlagTable)
 
             if(verbose){
                 endTime = Sys.time()
@@ -418,10 +427,6 @@ for(i in selectedItems){
                 subsetRequiredData(data = .) %>%
                 saveMirroredTradeData(requiredData = .)
 
-            ## mirroredData %>%
-            ##     subsetRequiredData(data = .) %>%
-            ##         write.csv(., file = paste0("item_", i, ".csv"), na = "",
-            ##                   row.names = FALSE)
             if(verbose){
                 endTime = Sys.time()
                 timeUsed = endTime - currentTime
