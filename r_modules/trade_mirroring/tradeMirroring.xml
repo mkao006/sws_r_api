@@ -12,7 +12,7 @@
 	</Authors>
 	<Datasets>
 		<MainDataset>
-                     <Code>ct_raw_tf</Code>
+                     <Code>completed_tf</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
 				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
@@ -22,7 +22,7 @@
 			</SelectableDimensions>
 		</MainDataset>
                 <Dataset>
-                    <Code>completed_tf</Code>
+                    <Code>ct_raw_tf</Code>
 	        </Dataset>
 	</Datasets>
 	<InteractiveValidation>false</InteractiveValidation>
