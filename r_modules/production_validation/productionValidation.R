@@ -8,7 +8,7 @@ suppressMessages({
 })
 
 updateModel = TRUE
-
+testing = FALSE
 
 ## Year should be a paramameter selected.
 selectedYear = "2010"
@@ -112,6 +112,9 @@ getAllHistory = function(){
                    "timePointYears")]
     allHistory = allHistory[!(valid == "0" & validValue == Value), ]
     allHistory[, validValue := NULL]
+    allHistory[, productionValue :=
+                   .SD[measuredElement == "5510" & is.na(EndData), Value],
+               by = c("geographicAreaM49", "measuredItemCPC", "timePointYears")]
     allHistory
 }
 
@@ -120,11 +123,8 @@ allHistory = getAllHistory()
 
 validationRule =
     valid ~ -1 + geographicAreaM49 + measuredItemCPC + measuredElement +
-        timePointYears + flagObservationStatus + flagMethod + Value
-
-## validationRule =
-##     valid ~ geographicAreaM49 + measuredItemCPC + 
-##         timePointYears + flagObservationStatus + flagMethod 
+        timePointYears + flagObservationStatus + flagMethod + Value +
+            productionValue
 
 
 ## Model paths
@@ -138,115 +138,128 @@ plsModelPath = paste0(R_SWS_SHARE_PATH, "/plsValidationModel")
 
 ## Control parameters
 ## ---------------------------------------------------------------------
-logisticControl = trainControl(classProbs = TRUE,
-    summaryFunction = twoClassSummary)
-nnetControl = trainControl()
-rfControl = trainControl(method = "cv", number = 5)
-fdaControl = trainControl(method = "cv", number = 5)
-plsControl = trainControl(method = "cv", number = 3)
+
+validationClassError = function(data, leve = NULL, model = NULL){
+    n.missClassified = NROW(data[data$obs == 0 & data$pred == 1, ])
+    n.correctClassified = NROW(data[data$obs == data$pred, ])
+    out = c(n.missClassified/(n.missClassified + n.correctClassified),
+        n.missClassified)
+    names(out) = c("vce", "nm")
+    out
+}
+
+logisticControl = trainControl(classProbs = TRUE)
+nnetControl = trainControl(method = "boot", number = 25)
+rfControl = trainControl(method = "boot", number = 10)
+fdaControl = trainControl(method = "boot", number = 10)
+plsControl = trainControl(method = "boot", number = 10)
+
 
 
 
 ## This is for testing
 ## ---------------------------------------------------------------------
-subHistory = allHistory[sample(NROW(allHistory), 2000), ]
+
+if(testing){
+    subHistory = allHistory[sample(NROW(allHistory), 500), ]
 
 
-inTrain = createDataPartition(y = subHistory$valid, p = 0.75, list = FALSE)
-training = subHistory[inTrain[, 1], ]
-testing = subHistory[-inTrain[, 1], ]
+    inTrain = createDataPartition(y = subHistory$valid, p = 0.75, list = FALSE)
+    training = subHistory[inTrain[, 1], ]
+    testing = subHistory[-inTrain[, 1], ]
 
-logitBoostFit =
-    train(validationRule,
-          data = data.frame(training), method = "LogitBoost", metric = "ROC",
-          trControl = logisticControl)
-logitBoostPredicted = predict(logitBoostFit, testing)
-confusionMatrix(data = logitBoostPredicted, testing$valid)
+    logitBoostFit =
+        train(validationRule,
+              data = data.frame(training), method = "LogitBoost",
+              tuneGrid = data.frame(nIter = 1:50),
+              trControl = logisticControl)
+    logitBoostPredicted = predict(logitBoostFit, testing)
+    confusionMatrix(data = logitBoostPredicted, testing$valid)
 
-nnetFit =
-    train(validationRule,
-          data = data.frame(training),
-          method = "nnet",
-          tuneGrid = expand.grid(size = 1, decay = seq(0, 10, by = 1)/1000))
-nnetPredicted = predict(nnetFit, testing)
-confusionMatrix(data = nnetPredicted, testing$valid)
+    nnetFit =
+        train(validationRule,
+              data = data.frame(training),
+              method = "nnet",
+              trControl = nnetControl,
+              tuneGrid = expand.grid(size = 1,
+                  decay = 1/seq(1000, 10000, length = 10)))
+    nnetPredicted = predict(nnetFit, testing)
+    confusionMatrix(data = nnetPredicted, testing$valid)
 
-## lssvmRadialFit =
-##     lssvm(validationRule,
-##           data = data.frame(training), kernel = "rbfdot")
-## lssvmRadialPredicted = predict(lssvmRadialFit, testing)
-## confusionMatrix(data = lssvmRadialPredicted, testing$valid)
-
-
-rfFit =
-    train(validationRule,
-          data = data.frame(training), 
-          method = "rf", prox = TRUE, allowParallel = TRUE,
-          trControl = rfControl)
-rfPredicted = predict(rfFit, testing)
-confusionMatrix(data = rfPredicted, testing$valid)
+    ## lssvmRadialFit =
+    ##     lssvm(validationRule,
+    ##           data = data.frame(training), kernel = "rbfdot")
+    ## lssvmRadialPredicted = predict(lssvmRadialFit, testing)
+    ## confusionMatrix(data = lssvmRadialPredicted, testing$valid)
 
 
-fdaFit =
-    train(validationRule, 
-          data = data.frame(training),
-          method = "fda",  trControl = fdaControl)
-fdaPredicted = predict(fdaFit, testing)
-confusionMatrix(data = fdaPredicted, testing$valid)
+    rfFit =
+        train(validationRule,
+              data = data.frame(training), 
+              method = "rf", prox = TRUE, allowParallel = TRUE,
+              trControl = rfControl)
+    rfPredicted = predict(rfFit, testing)
+    confusionMatrix(data = rfPredicted, testing$valid)
 
 
-system.time({
-plsFit =
-    train(validationRule,
-          data = data.frame(training),
-          method = "pls", 
-          tuneGrid = data.frame(ncomp = 1:10))
-})
-plsPredicted = predict(plsFit, testing)
-confusionMatrix(data = plsPredicted, testing$valid)
+    fdaFit =
+        train(validationRule, 
+              data = data.frame(training),
+              method = "fda",  trControl = fdaControl)
+    fdaPredicted = predict(fdaFit, testing)
+    confusionMatrix(data = fdaPredicted, testing$valid)
 
 
-system.time({
-somFit =
-    train(validationRule,
-          data = data.frame(training),
-          method = "xyf", 
-          tuneGrid = data.frame(xdim = 20, ydim = 10, xweight = 0.5,
-              topo = "hexagonal"))
-})
-somPredicted = predict(somFit, testing)
-confusionMatrix(data = somPredicted, testing$valid)
+    system.time({
+        plsFit =
+            train(validationRule,
+                  data = data.frame(training),
+                  method = "pls", 
+                  tuneGrid = data.frame(ncomp = 1:10))
+    })
+    plsPredicted = predict(plsFit, testing)
+    confusionMatrix(data = plsPredicted, testing$valid)
 
 
-system.time({
-knnFit =
-    train(validationRule,
-          data = data.frame(training),
-          method = "knn", 
-          tuneGrid = data.frame(k = 100))
-})
-knnPredicted = predict(knnFit, testing)
-confusionMatrix(data = knnPredicted, testing$valid)
+    system.time({
+        somFit =
+            train(validationRule,
+                  data = data.frame(training),
+                  method = "xyf", 
+                  tuneGrid = data.frame(xdim = 20, ydim = 10, xweight = 0.5,
+                      topo = "hexagonal"))
+    })
+    somPredicted = predict(somFit, testing)
+    confusionMatrix(data = somPredicted, testing$valid)
 
 
-bagEarthFit =
-    train(validationRule,
-          data = data.frame(training),
-          method = "bagEarth",  trControl = bagEarthControl,
-          tuneGrid = expand.grid(degree = 1,
-              nprune = seq(1, length(attr(terms(validationRule), "term.labels")),
-                  by = 3)))
-bagEarthPredicted = predict(bagEarthFit, testing)
-confusionMatrix(data = bagEarthPredicted, testing$valid)
+    system.time({
+        knnFit =
+            train(validationRule,
+                  data = data.frame(training),
+                  method = "knn", 
+                  tuneGrid = data.frame(k = 100))
+    })
+    knnPredicted = predict(knnFit, testing)
+    confusionMatrix(data = knnPredicted, testing$valid)
 
 
+    bagEarthFit =
+        train(validationRule,
+              data = data.frame(training),
+              method = "bagEarth",  trControl = bagEarthControl,
+              tuneGrid = expand.grid(degree = 1,
+                  nprune = seq(1,
+                      length(attr(terms(validationRule), "term.labels")),
+                      by = 3)))
+    bagEarthPredicted = predict(bagEarthFit, testing)
+    confusionMatrix(data = bagEarthPredicted, testing$valid)
+
+}
 
 
 ## The actual validation estimation starts from here
 ## ---------------------------------------------------------------------
-
-
-## Use the default control and train boosted classification tree
 
 ## Model (1): Boosted logistic regression
 
@@ -366,11 +379,15 @@ validateData = function(validationData,
                              na.rm = TRUE))]
     ## Added description
     validated[Severity == 0, Description := "Value is valid"]
-    validated[Severity %in% c(1:3),
+    validated[Severity %in% c(1:2),
               Description :=
                   paste0("Marked value is suspicious, with Severity of (",
                          Severity, ")")]
-    validated[Severity %in% c(4:5),
+    validated[Severity %in% c(3:4),
+              Description :=
+                  paste0("Marked value requires verification, with Severity of (",
+                         Severity, ")")]
+    validated[Severity %in% c(5),
               Description :=
                   paste0("Marked value requires revision, with Severity of (",
                          Severity, ")")]    
