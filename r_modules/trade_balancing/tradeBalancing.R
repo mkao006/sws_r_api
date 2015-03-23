@@ -188,6 +188,11 @@ mergeReliability = function(data, reliability){
     reliabilityFull =
         merge(dataWithReportingReliability, reliabilityCopy,
               by = c(partnerCountryVar, yearVar))
+
+    ## Countries that does not have reliability are less reliable than
+    ## countries that has reported every incorrectly.
+    reliabilityFull[is.na(reportingReliability), `:=`(c("reportingReliability", -10))]
+    reliabilityFull[is.na(partnerReliability), `:=`(c("partnerReliability", -10))]
     reliabilityFull
 }
 
@@ -201,7 +206,8 @@ balanceTrade = function(data){
                         .SD[[paste0("reverse_", valuePrefix)]])]
     balanceData[, reliabilityFlag :=
                     aggregateObservationFlag(balanceData[[flagPrefix]],
-                                             balanceData[[paste0("reverse_", flagPrefix)]],
+                                             balanceData[[paste0("reverse_",
+                                                                 flagPrefix)]],
                                              flagTable = tradeFlowFlagTable)]
                     
 
@@ -325,7 +331,7 @@ saveBalancedData = function(data){
 ## NOTE (Michael): Should do this by item
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 subContext = swsContext.datasets[[1]]
-## allItems = "1001"
+allItems = "1001"
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
     subContext@dimensions$measuredItemHS@keys = i
@@ -336,51 +342,51 @@ for(i in allItems){
     
     mirroredData %>%
         mergeReverseTrade(data = .) %>%
-            {
-                reliability <<- getReliabilityIndex()
-                mergeReliability(data = ., reliability = reliability)
-            } %>%
-            balanceTrade(data = .) %>%
-            {
-                ## NOTE (Michael): The section on mapping HS to CPC
-                ##                 and also the country code is not
-                ##                 required, it should be removed
-                ##                 later when the database is set up
-                ##                 correctly.
-                hsToCPCMapping <<- getHStoCPCMapping()
-                comtradeToStandardM49Mapping <<- getComtradeStandard49Mapping()
-                finalStdData <<-
-                    mapHStoCPCTradeStd(tradeStdData = .$stdData,
-                                       tradeStdVar = "Value",
-                                       mapping = hsToCPCMapping) %>%
-                    comtradeM49ToStandardM49(comtradeData = .,
-                                             comtradeM49Name = "geographicAreaM49",
-                                             standardM49Name = "geographicAreaM49",
-                                             translationData =
-                                                 comtradeToStandardM49Mapping,
-                                             translationComtradeM49Name =
-                                                 "comtrade_code",
-                                             translationStandardM49Name =
-                                                 "translation_code",
-                                             aggregateKey =
-                                                 c("measuredItemCPC", yearVar),
-                                             aggregateValueCol =
-                                                 grep(valuePrefix, colnames(.),
-                                                      value = TRUE)) %>%
-                    setcolorder(.,
-                                neworder = c("geographicAreaM49",
-                                    "measuredItemCPC",
-                                    "measuredElementTrade", "timePointYears",
-                                    "quantity_standard_deviation",
-                                    "flagObservationStatus", "flagMethod")) %>%
-                    setnames(.,
-                             old = "quantity_standard_deviation",
-                             new = "Value")
-                if(NROW(finalStdData) > 0)
-                    saveTradeStandardDeviation(stdData = finalStdData)
-                selectSaveSelection(data = .$balanceData)
-            } %>%
-            saveBalancedData(data = .)
+        {
+            reliability <<- getReliabilityIndex()
+            mergeReliability(data = ., reliability = reliability)
+        } %>%
+        balanceTrade(data = .) %>%
+        {
+            ## NOTE (Michael): The section on mapping HS to CPC
+            ##                 and also the country code is not
+            ##                 required, it should be removed
+            ##                 later when the database is set up
+            ##                 correctly.
+            hsToCPCMapping <<- getHStoCPCMapping()
+            comtradeToStandardM49Mapping <<- getComtradeStandard49Mapping()
+            finalStdData <<-
+                mapHStoCPCTradeStd(tradeStdData = .$stdData,
+                                   tradeStdVar = "Value",
+                                   mapping = hsToCPCMapping) %>%
+            comtradeM49ToStandardM49(comtradeData = .,
+                                     comtradeM49Name = "geographicAreaM49",
+                                     standardM49Name = "geographicAreaM49",
+                                     translationData =
+                                         comtradeToStandardM49Mapping,
+                                     translationComtradeM49Name =
+                                         "comtrade_code",
+                                     translationStandardM49Name =
+                                         "translation_code",
+                                     aggregateKey =
+                                         c("measuredItemCPC", yearVar),
+                                     aggregateValueCol =
+                                         grep(valuePrefix, colnames(.),
+                                              value = TRUE)) %>%
+             setcolorder(.,
+                         neworder = c("geographicAreaM49",
+                             "measuredItemCPC",
+                             "measuredElementTrade", "timePointYears",
+                             "quantity_standard_deviation",
+                             "flagObservationStatus", "flagMethod")) %>%
+             setnames(.,
+                      old = "quantity_standard_deviation",
+                      new = "Value")
+            if(NROW(finalStdData) > 0)
+                saveTradeStandardDeviation(stdData = finalStdData)
+            selectSaveSelection(data = .$balanceData)
+        } %>%
+        saveBalancedData(data = .)
 }
 
 
