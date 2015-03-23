@@ -21,9 +21,6 @@ if(verbose){
 }
 
 
-## Year should be a paramameter selected.
-selectedYear = "2010"
-
 areaVar = "geographicAreaM49"
 yearVar = "timePointYears"
 itemVar = "measuredItemCPC"
@@ -38,7 +35,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "460712b4-630a-4074-9eb2-49e2fb2a88af"
+        token = "067e53a8-1bff-4013-b4f1-69a00c9a66fc"
         )
     verbose = TRUE
     R_SWS_SHARE_PATH = getwd()
@@ -289,8 +286,6 @@ getLossData = function(){
 }
 
 getIndustrialUseData = function(){
-
-
     industrialUseKey = DatasetKey(
         domain = "industrialUse",
         dataset = "industrialuse",
@@ -327,7 +322,6 @@ getIndustrialUseData = function(){
                               list(as.numeric(timePointYears),
                                    as.numeric(Value_measuredElement_5150)))]
     industrialUseQuery
-
 }
 
 getFoodData = function(){
@@ -398,7 +392,6 @@ getFoodData = function(){
                   Value_measuredElement_5142 * 1000]
     
     foodQuery
-
 }
 
 getFeedItemClassification = function(){
@@ -482,23 +475,11 @@ imputeCrushExtractionRates = function(data, countryVar, itemVar, yearVar,
     
 
 calculateFeedAvailability = function(data, itemVar, childItemVar, yearVar,
-    feedVariable,
-    productionVar, importVar, exportVar, seedVar, industrialUseVar, lossVar,
-    foodVar, crushRateVar,
-    oilExtractionRateVarDom, oilExtractionRateVarTrade, mealExtractionRateVarDom,
-    mealExtractionRateVarTrade){
+    feedVariable, productionVar, importVar, exportVar, seedVar, industrialUseVar,
+    lossVar, foodVar){
 
     ## Assume the data has been merged
     dataCopy = copy(data)
-
-    ## Calculate trade to production ratio for weighting domestic and
-    ## traded meal/oil extraction rates
-    ## dataCopy[, netTrade := dataCopy[[importVar]] - dataCopy[[exportVar]]]
-    ## dataCopy[netTrade < 0, netTrade := 0]
-    ## dataCopy[is.na(dataCopy[[productionVar]]), `:=`(c(productionVar), 0)]
-    ## dataCopy[, productionRatio :=
-    ##              dataCopy[[productionVar]]/(dataCopy[[productionVar]] + netTrade)]
-
 
     ## Calculate feed availability based on classification
     dataCopy[feedClassification == "not for feed",
@@ -553,7 +534,7 @@ mergeAllData = function(...){
 }
 
 
-## Obtain the valid year range of each country
+## Obtain the valid year range for each country
 getValidRange = function(){
     countryTable =
         GetCodeList(domain = "feed",
@@ -561,8 +542,6 @@ getValidRange = function(){
                     dimension = "geographicAreaM49")
     countryTable =
         countryTable[type == "country", ]
-    ## countryTable[, startDate := NULLtoNA(startDate)]
-    ## countryTable[, endDate := NULLtoNA(endDate)]
     countryTable[, startDate := as.numeric(substr(startDate, 1, 4))]
     countryTable[, endDate := as.numeric(substr(endDate, 1, 4))]
     countryTable[is.na(startDate), startDate := -Inf]
@@ -571,8 +550,7 @@ getValidRange = function(){
 }
 
 
-## Function to remove imputed data which corresponds to invalid time
-## range.
+## Function to remove data which corresponds to invalid time range.
 validData = function(data, areaName = areaVar,
     yearName = yearVar){
     validRange = getValidRange()
@@ -588,29 +566,34 @@ validData = function(data, areaName = areaVar,
 
 
 saveFeedData = function(data){
-    if(NROW(data) > 0)
+    selectData =
+        unique.data.frame(data[, c(areaVar, itemVar, yearVar,
+                 paste0(c(valuePrefix, flagObsPrefix, flagMethodPrefix),
+                        elementVar, "_5033")), with = FALSE])
+    if(NROW(selectData) > 0)
         SaveData(domain = "feed",
                  dataset = "feed_availability",
-                 data = data[, c(areaVar, itemVar, yearVar,
-                     paste0(c(valuePrefix, flagObsPrefix, flagMethodPrefix),
-                            elementVar, "_5033")), with = FALSE],
+                 data = selectData,
                  normalized = FALSE)
 }
 
 
+## Start the calculation of feed availability
 requiredItems = getAllItemCPC()
 
-## Obtain all the countries in the feed domain
+## Obtain all the parameters
 allCountries =
     GetCodeList(domain = "agriculture",
                 dataset = "agriculture",
                 dimension = areaVar)[type == "country", code]
+selectedCountries = swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
+selectedYear = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 
-for(i in allCountries){
-    print(i)
+
+for(i in selectedCountries){
     requiredCountries <<- i
 
-    ## Calculate feed availability
+    ## Obtain raw data
     feedRawData =
         {
             if(verbose){
@@ -618,17 +601,11 @@ for(i in allCountries){
                 currentTime = Sys.time()
             }
             production <<- getProductionData()
-            print(NROW(production))
             trade <<- getTradeData()
-            print(NROW(trade))
             seed <<- getSeedData()
-            print(NROW(seed))
             loss <<- getLossData()
-            print(NROW(loss))
             indUse <<- getIndustrialUseData()
-            print(NROW(indUse))
             food <<- getFoodData()
-            print(NROW(food))
             feedClassification <<- getFeedItemClassification()
         } %>%
         {
@@ -648,6 +625,7 @@ for(i in allCountries){
     if(NROW(feedRawData) == 0)
         next
     
+    ## Calculate feed availability
     feedAvailability =
         feedRawData %>%
             {
@@ -656,34 +634,8 @@ for(i in allCountries){
                     timeUsed = endTime - currentTime
                     cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
                     currentTime = endTime
-                    cat("Impute extraction rates\n")
-            }
-                ## Impute crush and oil/meal extraction rates
-                imputeCrushExtractionRates(data = .,
-                                           countryVar = "geographicAreaM49",
-                                           itemVar = "measuredItemCPC",
-                                           yearVar = "timePointYears",
-                                           crushRateVar =
-                                               "Value_measuredElement_52",
-                                           oilExtractionRateVarDom =
-                                               "Value_measuredElement_53",
-                                           oilExtractionRateVarTrade =
-                                               "Value_measuredElement_54",
-                                           mealExtractionRateVarDom =
-                                               "Value_measuredElement_63",
-                                           mealExtractionRateVarTrade =
-                                               "Value_measuredElement_64")
-            } %>%
-            {
-                if(verbose){
-                    endTime = Sys.time()
-                    timeUsed = endTime - currentTime
-                    cat("\t Time used:", timeUsed, attr(timeUsed, "units") , "\n")
-                    currentTime = endTime
                     cat("Calculate Feed Availability\n")
                 }
-                
-                ## Calculate feed availability
                 calculateFeedAvailability(data = .,
                                           itemVar = "measuredItemCPC",
                                           childItemVar = "measuredItemCPCChild",
@@ -698,17 +650,7 @@ for(i in allCountries){
                                           industrialUseVar =
                                               "Value_measuredElement_5150",
                                           lossVar = "Value_measuredElement_5120",
-                                          foodVar = "Value_measuredElement_5142",
-                                          crushRateVar =
-                                              "Value_measuredElement_52",
-                                          oilExtractionRateVarDom =
-                                              "Value_measuredElement_53",
-                                          oilExtractionRateVarTrade =
-                                              "Value_measuredElement_54",
-                                          mealExtractionRateVarDom =
-                                              "Value_measuredElement_63",
-                                          mealExtractionRateVarTrade =
-                                              "Value_measuredElement_64")
+                                          foodVar = "Value_measuredElement_5142")
             } %>%
             validData(data = .,
                       areaName = "geographicAreaM49",
