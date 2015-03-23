@@ -481,14 +481,21 @@ if(updateModel){
     ##                 there are only data for 2010. However, import
     ##                 should be added when it is available.
     
-    lossLmeModel =
-        lmer(log(Value_measuredElement_5120) ~ -1 + timePointYears +
-                 log(Value_measuredElement_5510 + 1) + 
-                     (log(Value_measuredElement_5510+ 1)|
-                          lossRegionClass/geographicAreaM49Name:
-                              foodPerishableGroup/foodGroupName/measuredItemCPC),
-             data = finalModelData)
+    ## lossLmeModel =
+    ##     lmer(log(Value_measuredElement_5120) ~ -1 + timePointYears +
+    ##          log(Value_measuredElement_5510 + 1) + 
+    ##          (log(Value_measuredElement_5510 + 1)|
+    ##               lossRegionClass/geographicAreaM49Name:
+    ##                   foodPerishableGroup/foodGroupName/measuredItemCPC),
+    ##          data = finalModelData)
 
+    lossLmeModel =
+        lmer(log(Value_measuredElement_5120) ~ timePointYears +
+             log(Value_measuredElement_5510 + 1) + 
+             (-1 + log(Value_measuredElement_5510 + 1)|
+                  foodPerishableGroup/foodGroupName/measuredItemCPC/geographicAreaM49Name),
+             data = finalModelData)
+    
     lossModelPath = paste0(R_SWS_SHARE_PATH, "/lossLmeModel")
     saveRDS(lossLmeModel, lossModelPath)
 } else {
