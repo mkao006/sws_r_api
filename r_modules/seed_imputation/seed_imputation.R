@@ -18,6 +18,8 @@ library(faosws)
 library(faoswsFlag)
 library(faoswsUtil)
 library(magrittr)
+library(igraph)
+library(lme4)
 
 ## Setting up variables
 areaVar = "geographicAreaM49"
@@ -41,13 +43,145 @@ if(Sys.getenv("USER") == "mk"){
         )
 }
 
+## Function to obtain all CPC item 
+getAllItemCPC = function(){
+    itemEdgeList =
+        adjacent2edge(
+            GetCodeTree(domain = "agriculture",
+                        dataset = "agriculture",
+                        dimension = itemVar)
+        )
+    itemEdgeGraph = graph.data.frame(itemEdgeList)
+    itemDist = shortest.paths(itemEdgeGraph, v = "0", mode = "out")
+    fbsItemCodes = colnames(itemDist)[is.finite(itemDist)]
+    fbsItemCodes
+}
+
+getAllCountries = function(){
+    GetCodeList(domain = "agriculture",
+                dataset = "agriculture",
+                dimension = "geographicAreaM49")[type == "country", code]
+}
+
+getAllYears = function(){
+    GetCodeList(domain = "agriculture",
+                dataset = "agriculture",
+                dimension = "timePointYears")[description != "wildcard", code]
+}
+    
+
+getOfficialSeedData = function(){
+    seedKey = DatasetKey(
+        domain = "agriculture",
+        dataset = "agriculture",
+        dimensions = list(
+            Dimension(name = areaVar,
+                      keys = getAllCountries()),
+            Dimension(name = elementVar,
+                      keys = seedElementCode),
+            Dimension(name = itemVar,
+                      keys = getAllItemCPC()),
+            Dimension(name = yearVar,
+                      keys = getAllYears())
+        )
+    )
+
+    ## Pivot to vectorize yield computation
+    seedPivot = c(
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = itemVar, ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = elementVar, ascending = TRUE)
+    )
+
+    ## Query the data
+    seedQuery = GetData(
+        key = seedKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = seedPivot
+    )
+
+    ## Convert time to numeric
+    seedQuery[, timePointYears := as.numeric(timePointYears)]
+    seedQuery[seedQuery[[paste0(flagObsPrefix, seedElementCode)]] == "", ]
+}
+
+getAllAreaData = function(){
+    ## Setups    
+    areaKey = DatasetKey(
+        domain = "agriculture",
+        dataset = "agriculture",
+        dimensions = list(
+            Dimension(name = areaVar,
+                      keys = getAllCountries()),
+            Dimension(name = elementVar,
+                      keys = c(areaHarvestedElementCode, areaSownElementCode)),
+            Dimension(name = itemVar,
+                      keys = getAllItemCPC()),
+            Dimension(name = yearVar,
+                      keys = getAllYears())
+        )
+    )
+
+    ## Pivot to vectorize yield computation
+    newPivot = c(
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = itemVar, ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = elementVar, ascending = TRUE)
+        )
+    
+    ## Query the data
+    query = GetData(
+        key = areaKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = newPivot
+        )
+    
+    query[, timePointYears := as.numeric(timePointYears)]
+    setkeyv(query, c("geographicAreaM49", "measuredItemCPC", "timePointYears"))
+    query
+}
+
+getWorldBankClimateData = function(){
+    ## allCountries =
+    ##     GetCodeList(domain = "WorldBank",
+    ##                 dataset = "wb_ecogrw",
+    ##                 dimension = "geographicAreaM49")[type == "country", code]
+    
+    newKey =
+        DatasetKey(domain = "WorldBank",
+                   dataset = "wb_climate",
+                   dimensions =
+                       list(
+                           Dimension(name = "geographicAreaM49",
+                                     keys = getAllCountries()),
+                           Dimension(name = "wbIndicator",
+                                     keys = c("SWS.FAO.PREC", "SWS.FAO.TEMP")),
+                           Dimension(name = "timePointYears",
+                                     keys = getAllYears())
+                       )
+                   )
+
+    newPivot = c(
+        Pivoting(code = "geographicAreaM49", ascending = TRUE),
+        Pivoting(code = "timePointYears", ascending = FALSE),
+        Pivoting(code = "wbIndicator", ascending = TRUE)        
+    )
+
+    climateData = GetData(key = newKey, pivoting = newPivot, normalized = FALSE)
+    climateData[, timePointYears := as.numeric(timePointYears)]
+    climateData
+}
+
 ## Function for obtaining the area harvested/sown data
 getAreaData = function(dataContext, areaSownElementCode, areaHarvestedElementCode,
     seedElementCode){
     
     ## Setups
-    requiredElements = c(areaSownElementCode, areaHarvestedElementCode,
-        seedElementCode)
+    requiredElements = c(areaSownElementCode, areaHarvestedElementCode)
 
 
     ## Pivot to vectorize yield computation
@@ -92,8 +226,6 @@ getAreaData = function(dataContext, areaSownElementCode, areaHarvestedElementCod
            })
     query[, timePointYears := as.numeric(timePointYears)]
     setkeyv(query, c("geographicAreaM49", "measuredItemCPC", "timePointYears"))
-    ## list(query = query,
-    ##      prefixTuples = prefixTuples)
     query
 }
 
@@ -186,6 +318,34 @@ fillGeneralSeedRate = function(data,
     setkeyv(data, okey)
 }
 
+mergeAllSeedData = function(seedData, ...){
+    explanatoryData = list(...)
+    Reduce(f = function(x, y){
+        keys = intersect(colnames(x), colnames(y))
+        setkeyv(x, keys)
+        setkeyv(y, keys)
+        merge(x, y, all.x = TRUE)
+    },
+           x = explanatoryData, init = seedData
+           )
+}
+
+removeCarryForward = function(data, variable){
+    data[, variance := var(.SD[[variable]], na.rm = TRUE),
+         by = c("geographicAreaM49", "measuredItemCPC")]
+    data[, duplicateValue := duplicated(.SD[[variable]]),
+         by = c("geographicAreaM49", "measuredItemCPC")]
+    data = data[!(variance == 0 & duplicateValue), ]
+    data[, `:=`(c("variance", "duplicateValue"), NULL)]
+    data         
+}
+
+
+buildCPCHierarchy = function(data, cpcItemVar, levels = 3){
+    data[, `:=`(c(paste0("cpcLvl", 1:levels)),
+                lapply(1:levels, FUN = function(x)
+                    factor(substr(data[[cpcItemVar]], 1, x))))]
+}
 
 imputeSeed = function(data,
     seedValue = "Value_measuredElement_5525",
@@ -268,18 +428,63 @@ SaveSeedData = function(data){
 }
 
 
-## Impute the area sown and also the seed
-finalSeedData =
-    getAreaData(dataContext = swsContext.datasets[[1]],
-                areaSownElementCode = areaSownElementCode,
-                areaHarvestedElementCode = areaHarvestedElementCode,
-                seedElementCode = seedElementCode) %>%
-    imputeAreaSown %>%
-    fillCountrySpecificSeedRate %>%
-    fillGeneralSeedRate %>%
-    imputeSeed
+seed =
+    getOfficialSeedData() %>%
+    removeCarryForward(data = ., variable = "Value_measuredElement_5525") %>%
+    buildCPCHierarchy(data = ., cpcItemVar = itemVar, levels = 3)
+area =
+    getAllAreaData() %>%
+    imputeAreaSown(data = .,
+                   valueAreaSown = "Value_measuredElement_5025", 
+                   valueAreaHarvested = "Value_measuredElement_5312",
+                   flagObsAreaSown = "flagObservationStatus_measuredElement_5025", 
+                   flagObsAreaHarvested =
+                       "flagObservationStatus_measuredElement_5312", 
+                   flagMethodAreaSown = "flagMethod_measuredElement_5025",
+                   imputedObsFlag = "I", 
+                   imputedMethodFlag = "e")
+climate = getWorldBankClimateData()
 
-## Save the imputed data back.
-finalSeedData%>%
-    validTimeData %>% 
-    SaveSeedData
+
+
+seedModelData =
+    mergeAllSeedData(seedData = seed, area, climate) %>%
+    .[Value_measuredElement_5525 > 1 & Value_measuredElement_5025 > 1, ]
+
+seedLmeModel = 
+    lmer(log(Value_measuredElement_5525) ~ Value_wbIndicator_SWS.FAO.TEMP +
+             timePointYears + 
+         (log(Value_measuredElement_5025)|cpcLvl3/measuredItemCPC:geographicAreaM49),
+         data = seedModelData)
+
+
+getSelectedSeedData = function(dataContext){
+    
+    ## Pivot to vectorize yield computation
+    newPivot = c(
+        Pivoting(code = areaVar, ascending = TRUE),
+        Pivoting(code = itemVar, ascending = TRUE),
+        Pivoting(code = yearVar, ascending = FALSE),
+        Pivoting(code = elementVar, ascending = TRUE)
+        )
+
+    selectedSeed =
+        GetData(key = dataContext, normalized = FALSE, pivoting = newPivot)
+    selectedSeed[, timePointYears := as.numeric(timePointYears)]
+    selectedSeed
+}
+
+selectedSeed =
+    getSelectedSeedData(swsContext.datasets[[1]]) %>%
+    removeCarryForward(data = ., variable = "Value_measuredElement_5525") %>%
+    buildCPCHierarchy(data = ., cpcItemVar = itemVar, levels = 3) %>%
+    mergeAllSeedData(seedData = ., area, climate) %>%
+    .[Value_measuredElement_5525 > 1 & Value_measuredElement_5025 > 1, ]
+
+selectedSeed[, predicted :=
+                 exp(predict(seedLmeModel, selectedSeed, allow.new.levels = TRUE))]
+
+
+with(selectedSeed, plot(Value_measuredElement_5525, predicted))
+
+selectedSeed[Value_measuredElement_5525 >= 6e6 & predicted <= 4e6, ]
