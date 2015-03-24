@@ -36,7 +36,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "1e5c87fe-320f-4faa-9485-fde92f5b8fef"
+        token = "53d575c8-0ca7-4bbb-a865-369052b03ec5"
         )
     R_SWS_SHARE_PATH = getwd()
     verbose = TRUE
