@@ -1,5 +1,3 @@
-## NOTE (Michael): Need to request flag for raw data, the flag are missing.
-
 suppressMessages({
     library(faosws)
     library(faoswsUtil)
@@ -73,11 +71,6 @@ allElementTable =
     GetCodeList(domain = "trade",
                 dataset =  "ct_raw_tf",
                 dimension = "measuredElementTrade")
-## elementCode = c("5600", "5612", "5621", "5622", "5630", "5900", "5912", "5921",
-##     "5922", "5930")
-## elementCodeName = c("importQuantity", "reimportQuantity", "importValue",
-##     "reimportValue", "importUnitValue", "exportQuantity", "reexportQuantity",
-##     "exportValue", "reexportValue", "exportUnitValue")
 
 ## NOTE (Michael): This table is for cereal only, need Nick to provide
 ##                 the formula table.
@@ -88,9 +81,7 @@ elementTable =
                export = c("5900", "5921", "5930"),
                reexport = c("5912", "5922", NA))
 
-## NOTE (Michael): I think the assignment of the names and variables
-##                 in the global environment is the reason of error on
-##                 the server.
+
 assignElementName = function(elementTable){
     meltedElementTable = na.omit(melt(elementTable, id.vars = "type"))
     elementName = with(meltedElementTable, paste(variable, type, sep = "_"))
