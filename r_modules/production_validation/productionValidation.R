@@ -88,7 +88,6 @@ getAllHistory = function(){
     allHistory = GetHistory(key = newKey)
 
     ## Convert time to numeric and levels to factor
-    allHistory[, timePointYears := as.numeric(timePointYears)]
     allHistory[, `:=`(c("geographicAreaM49", "measuredItemCPC", "measuredElement",
                         "timePointYears", "flagMethod", "flagObservationStatus"),
                       list(factor(geographicAreaM49, levels = allCountries), 
@@ -103,21 +102,25 @@ getAllHistory = function(){
     allHistory = allHistory[flagObservationStatus != "M", ]
 
     ## create the binary response
-    allHistory[, valid := factor(ifelse(is.na(EndDate), "1", "0"))]
+    allHistory[, valid := factor(ifelse(is.na(EndDate), "Y", "N"))]
 
     ## Removing duplicated values.
-    allHistory[valid == "1", validValue := Value]
-    allHistory[, validValue := na.omit(unique(.SD[, validValue])),
+    allHistory[valid == "Y", validValue := Value]
+    allHistory[, validValue := na.omit(unique(validValue)),
                by = c("geographicAreaM49", "measuredItemCPC", "measuredElement",
                    "timePointYears")]
-    allHistory = allHistory[!(valid == "0" & validValue == Value), ]
+
+    allHistory = allHistory[!(valid == "N" & validValue == Value), ]
     allHistory[, validValue := NULL]
+    ## Add productionValue to all records.  For a very few unique combinations
+    ## of geographicAreaM49, measuredItemCPC, and timePointYears we have
+    ## multiple, valid production values in the database.  To accomodate that,
+    ## take the mean so that the same value is filled in.
     allHistory[, productionValue :=
-                   .SD[measuredElement == "5510" & is.na(EndData), Value],
+                   mean(.SD[measuredElement == "5510" & is.na(EndDate), Value]),
                by = c("geographicAreaM49", "measuredItemCPC", "timePointYears")]
     allHistory
 }
-
 
 allHistory = getAllHistory()
 
@@ -162,7 +165,6 @@ plsControl = trainControl(method = "boot", number = 10)
 
 if(testing){
     subHistory = allHistory[sample(NROW(allHistory), 500), ]
-
 
     inTrain = createDataPartition(y = subHistory$valid, p = 0.75, list = FALSE)
     training = subHistory[inTrain[, 1], ]
