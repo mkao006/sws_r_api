@@ -61,7 +61,7 @@ allPartnerCountryCode =
                 dimension = partnerCountryVar)[type == "country", code]
 
 tradeFlowFlagTable =
-    data.table(flagObservationStatus = c("", "/"),
+    data.table(flagObservationStatus = c("", "m"),
                flagObservationWeights = c(1, 0.5))
 
 ## Get relevant element codes and set names
@@ -108,17 +108,17 @@ assignElementName(elementTable)
 
 ## Function to get mirrored data in normalized form
 getComtradeMirroredData = function(dataContext){
-        dimensions =
-            list(Dimension(name = "reportingCountryM49",
-                           keys = as.character(allReportingCountryCode)),
-                 Dimension(name = "partnerCountryM49",
-                           keys = as.character(allPartnerCountryCode)),
-                 Dimension(name = "measuredItemHS",
-                           keys = dataContext@dimensions$measuredItem@keys),
-                 Dimension(name = "measuredElementTrade",
-                           keys = dataContext@dimensions$measuredElementTrade@keys),
-                 Dimension(name = "timePointYears",
-                           keys = dataContext@dimensions$timePointYears@keys))
+    dimensions =
+        list(Dimension(name = "reportingCountryM49",
+                       keys = as.character(allReportingCountryCode)),
+             Dimension(name = "partnerCountryM49",
+                       keys = as.character(allPartnerCountryCode)),
+             Dimension(name = "measuredItemHS",
+                       keys = dataContext@dimensions$measuredItem@keys),
+             Dimension(name = "measuredElementTrade",
+                       keys = dataContext@dimensions$measuredElementTrade@keys),
+             Dimension(name = "timePointYears",
+                       keys = dataContext@dimensions$timePointYears@keys))
 
     newKey =
         DatasetKey(domain = "trade",
@@ -167,9 +167,33 @@ mergeReverseTrade = function(data){
 }
 
 
-getReliabilityIndex = function(){
-    data.table(read.csv(file = "reliability_example.csv",
-                        colClass = c("character", "character", "numeric")))
+getReliabilityIndex = function(dataContext){
+    countries =
+        GetCodeList(domain = "trade",
+                    dataset = "reliability_index",
+                    dimension = "geographicAreaM49")[type == "country", code]
+    
+    dimensions =
+        list(Dimension(name = "geographicAreaM49",
+                       keys = countries),
+             Dimension(name = "measuredElement",
+                       keys = "RELIDX"),
+             Dimension(name = "timePointYears",
+                       keys = dataContext@dimensions$timePointYears@keys))
+
+    newKey =
+        DatasetKey(domain = "trade",
+                   dataset = "reliability_index",
+                   dimensions = dimensions)
+
+    newPivot = c(
+        Pivoting(code = "geographicAreaM49", ascending = TRUE),
+        Pivoting(code = "timePointYears", ascending = FALSE),
+        Pivoting(code = "measuredElement", ascending = TRUE)
+    )
+
+    reliabilityData = GetData(key = newKey, pivoting = newPivot)
+    reliabilityData
 }
 
 mergeReliability = function(data, reliability){
@@ -177,7 +201,7 @@ mergeReliability = function(data, reliability){
     dataCopy = copy(data)
     
     setnames(reliabilityCopy,
-             old = c(standardCountryVar, "reliability"),
+             old = c(standardCountryVar, "Value"),
              new = c(reportingCountryVar, "reportingReliability"))
     dataWithReportingReliability =
         merge(dataCopy, reliabilityCopy, by = c(reportingCountryVar, yearVar))
@@ -343,7 +367,7 @@ for(i in allItems){
     mirroredData %>%
         mergeReverseTrade(data = .) %>%
         {
-            reliability <<- getReliabilityIndex()
+            reliability <<- getReliabilityIndex(swsContext.datasets[[1]])
             mergeReliability(data = ., reliability = reliability)
         } %>%
         balanceTrade(data = .) %>%
