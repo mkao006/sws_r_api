@@ -14,7 +14,7 @@
 	</Authors>
 	<Datasets>
 		<MainDataset>
-                     <Code>completed_tf</Code>
+                    <Code>ct_published_tf</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
 				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
@@ -24,11 +24,11 @@
 			</SelectableDimensions>
 		</MainDataset>
                 <Dataset>
-                    <Code>ct_published_tf</Code>
+                    <Code>completed_tf</Code>
 	        </Dataset>
-                <!-- <Dataset> -->
-                <!--     <Code>reliability index data</Code> -->
-	        <!-- </Dataset> -->
+                <Dataset>
+                    <Code>reliability_index</Code>
+	        </Dataset>
                 <!-- <Dataset> -->
                 <!--     <Code>standard deviation data</Code> -->
 	        <!-- </Dataset> -->
