@@ -79,7 +79,8 @@ elementTable =
                import = c("5600", "5621", "5630"),
                reimport = c("5612", "5622", NA),
                export = c("5900", "5921", "5930"),
-               reexport = c("5912", "5922", NA))
+               reexport = c("5912", "5922", NA),
+               stringsAsFactors = FALSE)
 
 
 assignElementName = function(elementTable){
@@ -339,7 +340,6 @@ selectSaveSelection = function(data){
 }
 
 saveBalancedData = function(data){
-    ## print(unique(data$measuredElementTrade))
     SaveData(domain = "trade",
              dataset = "ct_published_tf",
              data = data)
@@ -367,30 +367,25 @@ for(i in allItems){
             mergeReliability(data = ., reliability = reliability)
         } %>%
         balanceTrade(data = .) %>%
-        selectSaveSelection(data = .)
+        selectSaveSelection(data = .) %>%
+        saveBalancedData(data = .)
 
     ## setkeyv(balancedData, cols = colnames(balancedData)[1:5])
-    setkey(balancedData, NULL)
+    ## setkey(balancedData, NULL)
     
-    tmp =
-        data.table(reportingCountryM49 = "196",
-                   partnerCountryM49 = "100",
-                   measuredElementTrade = "5600",
-                   measuredItemHS = "1001",
-                   timePointYears = "2010",
-                   Value = as.numeric(6315340),
-                   flagTrade = "")
+    ## tmp =
+    ##     data.table(reportingCountryM49 = "196",
+    ##                partnerCountryM49 = "100",
+    ##                measuredElementTrade = "5600",
+    ##                measuredItemHS = "1001",
+    ##                timePointYears = "2010",
+    ##                Value = as.numeric(6315340),
+    ##                flagTrade = "")
         
 
-    rownames(balancedData) = NULL
-    SaveData(domain = "trade",
-             dataset = "ct_published_tf",
-             data = tmp)
-
-    print("Save Real data")
-    SaveData(domain = "trade",
-             dataset = "ct_published_tf",
-             data = balancedData[1, ])
+    ## SaveData(domain = "trade",
+    ##          dataset = "ct_published_tf",
+    ##          data = balancedData)
 
 
     ## saveBalancedData(data = mirroredData)
