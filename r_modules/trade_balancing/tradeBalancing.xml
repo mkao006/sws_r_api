@@ -15,13 +15,13 @@
 	<Datasets>
 		<MainDataset>
                     <Code>ct_published_tf</Code>
-			<SelectableDimensions>
-				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
-				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
-				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
-			</SelectableDimensions>
+		    	<SelectableDimensions>
+		    		<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
+		    		<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
+		    		<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
+		    		<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+		    		<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+		    	</SelectableDimensions>
 		</MainDataset>
                 <Dataset>
                     <Code>completed_tf</Code>
@@ -29,9 +29,9 @@
                 <Dataset>
                     <Code>reliability_index</Code>
 	        </Dataset>
-                <!-- <Dataset> -->
-                <!--     <Code>standard deviation data</Code> -->
-	        <!-- </Dataset> -->
+                <Dataset>
+                    <Code>stddev_quantity</Code>
+	        </Dataset>
 	</Datasets>
 	<InteractiveValidation>false</InteractiveValidation>
 	<Background>false</Background>
