@@ -80,3 +80,46 @@ mergeAllData = function(...){
            x = datasets[-1], init = datasets[[1]])
 }
 
+
+getFBSHiearchy = function(level){
+
+    ## Get the nth level root
+    fullList =
+        adjacent2edge(GetCodeTree(domain = "suafbs",
+                                  dataset = "fbs",
+                                  dimension = "measuredItemSuaFbs",
+                                  roots = "S2901"))
+    fullGraph = graph.data.frame(fullList[, list(children, parent)])
+    distanceToRoot = shortest.paths(fullGraph, to = "S2901", mode = "out")
+    nthLevelFBS = rownames(distanceToRoot)[which(distanceToRoot == level)]
+    ## HACK (Michael): The tree hierachy is set up wrong, these two items
+    ##                 should be third level not second level.
+    nthLevelFBS = nthLevelFBS[!nthLevelFBS %in% c("S2541", "S2899")]
+    
+
+    ## Get all the sub tree
+    nthLevelList =
+        adjacent2edge(GetCodeTree(domain = "suafbs",
+                                  dataset = "fbs",
+                                  dimension = "measuredItemSuaFbs",
+                                  roots = nthLevelFBS))
+
+    ## HACK (Michael): Remove duplicate, the tree again is set up
+    ##                 incorrectly in the database.
+    nthLevelTree = nthLevelList[!nthLevelList[, duplicated(children)], ]
+    nthLevelGraph = graph.data.frame(nthLevelTree[, list(children, parent)])
+    leaf = names(which(degree(nthLevelGraph, mode = "in") == 0))
+
+    ## Find the relation between leaf and the nth terminal root
+    distMatrix =
+        shortest.paths(nthLevelGraph, v = leaf, to = nthLevelFBS, mode = "out")
+
+    index = which(is.finite(distMatrix), arr.ind = TRUE)
+
+    ## Create the mapping
+    commodityTree =
+        data.frame(cpc_children_code =  leaf[index[, 1]],
+                   cpc_standardized_code = nthLevelFBS[index[, 2]])
+
+    commodityTree
+}
