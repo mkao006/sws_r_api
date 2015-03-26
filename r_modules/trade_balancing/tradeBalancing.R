@@ -36,7 +36,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "53d575c8-0ca7-4bbb-a865-369052b03ec5"
+        token = "49b3c566-3230-4e17-89ef-59ea5ee2ca72"
         )
     R_SWS_SHARE_PATH = getwd()
     verbose = TRUE
@@ -79,7 +79,8 @@ elementTable =
                import = c("5600", "5621", "5630"),
                reimport = c("5612", "5622", NA),
                export = c("5900", "5921", "5930"),
-               reexport = c("5912", "5922", NA))
+               reexport = c("5912", "5922", NA),
+               stringsAsFactors = FALSE)
 
 
 assignElementName = function(elementTable){
@@ -105,7 +106,7 @@ getComtradeMirroredData = function(dataContext){
              Dimension(name = "partnerCountryM49",
                        keys = as.character(allPartnerCountryCode)),
              Dimension(name = "measuredItemHS",
-                       keys = dataContext@dimensions$measuredItem@keys),
+                       keys = dataContext@dimensions$measuredItemHS@keys),
              Dimension(name = "measuredElementTrade",
                        keys = dataContext@dimensions$measuredElementTrade@keys),
              Dimension(name = "timePointYears",
@@ -342,11 +343,10 @@ saveBalancedData = function(data){
                 data = data)
 }
     
-
-## NOTE (Michael): Should do this by item
+## Procedure for trade balancing and calculate trade standard deviation.
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 subContext = swsContext.datasets[[1]]
-allItems = "1001"
+## allItems = "1001"
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
     subContext@dimensions$measuredItemHS@keys = i
@@ -363,7 +363,7 @@ for(i in allItems){
         } %>%
         balanceTrade(data = .) %>%
         {
-            ## NOTE (Michael): The section on mapping HS to CPC
+            ## HACK (Michael): The section on mapping HS to CPC
             ##                 and also the country code is not
             ##                 required, it should be removed
             ##                 later when the database is set up
@@ -403,5 +403,3 @@ for(i in allItems){
         } %>%
         saveBalancedData(data = .)
 }
-
-
