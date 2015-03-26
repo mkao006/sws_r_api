@@ -15,6 +15,7 @@
 	<Datasets>
 		<MainDataset>
                     <Code>ct_published_tf</Code>
+                    <!-- <Code>completed_tf</Code> -->
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
 				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>

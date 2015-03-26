@@ -36,7 +36,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "53d575c8-0ca7-4bbb-a865-369052b03ec5"
+        token = "46d48dcb-a7e8-4700-aff4-44fd190b5002"
         )
     R_SWS_SHARE_PATH = getwd()
     verbose = TRUE
@@ -195,19 +195,20 @@ mergeReliability = function(data, reliability){
              old = c(standardCountryVar, "Value"),
              new = c(reportingCountryVar, "reportingReliability"))
     dataWithReportingReliability =
-        merge(dataCopy, reliabilityCopy, by = c(reportingCountryVar, yearVar))
+        merge(dataCopy, reliabilityCopy, by = c(reportingCountryVar, yearVar),
+              all.x = TRUE)
 
     setnames(reliabilityCopy,
              old = c(reportingCountryVar, "reportingReliability"),
              new = c(partnerCountryVar, "partnerReliability"))
     reliabilityFull =
         merge(dataWithReportingReliability, reliabilityCopy,
-              by = c(partnerCountryVar, yearVar))
+              by = c(partnerCountryVar, yearVar), all.x = TRUE)
 
     ## Countries that does not have reliability are less reliable than
     ## countries that has reported every incorrectly.
-    reliabilityFull[is.na(reportingReliability), `:=`(c("reportingReliability", -10))]
-    reliabilityFull[is.na(partnerReliability), `:=`(c("partnerReliability", -10))]
+    reliabilityFull[is.na(reportingReliability), `:=`(c("reportingReliability"), -10)]
+    reliabilityFull[is.na(partnerReliability), `:=`(c("partnerReliability"), -10)]
     reliabilityFull
 }
 
@@ -235,7 +236,8 @@ balanceTrade = function(data){
     stdData[, measuredElementTrade := paste0("SD", measuredElementTrade)]
     stdData[, `:=`(c("flagObservationStatus", "flagMethod"),
                    list("E", "e"))]
-    list(balanceData = balanceData, stdData = stdData)
+    ## list(balanceData = balanceData, stdData = stdData)
+    balanceData
 }
 
 
@@ -337,71 +339,107 @@ selectSaveSelection = function(data){
 }
 
 saveBalancedData = function(data){
+    ## print(unique(data$measuredElementTrade))
     SaveData(domain = "trade",
-                dataset = "ct_published_tf",
-                data = data)
+             dataset = "ct_published_tf",
+             data = data)
 }
     
 
 ## NOTE (Michael): Should do this by item
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
-subContext = swsContext.datasets[[1]]
 allItems = "1001"
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
+    subContext = swsContext.datasets[[1]]
     subContext@dimensions$measuredItemHS@keys = i
 
     mirroredData = getComtradeMirroredData(dataContext = subContext)
     if(NROW(mirroredData) == 0)
         next
-    
-    mirroredData %>%
+
+    ## saveBalancedData(mirroredData)
+    balancedData = 
+        copy(mirroredData) %>%
         mergeReverseTrade(data = .) %>%
         {
             reliability <<- getReliabilityIndex(swsContext.datasets[[1]])
             mergeReliability(data = ., reliability = reliability)
         } %>%
         balanceTrade(data = .) %>%
-        {
-            ## NOTE (Michael): The section on mapping HS to CPC
-            ##                 and also the country code is not
-            ##                 required, it should be removed
-            ##                 later when the database is set up
-            ##                 correctly.
-            hsToCPCMapping <<- getHStoCPCMapping()
-            comtradeToStandardM49Mapping <<- getComtradeStandard49Mapping()
-            finalStdData <<-
-                mapHStoCPCTradeStd(tradeStdData = .$stdData,
-                                   tradeStdVar = "Value",
-                                   mapping = hsToCPCMapping) %>%
-            comtradeM49ToStandardM49(comtradeData = .,
-                                     comtradeM49Name = "geographicAreaM49",
-                                     standardM49Name = "geographicAreaM49",
-                                     translationData =
-                                         comtradeToStandardM49Mapping,
-                                     translationComtradeM49Name =
-                                         "comtrade_code",
-                                     translationStandardM49Name =
-                                         "translation_code",
-                                     aggregateKey =
-                                         c("measuredItemCPC", yearVar),
-                                     aggregateValueCol =
-                                         grep(valuePrefix, colnames(.),
-                                              value = TRUE)) %>%
-             setcolorder(.,
-                         neworder = c("geographicAreaM49",
-                             "measuredItemCPC",
-                             "measuredElementTrade", "timePointYears",
-                             "quantity_standard_deviation",
-                             "flagObservationStatus", "flagMethod")) %>%
-             setnames(.,
-                      old = "quantity_standard_deviation",
-                      new = "Value")
-            if(NROW(finalStdData) > 0)
-                saveTradeStandardDeviation(stdData = finalStdData)
-            selectSaveSelection(data = .$balanceData)
-        } %>%
-        saveBalancedData(data = .)
+        selectSaveSelection(data = .)
+
+    ## setkeyv(balancedData, cols = colnames(balancedData)[1:5])
+    setkey(balancedData, NULL)
+    
+    tmp =
+        data.table(reportingCountryM49 = "196",
+                   partnerCountryM49 = "100",
+                   measuredElementTrade = "5600",
+                   measuredItemHS = "1001",
+                   timePointYears = "2010",
+                   Value = as.numeric(6315340),
+                   flagTrade = "")
+        
+
+    rownames(balancedData) = NULL
+    SaveData(domain = "trade",
+             dataset = "ct_published_tf",
+             data = tmp)
+
+    print("Save Real data")
+    SaveData(domain = "trade",
+             dataset = "ct_published_tf",
+             data = balancedData[1, ])
+
+
+    ## saveBalancedData(data = mirroredData)
+    
+    ##     {
+    ##         ## NOTE (Michael): The section on mapping HS to CPC
+    ##         ##                 and also the country code is not
+    ##         ##                 required, it should be removed
+    ##         ##                 later when the database is set up
+    ##         ##                 correctly.
+    ##         hsToCPCMapping <<- getHStoCPCMapping()
+    ##         comtradeToStandardM49Mapping <<- getComtradeStandard49Mapping()
+    ##         finalStdData <<-
+    ##             mapHStoCPCTradeStd(tradeStdData = .$stdData,
+    ##                                tradeStdVar = "Value",
+    ##                                mapping = hsToCPCMapping) %>%
+    ##         comtradeM49ToStandardM49(comtradeData = .,
+    ##                                  comtradeM49Name = "geographicAreaM49",
+    ##                                  standardM49Name = "geographicAreaM49",
+    ##                                  translationData =
+    ##                                      comtradeToStandardM49Mapping,
+    ##                                  translationComtradeM49Name =
+    ##                                      "comtrade_code",
+    ##                                  translationStandardM49Name =
+    ##                                      "translation_code",
+    ##                                  aggregateKey =
+    ##                                      c("measuredItemCPC", yearVar),
+    ##                                  aggregateValueCol =
+    ##                                      grep(valuePrefix, colnames(.),
+    ##                                           value = TRUE)) %>%
+    ##          setcolorder(.,
+    ##                      neworder = c("geographicAreaM49",
+    ##                          "measuredItemCPC",
+    ##                          "measuredElementTrade", "timePointYears",
+    ##                          "quantity_standard_deviation",
+    ##                          "flagObservationStatus", "flagMethod")) %>%
+    ##          setnames(.,
+    ##                   old = "quantity_standard_deviation",
+    ##                   new = "Value")
+    ##         ## if(NROW(finalStdData) > 0)
+    ##         ##     saveTradeStandardDeviation(stdData = finalStdData)
+    ##         selectSaveSelection(data = .$balanceData)
+    ##     } %>%
+    ##     saveBalancedData(data = .)
+    
 }
 
 
+## setnames(balancedData, old = c("Value", "flagTrade"), new = c("checkValue", "checkFlag"))
+
+## check = merge(balancedData, mirroredData,
+##     by = intersect(colnames(balancedData), colnames(mirroredData)), all = TRUE)

@@ -178,5 +178,13 @@ saveReliabilityIndex = function(reliability){
 reliabilityIndex = 
     getComtradeMirroredData(swsContext.datasets[[1]]) %>%
     mergeReverseTrade(data = .) %>%
-    calculateReliability(data = ., mirroredFlag = "m", tolerance = 0) %T>%
+    calculateReliability(data = ., mirroredFlag = "m", tolerance = 0.2) %T>%
     saveReliabilityIndex
+
+
+mirroredData = getComtradeMirroredData(swsContext.datasets[[1]]) %>%
+    mergeReverseTrade(data = .)
+
+reliability = copy(mirroredData) %>%
+    calculateReliability(data = ., mirroredFlag = "m", tolerance = 0.2)
+
