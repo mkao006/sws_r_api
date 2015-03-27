@@ -23,16 +23,24 @@ if(Sys.getenv("USER") == "mk"){
 
 ## Function to get the yield formula triplets
 getYieldFormula = function(itemCode){
+    itemData = GetCodeList(domain = "agriculture", dataset = "agriculture",
+                           dimension = "measuredItemCPC", codes = itemCode)
+    uniqueItemTypes = unique(itemData$type)
     condition =
-        paste0("WHERE cpc_code IN (",
-               paste0(shQuote(as.character(itemCode)),
+        paste0("WHERE item_type IN (",
+               paste0(shQuote(as.character(uniqueItemTypes)),
                       collapse = ", "), ")")
     yieldFormula =
         GetTableData(schemaName = "ess",
-                     tableName = "item_yield_elements",
+                     tableName = "item_type_yield_elements",
                      whereClause = condition)
+    yieldFormula = merge.data.frame(itemData, yieldFormula,
+                                    by.x = "type", by.y = "item_type")
+    yieldFormula = yieldFormula[, c("code", "element_31", "element_41",
+                                    "element_51", "factor")]
+    yieldFormula = data.table(yieldFormula)
     setnames(yieldFormula,
-             old = c("cpc_code", "element_31", "element_41",
+             old = c("code", "element_31", "element_41",
                  "element_51", "factor"),
              new = c(itemVar, "input", "productivity",
                  "output", "unitConversion")
