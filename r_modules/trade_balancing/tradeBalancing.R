@@ -1,5 +1,3 @@
-## NOTE (Michael): Need to request flag for raw data, the flag are missing.
-
 suppressMessages({
     library(faosws)
     library(faoswsUtil)
@@ -38,7 +36,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "1e5c87fe-320f-4faa-9485-fde92f5b8fef"
+        token = "49b3c566-3230-4e17-89ef-59ea5ee2ca72"
         )
     R_SWS_SHARE_PATH = getwd()
     verbose = TRUE
@@ -73,11 +71,6 @@ allElementTable =
     GetCodeList(domain = "trade",
                 dataset =  "ct_raw_tf",
                 dimension = "measuredElementTrade")
-## elementCode = c("5600", "5612", "5621", "5622", "5630", "5900", "5912", "5921",
-##     "5922", "5930")
-## elementCodeName = c("importQuantity", "reimportQuantity", "importValue",
-##     "reimportValue", "importUnitValue", "exportQuantity", "reexportQuantity",
-##     "exportValue", "reexportValue", "exportUnitValue")
 
 ## NOTE (Michael): This table is for cereal only, need Nick to provide
 ##                 the formula table.
@@ -86,11 +79,10 @@ elementTable =
                import = c("5600", "5621", "5630"),
                reimport = c("5612", "5622", NA),
                export = c("5900", "5921", "5930"),
-               reexport = c("5912", "5922", NA))
+               reexport = c("5912", "5922", NA),
+               stringsAsFactors = FALSE)
 
-## NOTE (Michael): I think the assignment of the names and variables
-##                 in the global environment is the reason of error on
-##                 the server.
+
 assignElementName = function(elementTable){
     meltedElementTable = na.omit(melt(elementTable, id.vars = "type"))
     elementName = with(meltedElementTable, paste(variable, type, sep = "_"))
@@ -114,7 +106,7 @@ getComtradeMirroredData = function(dataContext){
              Dimension(name = "partnerCountryM49",
                        keys = as.character(allPartnerCountryCode)),
              Dimension(name = "measuredItemHS",
-                       keys = dataContext@dimensions$measuredItem@keys),
+                       keys = dataContext@dimensions$measuredItemHS@keys),
              Dimension(name = "measuredElementTrade",
                        keys = dataContext@dimensions$measuredElementTrade@keys),
              Dimension(name = "timePointYears",
@@ -351,11 +343,10 @@ saveBalancedData = function(data){
                 data = data)
 }
     
-
-## NOTE (Michael): Should do this by item
+## Procedure for trade balancing and calculate trade standard deviation.
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 subContext = swsContext.datasets[[1]]
-allItems = "1001"
+## allItems = "1001"
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
     subContext@dimensions$measuredItemHS@keys = i
@@ -372,7 +363,7 @@ for(i in allItems){
         } %>%
         balanceTrade(data = .) %>%
         {
-            ## NOTE (Michael): The section on mapping HS to CPC
+            ## HACK (Michael): The section on mapping HS to CPC
             ##                 and also the country code is not
             ##                 required, it should be removed
             ##                 later when the database is set up
@@ -412,5 +403,3 @@ for(i in allItems){
         } %>%
         saveBalancedData(data = .)
 }
-
-

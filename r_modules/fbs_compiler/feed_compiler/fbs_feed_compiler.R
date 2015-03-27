@@ -19,7 +19,7 @@ getFeedRequirementData = function(){
             Dimension(name = "nutrientType",
                       keys = "1"),
             Dimension(name = "estimator",
-                      keys = as.character(c(1:3))),
+                      keys = "1"),
             Dimension(name = "feedBaseUnit",
                       keys = "1"),
             Dimension(name = yearVar,
@@ -37,10 +37,6 @@ getFeedRequirementData = function(){
     )
 
     ## Query the data
-    ##
-    ## NOTE (Michael): Need to check this, 570 items are queried, but only
-    ##                 105 are returned. Also, there are no value for
-    ##                 element 5518 which caused the type to be logical.
     feedRequirementQuery = GetData(
         key = feedRequirementKey,
         flags = TRUE,
@@ -54,6 +50,7 @@ getFeedRequirementData = function(){
                                 lapply(valueColumns,
                                        FUN = function(x) gj2kcal(.SD[[x]])))]
 
+    setkeyv(feedRequirementQuery, cols = c("geographicAreaM49", "timePointYears"))
     ## Convert time to numeric
     feedRequirementQuery[, timePointYears := as.numeric(timePointYears)]
     feedRequirementQuery
