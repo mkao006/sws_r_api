@@ -43,7 +43,6 @@ getTradeData = function(){
 
 getTradeStandardDeviation = function(){
 
-
     ## NOTE (Michael): Need to select all the items, waiting for response
     ##                 from Nick on the item table.
     tradeSDKey = DatasetKey(
@@ -91,16 +90,20 @@ standardizeTradeStd = function(data, commodityTree, weightVariable,
     setnames(commodityTreeCopy, old = "cpc_children_code", new = itemVar)
 
     dataTree = merge(data, commodityTreeCopy, by = itemVar, all.x = TRUE)
-    standardized =
-        dataTree[, lapply(tradeStandardDeviationVariable,
-                          FUN = function(x) {
-                              sqrt(sum(.SD[[weightVariable]]^2 * .SD[[x]]^2))
-                          }),
-                 by = c(standardizationKey)]
+    if(NROW(dataTree) > 0){
+        standardized =
+            dataTree[, lapply(tradeStandardDeviationVariable,
+                              FUN = function(x) {
+                                  sqrt(sum(.SD[[weightVariable]]^2 * .SD[[x]]^2))
+                              }),
+                     by = c(standardizationKey)]
 
-    setnames(standardized,
-             old = paste0("V", 1:length(tradeStandardDeviationVariable)),
-             new = tradeStandardDeviationVariable)
+        setnames(standardized,
+                 old = paste0("V", 1:length(tradeStandardDeviationVariable)),
+                 new = tradeStandardDeviationVariable)
+    } else {
+        standardized = copy(data)
+    }
     standardized
 }
 
