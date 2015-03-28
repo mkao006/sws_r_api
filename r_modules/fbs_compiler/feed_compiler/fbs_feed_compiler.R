@@ -1,12 +1,17 @@
-getFeedAvailabilityData = function(){
-    ## HACK (Michael): We need to get this from the feed availability
-    ## table
-    tmp = data.table(read.csv(file = "feedAvailability.csv",
-        colClass = rep("character", 6)))
-    tmp[, `:=`(c("Value_measuredElement_feedAvail", "timePointYears"),
-               list(as.numeric(Value_measuredElement_feedAvail),
-                    as.numeric(timePointYears)))]
-    tmp    
+## getFeedAvailabilityData = function(){
+##     ## HACK (Michael): We need to get this from the feed availability
+##     ## table
+##     tmp = data.table(read.csv(file = "feedAvailability.csv",
+##         colClass = rep("character", 6)))
+##     tmp[, `:=`(c("Value_measuredElement_feedAvail", "timePointYears"),
+##                list(as.numeric(Value_measuredElement_feedAvail),
+##                     as.numeric(timePointYears)))]
+##     tmp    
+## }
+
+
+gj2kcal = function(x){
+    x * 238845.8966275
 }
 
 getFeedRequirementData = function(){
@@ -57,43 +62,35 @@ getFeedRequirementData = function(){
 }
 
 
-gj2kcal = function(x){
-    x * 238845.8966275
-}
-
-
-
-disaggregateFeedRequirement = function(data, areaVar, yearVar,
-    feedAvailabilityVar, feedRequirementPointVar, feedUtilizationVar){
+calculateFeedAvailability = function(data, production, import, export, seed, loss,
+    industrialUse, food){
 
     dataCopy = copy(data)
-    dataCopy[, disaggregationWeights :=
-                 computeRatio(.SD[[feedAvailabilityVar]],
-                              sum(.SD[[feedAvailabilityVar]],
-                         na.rm = TRUE)),
+    dataCopy[, `:=`(c("Value_measuredElementCalorie_feedAvail"),
+                    rowSums(dataCopy[, c(production, import), ,with = FALSE]) -
+                    rowSums(dataCopy[, c(export, seed, loss, industrialUse, food),
+                                     with = FALSE]))]
+    dataCopy[Value_measuredElementCalorie_feedAvail < 0,
+             Value_measuredElementCalorie_feedAvail := 0]
+    dataCopy[, feedAvailableWeights :=
+                 computeRatio(Value_measuredElementCalorie_feedAvail,
+                              sum(Value_measuredElementCalorie_feedAvail)),
              by = c(areaVar, yearVar)]
-    
-    dataCopy[, `:=`(c(feedUtilizationVar),
-                    list(dataCopy[[feedRequirementPointVar]] * disaggregationWeights))]
-    dataCopy[, disaggregationWeights := NULL]
     dataCopy
 }
 
 
 
+disaggregateFeedRequirement = function(data, areaVar, yearVar,
+    feedAvailabilityWeight, feedRequirementVar, feedUtilizationVar){
+    dataCopy = copy(data)
+    dataCopy[, `:=`(c(feedUtilizationVar),
+                    list(.SD[[feedRequirementVar]] *
+                         .SD[[feedAvailabilityWeight]])),
+             by = c(areaVar, yearVar)]
+    dataCopy[is.na(dataCopy[[feedUtilizationVar]]),
+             `:=`(c(feedUtilizationVar), 0)]
+    dataCopy
+}
 
-## Pseudo codes:
-
-## Get feed availability data
-
-## Get nutrient data
-
-## Compute Calorie standardization
-
-## Aggregate feed availability
-
-## Disaggregate feed requirement according to the calorie
-## availability. If total Availability is greater than total
-## requirement, then take upper bound, if less then take lower
-## bound. Otherwise no change.
 
