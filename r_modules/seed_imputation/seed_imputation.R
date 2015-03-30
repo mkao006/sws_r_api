@@ -51,10 +51,9 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     R_SWS_SHARE_PATH = paste0(apiDirectory, "/..")
 
     ## Copy over scripts from package directory
-    unlink(apiDirectory)
     file.copy(from = dir(packageDirectory, pattern = ".*\\.R$",
                          full.names = TRUE),
-              to = apiDirectory)
+              to = apiDirectory, overwrite = TRUE)
 
     ## Source copied scripts for this local test
     for(file in dir(apiDirectory, full.names = T))

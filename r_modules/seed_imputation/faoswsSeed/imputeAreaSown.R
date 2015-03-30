@@ -39,10 +39,10 @@
 ##' @export
 ##' 
 
-imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5212",
+imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5025",
           valueAreaHarvested = "Value_measuredElement_5312",
-          flagObsAreaSown = "flagObservationStatus_measuredElement_5212",
-          flagMethodAreaSown = "flagMethod_measuredElement_5212",
+          flagObsAreaSown = "flagObservationStatus_measuredElement_5025",
+          flagMethodAreaSown = "flagMethod_measuredElement_5025",
           flagObsAreaHarvested = "flagObservationStatus_measuredElement_5312",
           imputedObsFlag = "I", imputedMethodFlag = "e",
           byKey = NULL, imputationParameters = NULL){
@@ -88,8 +88,12 @@ imputeAreaSown = function(data, valueAreaSown = "Value_measuredElement_5212",
                  Value_areaSownRatio := mean(data[, Value_areaSownRatio],
                                              na.rm = TRUE)]
         } else { # Impute with simple mean
-            data[, Value_areaSownRatio := mean(get(valueAreaSown) / 
-                        get(valueAreaHarvested), na.rm = TRUE), by = byKey]
+            data[, temporaryRatio := get(valueAreaSown) / 
+                                     get(valueAreaHarvested)]
+            data[, Value_areaSownRatio := mean(
+                temporaryRatio[temporaryRatio < Inf], na.rm = TRUE),
+                by = byKey]
+            data[, temporaryRatio := NULL]
             data[, flagObservationStatus_areaSownRatio := "I"]
             data[, flagMethod_areaSownRatio := "e"]
         }
