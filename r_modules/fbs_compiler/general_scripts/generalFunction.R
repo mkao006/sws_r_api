@@ -85,9 +85,10 @@ getPopulationData = function(){
 computeCalorie = function(data, quantityVariable, calorieVariable,
     quantityToTonMultiplier, calorieToTonMultiplier, outputName){
     tmp = copy(data)
-    tmp[, `:=`(c(outputName),
-                list(tmp[[quantityVariable]] * quantityToTonMultiplier *
-                     tmp[[calorieVariable]] * calorieToTonMultiplier))]
+    if(NROW(tmp) > 0)
+        tmp[, `:=`(c(outputName),
+                   list(tmp[[quantityVariable]] * quantityToTonMultiplier *
+                            tmp[[calorieVariable]] * calorieToTonMultiplier))]
     tmp
 }
 
@@ -208,3 +209,11 @@ calculatePerCaput = function(data, populationVar, valueColumns){
                            }))]
     dataCopy
 }
+
+saveContingencyCaputTable = function(data){
+    SaveData(domain = "suafbs",
+             dataset = "fbs_prebalance",
+             data = data,
+             normalized = FALSE)
+}
+             
