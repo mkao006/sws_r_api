@@ -189,26 +189,31 @@ getReliabilityIndex = function(dataContext){
 }
 
 mergeReliability = function(data, reliability){
-    reliabilityCopy = copy(reliability)
+    reliabilityCopy =
+        copy(reliability[, list(geographicAreaM49, timePointYears, Value)])
     dataCopy = copy(data)
     
     setnames(reliabilityCopy,
              old = c(standardCountryVar, "Value"),
              new = c(reportingCountryVar, "reportingReliability"))
     dataWithReportingReliability =
-        merge(dataCopy, reliabilityCopy, by = c(reportingCountryVar, yearVar))
+        merge(dataCopy, reliabilityCopy, by = c(reportingCountryVar, yearVar),
+              all.x = TRUE)
 
     setnames(reliabilityCopy,
              old = c(reportingCountryVar, "reportingReliability"),
              new = c(partnerCountryVar, "partnerReliability"))
     reliabilityFull =
         merge(dataWithReportingReliability, reliabilityCopy,
-              by = c(partnerCountryVar, yearVar))
+              by = c(partnerCountryVar, yearVar),
+              all.x = TRUE)
 
     ## Countries that does not have reliability are less reliable than
     ## countries that has reported every incorrectly.
-    reliabilityFull[is.na(reportingReliability), `:=`(c("reportingReliability", -10))]
-    reliabilityFull[is.na(partnerReliability), `:=`(c("partnerReliability", -10))]
+    reliabilityFull[is.na(reportingReliability),
+                    `:=`(c("reportingReliability"), -10)]
+    reliabilityFull[is.na(partnerReliability),
+                    `:=`(c("partnerReliability"), -10)]
     reliabilityFull
 }
 
@@ -291,7 +296,7 @@ getComtradeStandard49Mapping = function(){
 ## standard UNSD M49 country codes.
 comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Name,
     translationData, translationComtradeM49Name, translationStandardM49Name,
-    aggregateKey, aggregateValueCol){
+    aggregateKey, aggregateValueCol, aggregateFun){
     if(NROW(comtradeData) > 0){
         
         ## Merge comtrade data with translation data
@@ -312,7 +317,7 @@ comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Na
         translated =
             translate[, `:=`(c(aggregateValueCol),
                              lapply(aggregateValueCol,
-                                    FUN = function(x) sum(.SD[[x]]))),
+                                    FUN = function(x) aggregateFun(.SD[[x]]))),
                       by = c(unique(c(translationStandardM49Name, aggregateKey)))]
         translated[, `:=`(c("flagObservationStatus", "flagMethod"),
                           list("E", "e"))]
@@ -346,7 +351,7 @@ saveBalancedData = function(data){
 ## Procedure for trade balancing and calculate trade standard deviation.
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 subContext = swsContext.datasets[[1]]
-## allItems = "1001"
+allItems = "1001"
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
     subContext@dimensions$measuredItemHS@keys = i
@@ -387,7 +392,8 @@ for(i in allItems){
                                          c("measuredItemCPC", yearVar),
                                      aggregateValueCol =
                                          grep(valuePrefix, colnames(.),
-                                              value = TRUE)) %>%
+                                              value = TRUE),
+                                     aggregateFun = function(x) sqrt(sum(x^2))) %>%
              setcolorder(.,
                          neworder = c("geographicAreaM49",
                              "measuredItemCPC",
