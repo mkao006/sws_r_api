@@ -25,109 +25,46 @@ valuePrefix = "Value_"
 flagPrefix = "flagTrade_"
 reverseTradePrefix = "reverse_"
 
+## set up for the test environment and parameters
+R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
+DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
-## Set up testing environments
-if(Sys.getenv("USER") == "mk"){
+if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
+    ## Define directories
+    apiDirectory = "~/Documents/Github/sws_r_api/r_modules/production_validation/faoswsProduction"
+    packageDirectory = "~/Documents/SVN/RModules/faoswsProduction/R/"
+    
+    ## Get SWS Parameters
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         token = "6b16fcc4-8eb6-4cec-9009-680f11d0330a"
-        )
-    R_SWS_SHARE_PATH = getwd()
+    )
+    R_SWS_SHARE_PATH = paste0(apiDirectory, "/..")
+
+    ## Copy over scripts from package directory
+    unlink(apiDirectory)
+    file.copy(from = dir(packageDirectory, pattern = ".*\\.R$",
+                         full.names = TRUE),
+              to = apiDirectory)
+
+    ## Source copied scripts for this local test
+    for(file in dir(apiDirectory, full.names = T))
+        source(file)
 } else {
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
     updateModel = as.logical(swsContext.computationParams$updateModel)
 }
 
-
-getAllHistory = function(){
-
-    allCountries =
-        GetCodeList(domain = "agriculture",
-                    dataset = "agriculture",
-                    dimension = "geographicAreaM49")[type == "country", code]
-
-    ## Lets just test on subtree
-    allItems =
-        adjacent2edge(GetCodeTree(domain = "agriculture",
-                                  dataset = "agriculture",
-                                  dimension = "measuredItemCPC",
-                                  roots = "01"))$children
-
-    ## Only data after 1990 has history
-    allYears =
-        GetCodeList(domain = "agriculture",
-                    dataset = "agriculture",
-                    dimension = "timePointYears")[description != "wildcard" ,code]
-    allYears = as.numeric(allYears)
-    allYears = allYears[allYears >= 1990]
-    
-    ## Create the new expanded keys
-    newKey = DatasetKey(
-        domain = "agriculture",
-        dataset = "agriculture",
-        dimensions = list(
-            Dimension(name = "geographicAreaM49",
-                      keys = allCountries),
-            Dimension(name = "measuredElement",
-                      keys = c("5312", "5510", "5412")),
-            Dimension(name = "measuredItemCPC",
-                      keys = allItems),
-            Dimension(name = yearVar,
-                      keys = as.character(allYears))
-            )
-        )
-
-    ## Pivot to vectorize yield computation
-    newPivot = c(
-        Pivoting(code = "geographicAreaM49", ascending = TRUE),
-        Pivoting(code = "measuredItemCPC", ascending = TRUE),
-        Pivoting(code = "timePointYears", ascending = FALSE),
-        Pivoting(code = "measuredElement", ascending = TRUE)
-        )
-
-    allHistory = GetHistory(key = newKey)
-
-    ## Convert time to numeric and levels to factor
-    allHistory[, `:=`(c("geographicAreaM49", "measuredItemCPC", "measuredElement",
-                        "timePointYears", "flagMethod", "flagObservationStatus"),
-                      list(factor(geographicAreaM49, levels = allCountries), 
-                           factor(measuredItemCPC, level = allItems),
-                           factor(measuredElement,
-                                  levels = c("5312", "5510", "5412")),
-                           as.numeric(timePointYears),
-                           factor(flagMethod),
-                           factor(flagObservationStatus)))]
-
-    ## Remove missing observation
-    allHistory = allHistory[flagObservationStatus != "M", ]
-
-    ## create the binary response
-    allHistory[, valid := factor(ifelse(is.na(EndDate), "Y", "N"))]
-
-    ## Removing duplicated values.
-    allHistory[valid == "Y", validValue := Value]
-    allHistory[, validValue := na.omit(unique(validValue)),
-               by = c("geographicAreaM49", "measuredItemCPC", "measuredElement",
-                   "timePointYears")]
-
-    allHistory = allHistory[!(valid == "N" & validValue == Value), ]
-    allHistory[, validValue := NULL]
-    ## Add productionValue to all records.  For a very few unique combinations
-    ## of geographicAreaM49, measuredItemCPC, and timePointYears we have
-    ## multiple, valid production values in the database.  To accomodate that,
-    ## take the mean so that the same value is filled in.
-    allHistory[, productionValue :=
-                   mean(.SD[measuredElement == "5510" & is.na(EndDate), Value]),
-               by = c("geographicAreaM49", "measuredItemCPC", "timePointYears")]
-    allHistory
-}
-
 allHistory = getAllHistory()
+
+# validationRule =
+#     valid ~ -1 + geographicAreaM49 + measuredItemCPC + measuredElement +
+#         timePointYears + flagObservationStatus + flagMethod + Value +
+#             productionValue
 
 validationRule =
     valid ~ -1 + geographicAreaM49 + measuredItemCPC + measuredElement +
-        timePointYears + flagObservationStatus + flagMethod + Value +
-            productionValue
+        Value + productionValue
 
 
 ## Model paths
@@ -156,7 +93,7 @@ nnetControl = trainControl(method = "boot", number = 25)
 rfControl = trainControl(method = "boot", number = 10)
 fdaControl = trainControl(method = "boot", number = 10)
 plsControl = trainControl(method = "boot", number = 10)
-
+bagEarthControl = trainControl(method = "boot", number = 10)
 
 
 
