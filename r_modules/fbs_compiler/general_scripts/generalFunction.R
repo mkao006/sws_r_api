@@ -44,6 +44,44 @@ getNutrientData = function(){
 }
 
 
+getPopulationData = function(){
+    populationKey = DatasetKey(
+        domain = "population",
+        dataset = "population",
+        dimensions = list(
+            Dimension(name = "geographicAreaM49",
+                      keys = selectedCountry),
+            Dimension(name = "measuredElementPopulation",
+                      keys = "11"),
+            Dimension(name = "timePointYears",
+                      keys = selectedYear)
+        )
+    )
+
+    ## Pivot to vectorize yield computation
+    populationPivot = c(
+        Pivoting(code = "geographicAreaM49", ascending = TRUE),
+        Pivoting(code = "timePointYears", ascending = TRUE),
+        Pivoting(code = "measuredElementPopulation", ascending = FALSE)
+    )
+
+    ## Query the data
+    populationQuery = GetData(
+        key = populationKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = populationPivot
+    )
+
+    ## Convert population in thousands to count
+    populationQuery[, Value_measuredElementPopulation_11:=
+                        Value_measuredElementPopulation_11 * 1000]
+    
+    ## Convert time to numeric
+    populationQuery[, timePointYears := as.numeric(timePointYears)]
+    populationQuery
+}
+
 computeCalorie = function(data, quantityVariable, calorieVariable,
     quantityToTonMultiplier, calorieToTonMultiplier, outputName){
     tmp = copy(data)
@@ -118,8 +156,55 @@ getFBSHiearchy = function(level){
 
     ## Create the mapping
     commodityTree =
-        data.frame(cpc_children_code =  leaf[index[, 1]],
+        data.table(cpc_children_code =  leaf[index[, 1]],
                    cpc_standardized_code = nthLevelFBS[index[, 2]])
 
     commodityTree
+}
+
+
+getHStoCPCMapping = function(){    
+    mappingKey = MappingTableKey(mappingTable = "tradeHS2CPC")
+    GetMapping(mappingKey)
+}
+
+
+missingValueToZero = function(data, valueColumns){
+    if(missing(valueColumns))
+        valueColumns = grep("Value", colnames(data), value = TRUE)
+    dataCopy = copy(data)    
+    dataCopy[, `:=`(c(valueColumns),
+                    lapply(valueColumns,
+                           FUN = function(x){
+                               tmp = .SD[[x]]
+                               tmp[is.na(tmp)] = 0
+                               tmp
+                           }))]
+    dataCopy
+}
+
+
+calculateResidual = function(data, production, import, export, seed, loss,
+    industrialUse, food, feed, residualVariable){
+
+    dataCopy = copy(data)
+    dataCopy[, `:=`(c("Value_measuredElementCalorie_residual"),
+                    rowSums(dataCopy[, c(production, import), ,with = FALSE]) -
+                    rowSums(dataCopy[, c(export, seed, loss, industrialUse, food,
+                                         feed),
+                                     with = FALSE]))]
+}
+
+
+calculatePerCaput = function(data, populationVar, valueColumns){
+    if(missing(valueColumns))
+        valueColumns = grep("Value", colnames(data), value = TRUE)
+    dataCopy = copy(data)    
+    dataCopy[, `:=`(c(valueColumns),
+                    lapply(valueColumns,
+                           FUN = function(x){
+                               computeRatio(.SD[[x]],
+                                            .SD[[populationVar]] * 365)
+                           }))]
+    dataCopy
 }

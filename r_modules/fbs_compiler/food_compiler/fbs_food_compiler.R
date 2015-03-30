@@ -1,4 +1,4 @@
-getPopulationData = function(){
+getOldFBSPopulationData = function(){
     populationKey = DatasetKey(
         domain = "population",
         dataset = "population",
@@ -74,7 +74,7 @@ getTotalFoodCalorie = function(fbsCodes){
     ## Convert time to numeric
     foodQuery[, timePointYears := as.numeric(timePointYears)]
 
-    population = getPopulationData()
+    population = getOldFBSPopulationData()
 
     ## Calculate total calorie available for food from per caput
     ## multiply by population and 365 days.
