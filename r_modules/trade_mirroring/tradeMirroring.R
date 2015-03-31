@@ -82,7 +82,8 @@ elementTable =
                import = c("5600", "5621", "5630"),
                reimport = c("5612", "5622", NA),
                export = c("5900", "5921", "5930"),
-               reexport = c("5912", "5922", NA))
+               reexport = c("5912", "5922", NA),
+               stringsAsFactors = FALSE)
 
 ## NOTE (Michael): I think the assignment of the names and variables
 ##                 in the global environment is the reason of error on
