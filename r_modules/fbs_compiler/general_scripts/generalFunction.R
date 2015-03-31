@@ -85,9 +85,10 @@ getPopulationData = function(){
 computeCalorie = function(data, quantityVariable, calorieVariable,
     quantityToTonMultiplier, calorieToTonMultiplier, outputName){
     tmp = copy(data)
-    tmp[, `:=`(c(outputName),
-                list(tmp[[quantityVariable]] * quantityToTonMultiplier *
-                     tmp[[calorieVariable]] * calorieToTonMultiplier))]
+    if(NROW(tmp) > 0)
+        tmp[, `:=`(c(outputName),
+                   list(tmp[[quantityVariable]] * quantityToTonMultiplier *
+                            tmp[[calorieVariable]] * calorieToTonMultiplier))]
     tmp
 }
 
@@ -206,5 +207,32 @@ calculatePerCaput = function(data, populationVar, valueColumns){
                                computeRatio(.SD[[x]],
                                             .SD[[populationVar]] * 365)
                            }))]
+    dataCopy
+}
+
+saveContingencyCaputTable = function(data){
+    SaveData(domain = "suafbs",
+             dataset = "fbs_prebalance",
+             data = data,
+             normalized = FALSE)
+}
+             
+
+addFBSFlags = function(data, valueColumns, valuePrefix,
+    flagObsStatusPrefix, flagMethodPrefix){
+
+    dataCopy = copy(data)
+    flagObsColumns = gsub(valuePrefix, flagObsStatusPrefix, valueColumns)
+    flagMethodColumns = gsub(valuePrefix, flagMethodPrefix, valueColumns)
+    
+    dataCopy[, `:=`(c(flagObsColumns), "E")]
+    dataCopy[, `:=`(c(flagMethodColumns), "e")]
+    
+    
+    keyColumns = colnames(dataCopy)[!colnames(dataCopy) %in%
+        c(valueColumns, flagObsColumns, flagMethodColumns)]
+
+    valueTupleOrder = c(t(cbind(valueColumns, flagObsColumns, flagMethodColumns)))
+    setcolorder(dataCopy, neworder = c(keyColumns, valueTupleOrder))
     dataCopy
 }

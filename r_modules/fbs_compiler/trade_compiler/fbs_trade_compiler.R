@@ -90,23 +90,30 @@ standardizeTradeStd = function(data, commodityTree, weightVariable,
     setnames(commodityTreeCopy, old = "cpc_children_code", new = itemVar)
 
     dataTree = merge(data, commodityTreeCopy, by = itemVar, all.x = TRUE)
-    if(NROW(dataTree) > 0){
-        standardized =
-            dataTree[, lapply(tradeStandardDeviationVariable,
-                              FUN = function(x) {
-                                  sqrt(sum(.SD[[weightVariable]]^2 * .SD[[x]]^2))
-                              }),
-                     by = c(standardizationKey)]
+    standardized =
+        dataTree[, lapply(tradeStandardDeviationVariable,
+                          FUN = function(x){
+                              if(length(.SD[[x]]) == 0){
+                                  tmp = .SD[[x]]
+                              } else {
+                                  tmp = sqrt(sum(.SD[[weightVariable]]^2 * .SD[[x]]^2))
+                              }
+                          }),
+                 by = c(standardizationKey)]
 
-        setnames(standardized,
-                 old = paste0("V", 1:length(tradeStandardDeviationVariable)),
-                 new = tradeStandardDeviationVariable)
-    } else {
-        standardized = copy(data)
-    }
+    setnames(standardized,
+             old = paste0("V", 1:length(tradeStandardDeviationVariable)),
+             new = tradeStandardDeviationVariable)
     standardized
 }
 
+
+saveTradeStandardDeviation = function(data){
+    if(NROW(data) > 0)
+        SaveData(domain = "trade",
+                 dataset = "stddev_caloriescap",
+                 data = data, normalized = FALSE)
+}
 
     
 

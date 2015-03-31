@@ -10,7 +10,7 @@ suppressMessages({
 ## NOTE (Michael): The selected country code is in old FAO
 ##                 classification, need to change to M49 codes when
 ##                 the contingency table is set up.
-selectedCountry = "100"
+selectedCountry = "840"
 selectedYear = "2010"
 
 ## Set up testing environments
@@ -22,6 +22,113 @@ if(Sys.getenv("USER") == "mk"){
 }
 
 
+getStandardizedItem =
+    GetCodeList(domain = "fbs",
+                dataset = "fbs_balanced",
+                dimension = "measuredItemCPC")
+
+preBalanceTable = read.csv("contigency_table_example.csv")
+setnames(preBalanceTable,
+         old = c("Value_measuredElementCalorie_5510",
+             "Value_measuredElementCalorie_5600", 
+             "Value_measuredElementCalorie_5900",
+             "Value_measuredElementCalorie_5525", 
+             "Value_measuredElementCalorie_5120", 
+             "Value_measuredElementCalorie_5150", 
+             "Value_measuredElementCalorie_FoodTotal", 
+             "Value_measuredElementCalorie_5520", 
+             "Value_measuredElementCalorie_residual"),
+         new = c("Production", "Imports", "Exports", "Seed", "Loss", "Industrial",
+             "Food", "Feed", "Stock"))
+
+
+getTradeStandardDeviationCaput = function(){
+    tradeStdCaputKey = DatasetKey(
+        domain = "trade",
+        dataset = "stddev_caloriescap",
+        dimensions = list(
+            Dimension(name = "geographicAreaM49",
+                      keys = selectedCountry),
+            Dimension(name = "measuredItemSuaFbs",
+                      keys = standardizedItem),
+            Dimension(name = "measuredElementTrade",
+                      keys = c("SD5600", "SD5900")),
+            Dimension(name = "timePointYears",
+                      keys = selectedYear)
+        )
+    )
+
+    ## Pivot to vectorize yield computation
+    tradeStdCaputPivot = c(
+        Pivoting(code = "geographicAreaM49", ascending = TRUE),
+        Pivoting(code = "measuredItemSuaFbs", ascending = TRUE),
+        Pivoting(code = "timePointYears", ascending = TRUE),        
+        Pivoting(code = "measuredElementTrade", ascending = TRUE)
+    )
+
+    ## Query the data
+    tradeStdCaputQuery = GetData(
+        key = tradeStdCaputKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = tradeStdCaputPivot
+    )
+
+    setkeyv(tradeStdCaputQuery, cols = c("geographicAreaM49", "timePointYears"))
+    ## Convert time to numeric
+    tradeStdCaputQuery[, timePointYears := as.numeric(timePointYears)]
+}
+
+getFeedRequirementData = function(){
+    feedRequirementKey = DatasetKey(
+        domain = "feed",
+        dataset = "total_feed",
+        dimensions = list(
+            Dimension(name = "geographicAreaM49",
+                      keys = selectedCountry),
+            Dimension(name = "nutrientType",
+                      keys = "1"),
+            Dimension(name = "estimator",
+                      keys = as.character(2:3)),
+            Dimension(name = "feedBaseUnit",
+                      keys = "2"),
+            Dimension(name = yearVar,
+                      keys = selectedYear)
+        )
+    )
+
+    ## Pivot to vectorize yield computation
+    feedRequirementPivot = c(
+        Pivoting(code = "geographicAreaM49", ascending = TRUE),
+        Pivoting(code = "nutrientType", ascending = TRUE),
+        Pivoting(code = "feedBaseUnit", ascending = TRUE),
+        Pivoting(code = "timePointYears", ascending = TRUE),
+        Pivoting(code = "estimator", ascending = FALSE)
+    )
+
+    ## Query the data
+    feedRequirementQuery = GetData(
+        key = feedRequirementKey,
+        flags = TRUE,
+        normalized = FALSE,
+        pivoting = feedRequirementPivot
+    )
+
+    setkeyv(feedRequirementQuery, cols = c("geographicAreaM49", "timePointYears"))
+    ## Convert time to numeric
+    feedRequirementQuery[, timePointYears := as.numeric(timePointYears)]
+    feedRequirementQuery[, list(geographicAreaM49, timePointYears,
+                                EDemand_lb = Value_estimator_3,
+                                EDemand_ub = Value_estimator_2)]
+}
+
+
+
+getStructuralZeroParam = function(){
+    read.csv(file = "structuralZeroParameterCPC.csv")
+}
+
+    
 ## Function to get the compiled contingency table
 getContingencyTable = function(){
     ## TODO (Michael): Need to wait for the compiler of other elements
@@ -31,6 +138,17 @@ getContingencyTable = function(){
             file0 = "structuralZeroParameter.csv",
             filef = "adjustedFeedRange.csv")
 }
+
+
+test = getContingencyTable()
+
+
+dataset = list(`840` = list(`2010` = test[[1]][[1]]))
+
+
+f = balanceFBS(FBS = dataset, sanityCheck = FALSE, maxErr = 10)
+
+f(Country = "840", year = "2010")
 
 getCaloricTradeStandardDeviation = function(){}
 

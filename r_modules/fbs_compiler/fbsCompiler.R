@@ -103,13 +103,13 @@ standardizedTrade =
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
 
-## NOTE (Michael): After the trade std is converted to CPC, then we
-##                 convert to calorie.
+## Compute trade standard deviation
 standardizedTradeStandardDeviation =
     {
         tradeStandardDeviation <<- getTradeStandardDeviation()
+        population <<- getPopulationData()
     } %>%
-    merge(., nutrientData, by = itemVar) %>%
+    with(., merge(tradeStandardDeviation, nutrientData, by = itemVar)) %>%
     standardizeTradeStd(data = .,
                         commodityTree = commodityTree,
                         weightVariable =
@@ -118,7 +118,32 @@ standardizedTradeStandardDeviation =
                             c("Value_measuredElementTrade_SD5900",
                               "Value_measuredElementTrade_SD5600"),
                         standardizationKey =
-                            c(areaVar, yearVar, "cpc_standardized_code"))
+                            c(areaVar, yearVar, "cpc_standardized_code")) %>%
+    setnames(., old = "cpc_standardized_code", "measuredItemSuaFbs") %>%
+    ## Set Estimation flag
+    .[, `:=`(paste0(rep(c("flagObservationStatus", "flagMethod"), each = 2),
+                    rep(c("_measuredElementTrade_SD5600",
+                          "_measuredElementTrade_SD5900"), times = 2)),
+             list("E", "E", "e", "e"))] %>%
+    ## Calculate the per caput standard deviation
+    merge(., population, by = c("geographicAreaM49", "timePointYears")) %>%
+    calculatePerCaput(data = .,
+                      populationVar = "Value_measuredElementPopulation_11",
+                      valueColumns = c("Value_measuredElementTrade_SD5900",
+                              "Value_measuredElementTrade_SD5600")) %>%
+    .[, `:=`(c("Value_measuredElementPopulation_11",
+               "flagPopulation_measuredElementPopulation_11"),
+             NULL)] %>%
+    ## Setting the order, if the order is incorrect, you can't save the data back.
+    setcolorder(., c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs",
+                     "Value_measuredElementTrade_SD5600",
+                     "flagObservationStatus_measuredElementTrade_SD5600",
+                     "flagMethod_measuredElementTrade_SD5600",
+                     "Value_measuredElementTrade_SD5900",
+                     "flagObservationStatus_measuredElementTrade_SD5900",
+                     "flagMethod_measuredElementTrade_SD5900")) %>%
+    saveTradeStandardDeviation(data = .)
+
                                           
 
 
@@ -243,7 +268,14 @@ tableWithFeed =
                                 feedAvailabilityWeight = "feedAvailableWeights",
                                 feedRequirementVar = "Value_estimator_1",
                                 feedUtilizationVar =
-                                    "Value_measuredElementCalorie_5520")
+                                    "Value_measuredElementCalorie_5520") %>%
+    .[, `:=`(c("Value_measuredElementCalorie_feedAvail",
+               "feedAvailableWeights",
+               "nutrientType",
+               "Value_estimator_1",
+               "flagObservationStatus_estimator_1",
+               "flagMethod_estimator_1",
+               "feedBaseUnit"), NULL)]
 
 ## Create final contingency table
 contingencyTable =
@@ -265,22 +297,39 @@ contingencyTableCaput =
     copy(contingencyTable) %>%
     {
         population <<- getPopulationData()
-        merge(contingencyTable, population,
+        merge(contingencyTable,
+              population[, list(geographicAreaM49, timePointYears,
+                             Value_measuredElementPopulation_11)],
               by = c("geographicAreaM49", "timePointYears"), all.x = TRUE)
     } %>%
     calculatePerCaput(data = .,
                       populationVar = "Value_measuredElementPopulation_11",
                       valueColumns = grep("Value_measuredElementCalorie",
-                          colnames(.), value = TRUE))
+                          colnames(.), value = TRUE)) %>%
+    .[, Value_measuredElementPopulation_11 := NULL] %>%
+    ## Add observation status and method flag
+    addFBSFlags(data = .,
+                valueColumns = grep("Value_measuredElementCalorie", colnames(.),
+                    value = TRUE),
+                valuePrefix = "Value",
+                flagObsStatusPrefix = "flagObservationStatus",
+                flagMethodPrefix = "flagMethod") %T>%
+    saveContingencyCaputTable(data = .)
 
 
 
-
-write.csv(contingencyTableCaput[, c("geographicAreaM49", "cpc_standardized_code",
-                                    "timePointYears",
-                                    grep("Value_measuredElementCalorie",
-                                         colnames(contingencyTable),
-                                         value = TRUE)),
-                                with = FALSE],
-          file = "~/Desktop/contigency_table_example.csv",
-          row.names = FALSE, na = "")
+## checkTable =
+##     contingencyTableCaput[, c("geographicAreaM49", "cpc_standardized_code",
+##                               "timePointYears",
+##                               grep("Value_measuredElementCalorie",
+##                                    colnames(contingencyTable),
+##                                    value = TRUE)),
+##                           with = FALSE]
+## setnames(checkTable,
+##          old = grep("Value_measuredElementCalorie", colnames(contingencyTable),
+##              value = TRUE),
+##          new = c("production", "import", "export", "seed", "loss",
+##              "industrialUse", "food", "feed", "stockChanges"))
+## write.csv(checkTable,
+##           file = "~/Desktop/contigency_table_example.csv",
+##           row.names = FALSE, na = "")

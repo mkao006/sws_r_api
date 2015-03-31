@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>FBS Compiler</Name>
+	<Description> The FBS compiler pulls together all the elements required in the Food Balance Sheet and compile the balanced energy FBS required as input into the new balancing algorithm.</Description>
+	<Category>Computation</Category>
+	<Authors>
+		<Author>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Datasets>
+		<MainDataset>
+			<Code>fbs_prebalance</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+		<Dataset>
+		  <Code>stddev_caloriescap</Code>
+		</Dataset>
+		</Dataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
