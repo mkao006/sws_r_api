@@ -269,7 +269,13 @@ tableWithFeed =
                                 feedRequirementVar = "Value_estimator_1",
                                 feedUtilizationVar =
                                     "Value_measuredElementCalorie_5520") %>%
-    .[, Value_measuredElementCalorie_feedAvail := NULL]
+    .[, `:=`(c("Value_measuredElementCalorie_feedAvail",
+               "feedAvailableWeights",
+               "nutrientType",
+               "Value_estimator_1",
+               "flagObservationStatus_estimator_1",
+               "flagMethod_estimator_1",
+               "feedBaseUnit"), NULL)]
 
 ## Create final contingency table
 contingencyTable =
@@ -291,13 +297,15 @@ contingencyTableCaput =
     copy(contingencyTable) %>%
     {
         population <<- getPopulationData()
-        merge(contingencyTable, population,
+        merge(contingencyTable,
+              population[, list(geographicAreaM49, timePointYears,
+                             Value_measuredElementPopulation_11)],
               by = c("geographicAreaM49", "timePointYears"), all.x = TRUE)
     } %>%
     calculatePerCaput(data = .,
                       populationVar = "Value_measuredElementPopulation_11",
                       valueColumns = grep("Value_measuredElementCalorie",
-                          colnames(.), value = TRUE)) %>%
+                          colnames(.), value = TRUE)) %T>%
     saveContingencyCaputTable(data = .)
 
 
