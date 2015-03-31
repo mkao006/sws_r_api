@@ -31,7 +31,7 @@ DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
 if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     ## Define directories
-    apiDirectory = "~/Documents/Github/sws_r_api/r_modules/production_validation/faoswsProduction"
+    apiDirectory = "~/Documents/Github/sws_r_api/r_modules/production_validation/faoswsProduction/"
     packageDirectory = "~/Documents/SVN/RModules/faoswsProduction/R/"
     
     ## Get SWS Parameters
@@ -51,7 +51,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     for(file in dir(apiDirectory, full.names = T))
         source(file)
 } else {
-    R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
+    R_SWS_SHARE_PATH = "/work/SWS_R_Share/browningj/production/validationModels"
     updateModel = as.logical(swsContext.computationParams$updateModel)
 }
 

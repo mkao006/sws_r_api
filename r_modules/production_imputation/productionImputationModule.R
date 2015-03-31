@@ -17,7 +17,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "f76f4012-392f-402c-8108-35f74f0d1564"
+        token = "1be208f6-208c-414f-ab66-026d8d6f478d"
         )
 }
 
@@ -125,69 +125,8 @@ getImputationData = function(dataContext){
          formulaTuples = formulaTuples,
          prefixTuples = prefixTuples)
 }
-    
-
-## Obtain the valid year range of each country
-getValidRange = function(dataContext){
-    countryTable =
-        GetCodeList(domain = slot(dataContext, "domain"),
-                    dataset = slot(dataContext, "dataset"),
-                    dimension = areaVar)
-    countryTable =
-        countryTable[type == "country", ]
-    ## countryTable[, startDate := NULLtoNA(startDate)]
-    ## countryTable[, endDate := NULLtoNA(endDate)]
-    countryTable[, startDate := as.numeric(substr(startDate, 1, 4))]
-    countryTable[, endDate := as.numeric(substr(endDate, 1, 4))]
-    countryTable[is.na(startDate), startDate := -Inf]
-    countryTable[is.na(endDate), endDate := Inf]
-    countryTable
-}
-
-
-## Function to remove imputed data which corresponds to invalid time
-## range.
-validImputedData = function(imputed, areaName = areaVar,
-    yearName = yearVar, dataContext){
-    validRange = getValidRange(dataContext)
-    validSubset =
-        paste0(with(validRange,
-                    paste0("(", areaName, " == ", code,
-                           " & ", yearName, " > ", startDate,
-                           " & ", yearName, " < ", endDate, ")")),
-               collapse = " | ")
-    valid = imputed[eval(parse(text = validSubset)), ]
-    valid    
-}    
-
-
-## Function to save data back
-saveImputedData = function(dataContext, data){
-    ## Should only the selected country be saved, or the whole set?
-    ##
-    ## NOTE (Michael): We only save the selected data back for now.
-    selectedDimensions = dataContext@dimensions
-    selectedIndex =
-        with(data,
-             which(geographicAreaM49 %in%
-                   selectedDimensions$geographicAreaM49@keys &
-                   measuredItemCPC %in%
-                   selectedDimensions$measuredItemCPC@keys &
-                   timePointYears %in%
-                   selectedDimensions$timePointYears@keys))
-    selectedData = data[selectedIndex, ]
-    
-    SaveData(domain = slot(dataContext, "domain"),
-             dataset = slot(dataContext, "dataset"),
-             data = selectedData, normalized = FALSE)
-}
-
 
 executeImputationModule = function(){
-    library(faoswsProductionImputation)
-    library(faoswsFlag)
-    library(faoswsUtil)
-
     fullKey = swsContext.datasets[[1]]
     subKey = fullKey
     uniqueItem = fullKey@dimensions$measuredItemCPC@keys
@@ -295,11 +234,10 @@ executeImputationModule = function(){
                         yieldDefaultFormula)
 
                 ## Validate data
-                valid = validImputedData(imputed = imputed,
-                    dataContext = subKey)
+                valid = faoswsUtil::removeInvalidDates(data = imputed)
 
                 ## Save back
-                saveImputedData(subKey, valid)
+                faoswsProduction::saveProductionData(valid)
             }
                  )
         }
