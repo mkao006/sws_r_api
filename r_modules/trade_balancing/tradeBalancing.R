@@ -351,7 +351,6 @@ saveBalancedData = function(data){
 ## Procedure for trade balancing and calculate trade standard deviation.
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 subContext = swsContext.datasets[[1]]
-allItems = "1001"
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
     subContext@dimensions$measuredItemHS@keys = i
