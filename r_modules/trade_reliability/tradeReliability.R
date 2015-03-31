@@ -65,9 +65,9 @@ allItem =
 elementTable =
     data.frame(type = c("quantity", "value", "unit_value"),
                import = c("5600", "5621", "5630"),
-               reimport = c("5612", "5622", NA),
+               reimport = c("5612", "5623", NA),
                export = c("5900", "5921", "5930"),
-               reexport = c("5912", "5922", NA))
+               reexport = c("5912", "5923", NA))
 
 ## Get Comtrade mirrored data
 getComtradeMirroredData = function(dataContext){
