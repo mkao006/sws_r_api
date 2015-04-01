@@ -24,7 +24,7 @@ if(Sys.getenv("USER") == "mk"){
 
 getStandardizedItem =
     GetCodeList(domain = "fbs",
-                dataset = "fbs_balanced",
+                dataset = "fbs_prebalanced",
                 dimension = "measuredItemCPC")
 
 preBalanceTable = read.csv("contigency_table_example.csv")
@@ -96,7 +96,7 @@ getFeedRequirementData = function(){
                       keys = selectedYear)
         )
     )
-
+    
     ## Pivot to vectorize yield computation
     feedRequirementPivot = c(
         Pivoting(code = "geographicAreaM49", ascending = TRUE),
