@@ -5,6 +5,7 @@ library(faoswsFlag)
 library(faoswsProductionImputation)
 library(data.table)
 library(splines)
+library(lme4)
 
 ## Setting up variables
 areaVar = "geographicAreaM49"
@@ -13,12 +14,34 @@ itemVar = "measuredItemCPC"
 elementVar = "measuredElement"
 
 ## set up for the test environment and parameters
-if(Sys.getenv("USER") == "mk"){
+R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
+DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
+
+if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
+    ## Define directories
+    apiDirectory = "~/Documents/Github/sws_r_api/r_modules/production_imputation/packageCode"
+    packageDirectory1 = "~/Documents/SVN/RModules/faoswsProduction/R/"
+    packageDirectory2 = "~/Documents/Github/sws_imputation/codes/R/"
+    
+    ## Get SWS Parameters
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "1be208f6-208c-414f-ab66-026d8d6f478d"
+        token = "a94b4c47-3d8c-4076-be7e-21297fca3d36"
         )
+    
+    ## Copy over scripts from package directory
+    file.copy(from = dir(packageDirectory1, pattern = ".*\\.R$",
+                         full.names = TRUE),
+              to = apiDirectory, overwrite = TRUE)
+    file.copy(from = dir(packageDirectory2, pattern = ".*\\.R$",
+                         full.names = TRUE),
+              to = apiDirectory, overwrite = TRUE)
+
+    ## Source copied scripts for this local test
+    for(file in dir(apiDirectory, full.names = T))
+        source(file)
+
 }
 
 ## Function to get the yield formula triplets
@@ -28,7 +51,7 @@ getYieldFormula = function(itemCode){
     uniqueItemTypes = unique(itemData$type)
     condition =
         paste0("WHERE item_type IN (",
-               paste0(shQuote(as.character(uniqueItemTypes)),
+               paste(paste0("'", as.character(uniqueItemTypes), "'"),
                       collapse = ", "), ")")
     yieldFormula =
         GetTableData(schemaName = "ess",
@@ -120,7 +143,20 @@ getImputationData = function(dataContext){
         )
     ## Convert time to numeric
     query[, timePointYears := as.numeric(timePointYears)]
+    
+    ## Assign flags of "M" where data is missing
+    elements = grepl("Value_measuredElement", colnames(query))
+    elements = gsub("Value_measuredElement_", "", colnames(query)[elements])
+    for(element in elements)
+        query[is.na(get(paste0("Value_measuredElement_", element))),
+              c(paste0("flagObservationStatus_measuredElement_", element)) := "M"]
 
+    ## Remove data where flag is missing
+    for(element in elements)
+        remove0M(data = query,
+            value = paste0("Value_measuredElement_", element),
+            flag = paste0("flagObservationStatus_measuredElement_", element))
+    
     list(query = query,
          formulaTuples = formulaTuples,
          prefixTuples = prefixTuples)
@@ -233,11 +269,11 @@ executeImputationModule = function(){
                     yieldFormula =
                         yieldDefaultFormula)
 
-                ## Validate data
-                valid = faoswsUtil::removeInvalidDates(data = imputed)
+#                 ## Validate data: not necessary since saveProductionData does this
+#                 valid = faoswsUtil::removeInvalidDates(data = imputed)
 
-                ## Save back
-                faoswsProduction::saveProductionData(valid)
+                ## Save back to database
+                saveProductionData(imputed)
             }
                  )
         }
