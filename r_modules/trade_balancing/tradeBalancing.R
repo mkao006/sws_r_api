@@ -36,11 +36,11 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "49b3c566-3230-4e17-89ef-59ea5ee2ca72"
+        token = "b6b96ffd-bfeb-48e8-a622-b9c39233aa26"
         )
     R_SWS_SHARE_PATH = getwd()
     verbose = TRUE
-    files = dir(path = "./tradeBalance", pattern = "\\.R$", recursive = TRUE,
+    files = dir(path = "./tradeBalancing", pattern = "\\.R$", recursive = TRUE,
         full.names = TRUE)
     lapply(files, FUN = function(x) source(x))    
 } else {
@@ -100,23 +100,6 @@ assignElementName = function(elementTable){
 }
 
 assignElementName(elementTable)
-
-## Function to get mirrored data in normalized form
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -256,7 +239,7 @@ for(i in allItems){
                       new = "Value")
             if(NROW(finalStdData) > 0)
                 saveTradeStandardDeviation(stdData = finalStdData)
-            selectSaveSelection(data = .$balanceData)
+            selectBalancedTargetData(data = .$balanceData)
         } %>%
         saveBalancedData(data = .)
 }
