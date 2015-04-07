@@ -23,7 +23,6 @@
 		<Dataset>
 		  <Code>stddev_caloriescap</Code>
 		</Dataset>
-		</Dataset>
 	</Datasets>
 	<InteractiveValidation>false</InteractiveValidation>
 	<Background>false</Background>
