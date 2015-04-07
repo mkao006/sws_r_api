@@ -5,6 +5,7 @@ suppressMessages({
     library(data.table)
     library(magrittr)
     library(reshape2)
+    library(igraph)
 })
 
 verbose = FALSE
@@ -37,10 +38,12 @@ if(Sys.getenv("USER") == "mk"){
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         token = "1e5c87fe-320f-4faa-9485-fde92f5b8fef"
-        )
+    )
     verbose = TRUE
+    files = dir(path = "./tradeReliability", pattern = "\\.R$", recursive = TRUE,
+        full.names = TRUE)
+    lapply(files, FUN = function(x) source(x))
 }
-
 
 ## Get all reporting country codes
 allReportingCountryCode =
@@ -67,116 +70,67 @@ elementTable =
                import = c("5600", "5621", "5630"),
                reimport = c("5612", "5623", NA),
                export = c("5900", "5921", "5930"),
-               reexport = c("5912", "5923", NA))
-
-## Get Comtrade mirrored data
-getComtradeMirroredData = function(dataContext){
-        dimensions =
-            list(Dimension(name = "reportingCountryM49",
-                           keys = as.character(allReportingCountryCode)),
-                 Dimension(name = "partnerCountryM49",
-                           keys = as.character(allPartnerCountryCode)),
-                 Dimension(name = "measuredItemHS",
-                           keys = allItem),
-                 Dimension(name = "measuredElementTrade",
-                           keys = c("5600", "5900")),
-                 Dimension(name = "timePointYears",
-                           keys = dataContext@dimensions$timePointYears@keys))
-
-    newKey =
-        DatasetKey(domain = "trade",
-                   dataset = "completed_tf",
-                   dimensions = dimensions)
-
-    newPivot = c(
-        Pivoting(code = "reportingCountryM49", ascending = TRUE),
-        Pivoting(code = "partnerCountryM49", ascending = TRUE),
-        Pivoting(code = "measuredItemHS", ascending = TRUE),
-        Pivoting(code = "timePointYears", ascending = FALSE),
-        Pivoting(code = "measuredElementTrade", ascending = TRUE)
-    )
-
-    mirroredData = GetData(key = newKey, pivoting = newPivot)
-    mirroredData
-}
+               reexport = c("5912", "5923", NA),
+               stringsAsFactors = FALSE)
 
 
-
-## Function to map the trade reported by the bilateral partner
-mergeReverseTrade = function(data){
-    origin = copy(data)
-    reverse = copy(data)
-    setkeyv(origin, c(reportingCountryVar, partnerCountryVar, elementVar,
-                      itemVar, yearVar))
-    setkeyv(reverse, c(reportingCountryVar, partnerCountryVar, elementVar,
-                      itemVar, yearVar))
-    
-    setnames(reverse,
-             old = c(reportingCountryVar, partnerCountryVar, valuePrefix,
-                 flagPrefix),
-             new = c(partnerCountryVar, reportingCountryVar,
-                 paste0("reverse_", valuePrefix), paste0("reverse_", flagPrefix)))
-
-    ## Create reverse mapping
-    map1 = elementTable[, c("import", "export")]
-    colnames(map1) = c("origin", "to")
-    map2 = elementTable[, c("export", "import")]
-    colnames(map2) = c("origin", "to")
-    reversionTable = rbind(map1, map2)
-
-    reverse[, `:=`(c(elementVar),
-                   reversionTable[match(measuredElementTrade,
-                                        reversionTable$origin), "to"])]
-    
-    originWithReverse =
-        merge(origin, reverse,
-              by = c(reportingCountryVar, partnerCountryVar, elementVar,
-                  itemVar, yearVar))
-    originWithReverse
-}
-
-
-## Function to calculate the reliability index
-calculateReliability = function(data, mirroredFlag = "m", tolerance = 0.05){
-    tmp = data[!(data[[flagPrefix]] %in% mirroredFlag) &
-               !(data[[paste0("reverse_", flagPrefix)]] %in% mirroredFlag), ]
-    
-    reliability =
-        tmp[,sum((.SD[[valuePrefix]] - .SD[[paste0("reverse_", valuePrefix)]])/
-                 .SD[[valuePrefix]] <= tolerance)/.N,
-             by = c(reportingCountryVar, yearVar)]
-    setnames(reliability, old = c(reportingCountryVar, "V1"),
-             new = c(areaVar, "Value_measuredElement_RELIDX"))
-    reliability[, `:=`(c("flagObservationStatus_measuredElement_RELIDX",
-                         "flagMethod_measuredElement_RELIDX"),
-                       list("E", "e"))]
-    reliability
-}
-
-
-## Save the reliability index back
-saveReliabilityIndex = function(reliability){
-
-    ## HACK (Michael): The reliability is loaded with standard M49
-    ##                 country codes, but the data from complete data
-    ##                 is in Comtrade M49. We will only subset
-    ##                 countries which are in the target dataset.
-
-    countryList =
-        GetCodeList(domain = "trade",
-                    dataset = "reliability_index",
-                    dimension = "geographicAreaM49")[, code]
-    
-    SaveData(domain = "trade",
-                dataset = "reliability_index",
-                data = reliability[geographicAreaM49 %in% countryList, ],
-                normalized = FALSE)
-}
-
-
-## Compute reliability index
+## Calculate Trade reliability
 reliabilityIndex = 
     getComtradeMirroredData(swsContext.datasets[[1]]) %>%
     mergeReverseTrade(data = .) %>%
-    calculateReliability(data = ., mirroredFlag = "m", tolerance = 0) %T>%
-    saveReliabilityIndex
+    calculatePairWiseConcordance(data = .,
+                                 reportingCountry = "reportingCountryM49",
+                                 partnerCountry = "partnerCountryM49",
+                                 year = "timePointYears",
+                                 mirroredFlag = "m",
+                                 tolerance = 0) %>%
+    calculateReliability(data = .,
+                         reportingCountry = "reportingCountryM49",
+                         partnerCountry = "partnerCountryM49",
+                         yearVar = "timePointYears",
+                         concordance = "concordance") %>%
+    setnames(x = ., old = "reliability", new = "Value_measuredElement_RELIDX") %>%
+    .[, `:=`(c("flagObservationStatus_measuredElement_RELIDX",
+               "flagMethod_measuredElement_RELIDX"),
+             list("E", "e"))] %>%
+    saveReliabilityIndex(reliability = .)
+
+
+
+## Tests
+## ---------------------------------------------------------------------
+
+## tradeRawData =
+##     getComtradeMirroredData(swsContext.datasets[[1]]) %>%
+##     mergeReverseTrade(data = .)
+
+
+## tradeConcordance = 
+##     tradeRawData %>%
+##     calculatePairWiseConcordance(data = .,
+##                                  reportingCountry = "reportingCountryM49",
+##                                  partnerCountry = "partnerCountryM49",
+##                                  year = "timePointYears",
+##                                  mirroredFlag = "m",
+##                                  tolerance = 0)
+
+## pdf(file = "graph.pdf", width = 30, height = 30)
+## tradeReliability =
+##     tradeConcordance %>%
+##     calculateReliability(data = .,
+##                          reportingCountry = "reportingCountryM49",
+##                          partnerCountry = "partnerCountryM49",
+##                          year = "timePointYears",
+##                          concordance = "concordance",
+##                          plot = TRUE)
+## graphics.off()
+
+
+## countryList =
+##     GetCodeList("trade", "completed_tf",
+##                 "reportingCountryM49")[type == "country", list(code, description)]
+## setnames(countryList, "code", "geographicAreaM49")
+## check = merge(tradeReliability, countryList, by = "geographicAreaM49",
+##     all.x = TRUE)
+## check = check[order(reliability), ]
+## print(check, nrow = 229)
