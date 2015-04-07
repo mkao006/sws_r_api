@@ -189,7 +189,7 @@ calculateResidual = function(data, production, import, export, seed, loss,
     industrialUse, food, feed, residualVariable){
 
     dataCopy = copy(data)
-    dataCopy[, `:=`(c("Value_measuredElementCalorie_residual"),
+    dataCopy[, `:=`(c(residualVariable),
                     rowSums(dataCopy[, c(production, import), ,with = FALSE]) -
                     rowSums(dataCopy[, c(export, seed, loss, industrialUse, food,
                                          feed),
