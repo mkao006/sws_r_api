@@ -61,12 +61,12 @@ standardizedProduction =
                    calorieVariable = "Value_measuredElementNutritive_904",
                    quantityToTonMultiplier = 1000,
                    calorieToTonMultiplier = 10,
-                   outputName = "Value_measuredElementCalorie_5510") %>%
+                   outputName = "Value_measuredElement_250") %>%
     ## Perform calorie standardization
     calorieStandardization(data = .,
                            commodityTree = commodityTree,
                            standardizeVariable =
-                               "Value_measuredElementCalorie_5510",
+                               "Value_measuredElement_250",
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
 
@@ -86,19 +86,19 @@ standardizedTrade =
                    calorieVariable = "Value_measuredElementNutritive_904",
                    quantityToTonMultiplier = 1000,
                    calorieToTonMultiplier = 10,
-                   outputName = "Value_measuredElementCalorie_5600") %>%
+                   outputName = "Value_measuredElement_251") %>%
     computeCalorie(data = .,
                    quantityVariable = "Value_measuredElementTrade_5900",
                    calorieVariable = "Value_measuredElementNutritive_904",
                    quantityToTonMultiplier = 1000,
                    calorieToTonMultiplier = 10,
-                   outputName = "Value_measuredElementCalorie_5900") %>%
+                   outputName = "Value_measuredElement_252") %>%
     ## Perform calorie standardization
     calorieStandardization(data = .,
                            commodityTree = commodityTree,
                            standardizeVariable =
-                               c("Value_measuredElementCalorie_5600",
-                                 "Value_measuredElementCalorie_5900"),
+                               c("Value_measuredElement_251",
+                                 "Value_measuredElement_252"),
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
 
@@ -109,6 +109,9 @@ standardizedTradeStandardDeviation =
         population <<- getPopulationData()
     } %>%
     with(., merge(tradeStandardDeviation, nutrientData, by = itemVar)) %>%
+    ## HACK (Michael): This item is not in the CPC tree, so we omit it
+    ##                 for now.
+    .[measuredItemCPC != "23162", ] %>%
     standardizeTradeStd(data = .,
                         commodityTree = commodityTree,
                         weightVariable =
@@ -160,12 +163,12 @@ standardizedSeed =
                    calorieVariable = "Value_measuredElementNutritive_904",
                    quantityToTonMultiplier = 1000,
                    calorieToTonMultiplier = 10,
-                   outputName = "Value_measuredElementCalorie_5525") %>%
+                   outputName = "Value_measuredElement_55252") %>%
     ## Perform calorie standardization
     calorieStandardization(data = .,
                            commodityTree = commodityTree,
                            standardizeVariable =
-                               "Value_measuredElementCalorie_5525",
+                               "Value_measuredElement_55252",
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
 
@@ -185,12 +188,12 @@ standardizedLoss =
                    calorieVariable = "Value_measuredElementNutritive_904",
                    quantityToTonMultiplier = 1000,
                    calorieToTonMultiplier = 10,
-                   outputName = "Value_measuredElementCalorie_5120") %>%
+                   outputName = "Value_measuredElement_51202") %>%
     ## Perform calorie standardization
     calorieStandardization(data = .,
                            commodityTree = commodityTree,
                            standardizeVariable =
-                               "Value_measuredElementCalorie_5120",
+                               "Value_measuredElement_51202",
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
 
@@ -209,12 +212,12 @@ standardizedIndustrialUse =
                    calorieVariable = "Value_measuredElementNutritive_904",
                    quantityToTonMultiplier = 1000,
                    calorieToTonMultiplier = 10,
-                   outputName = "Value_measuredElementCalorie_5150") %>%
+                   outputName = "Value_measuredElement_51502") %>%
     ## Perform calorie standardization
     calorieStandardization(data = .,
                            commodityTree = commodityTree,
                            standardizeVariable =
-                               "Value_measuredElementCalorie_5150",
+                               "Value_measuredElement_51502",
                            standardizationKey =
                                c(areaVar, yearVar, "cpc_standardized_code"))
 
@@ -224,7 +227,9 @@ standardizedIndustrialUse =
 ##                 should be food for rice (S2805), but the data does
 ##                 not exist.
 standardizedFood = getTotalFoodCalorie(unique(commodityTree$cpc_standardized_code))
-
+setnames(standardizedFood,
+         old = "Value_measuredElementCalorie_FoodTotal",
+         new = "Value_measuredElement_51422")
 
 ## Build Contingency table
 ## ---------------------------------------------------------------------
@@ -248,13 +253,13 @@ tableWithFeed =
     copy(tableExcludeFeed) %>%
     ## Calculate feed availability
     calculateFeedAvailability(data = .,
-                              production = "Value_measuredElementCalorie_5510",
-                              import = "Value_measuredElementCalorie_5600",
-                              export = "Value_measuredElementCalorie_5900",
-                              seed = "Value_measuredElementCalorie_5525",
-                              loss = "Value_measuredElementCalorie_5120",
-                              industrialUse = "Value_measuredElementCalorie_5150",
-                              food = "Value_measuredElementCalorie_FoodTotal") %>%
+                              production = "Value_measuredElement_250",
+                              import = "Value_measuredElement_251",
+                              export = "Value_measuredElement_252",
+                              seed = "Value_measuredElement_55252",
+                              loss = "Value_measuredElement_51202",
+                              industrialUse = "Value_measuredElement_51502",
+                              food = "Value_measuredElement_51422") %>%
     {
         ## Get feed requirement and merge
         feedRequirement <<- getFeedRequirementData()
@@ -267,7 +272,7 @@ tableWithFeed =
                                 feedAvailabilityWeight = "feedAvailableWeights",
                                 feedRequirementVar = "Value_estimator_1",
                                 feedUtilizationVar =
-                                    "Value_measuredElementCalorie_5520") %>%
+                                    "Value_measuredElement_55202") %>%
     .[, `:=`(c("Value_measuredElementCalorie_feedAvail",
                "feedAvailableWeights",
                "nutrientType",
@@ -280,14 +285,15 @@ tableWithFeed =
 contingencyTable =
     copy(tableWithFeed) %>%
         calculateResidual(data = .,
-                          production = "Value_measuredElementCalorie_5510",
-                          import = "Value_measuredElementCalorie_5600",
-                          export = "Value_measuredElementCalorie_5900",
-                          seed = "Value_measuredElementCalorie_5525",
-                          loss = "Value_measuredElementCalorie_5120",
-                          industrialUse = "Value_measuredElementCalorie_5520",
-                          food = "Value_measuredElementCalorie_FoodTotal",
-                          feed = "Value_measuredElementCalorie_5520")
+                          production = "Value_measuredElement_250",
+                          import = "Value_measuredElement_251",
+                          export = "Value_measuredElement_252",
+                          seed = "Value_measuredElement_55252",
+                          loss = "Value_measuredElement_51202",
+                          industrialUse = "Value_measuredElement_55202",
+                          food = "Value_measuredElement_51422",
+                          feed = "Value_measuredElement_55202",
+                          residualVariable = "Value_measuredElement_50712")
 
 ## Calculate contingency table in per capita per day
 ##
@@ -303,16 +309,17 @@ contingencyTableCaput =
     } %>%
     calculatePerCaput(data = .,
                       populationVar = "Value_measuredElementPopulation_11",
-                      valueColumns = grep("Value_measuredElementCalorie",
+                      valueColumns = grep("Value_measuredElement",
                           colnames(.), value = TRUE)) %>%
     .[, Value_measuredElementPopulation_11 := NULL] %>%
     ## Add observation status and method flag
     addFBSFlags(data = .,
-                valueColumns = grep("Value_measuredElementCalorie", colnames(.),
+                valueColumns = grep("Value_measuredElement", colnames(.),
                     value = TRUE),
                 valuePrefix = "Value",
                 flagObsStatusPrefix = "flagObservationStatus",
-                flagMethodPrefix = "flagMethod") %T>%
+                flagMethodPrefix = "flagMethod") %>%
+    setnames(. ,old = "cpc_standardized_code", new = "measuredItemSuaFbs") %T>%
     saveContingencyCaputTable(data = .)
 
 
