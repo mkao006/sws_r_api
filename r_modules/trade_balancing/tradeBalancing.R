@@ -40,6 +40,9 @@ if(Sys.getenv("USER") == "mk"){
         )
     R_SWS_SHARE_PATH = getwd()
     verbose = TRUE
+    files = dir(path = "./tradeBalance", pattern = "\\.R$", recursive = TRUE,
+        full.names = TRUE)
+    lapply(files, FUN = function(x) source(x))    
 } else {
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
 }
@@ -99,157 +102,21 @@ assignElementName = function(elementTable){
 assignElementName(elementTable)
 
 ## Function to get mirrored data in normalized form
-getComtradeMirroredData = function(dataContext){
-    dimensions =
-        list(Dimension(name = "reportingCountryM49",
-                       keys = as.character(allReportingCountryCode)),
-             Dimension(name = "partnerCountryM49",
-                       keys = as.character(allPartnerCountryCode)),
-             Dimension(name = "measuredItemHS",
-                       keys = dataContext@dimensions$measuredItemHS@keys),
-             Dimension(name = "measuredElementTrade",
-                       keys = dataContext@dimensions$measuredElementTrade@keys),
-             Dimension(name = "timePointYears",
-                       keys = dataContext@dimensions$timePointYears@keys))
-
-    newKey =
-        DatasetKey(domain = "trade",
-                   dataset = "completed_tf",
-                   dimensions = dimensions)
-
-    newPivot = c(
-        Pivoting(code = "reportingCountryM49", ascending = TRUE),
-        Pivoting(code = "partnerCountryM49", ascending = TRUE),
-        Pivoting(code = "measuredItemHS", ascending = TRUE),
-        Pivoting(code = "timePointYears", ascending = FALSE),
-        Pivoting(code = "measuredElementTrade", ascending = TRUE)
-    )
-
-    mirroredData = GetData(key = newKey, pivoting = newPivot)
-    mirroredData
-}
 
 
-mergeReverseTrade = function(data){
-
-    origin = copy(data)
-    reverse = copy(data)
-    setnames(reverse,
-             old = c(reportingCountryVar, partnerCountryVar, valuePrefix,
-                 flagPrefix),
-             new = c(partnerCountryVar, reportingCountryVar,
-                 paste0("reverse_", valuePrefix), paste0("reverse_", flagPrefix)))
-
-    ## Create reverse mapping
-    map1 = elementTable[, c("import", "export")]
-    colnames(map1) = c("origin", "to")
-    map2 = elementTable[, c("export", "import")]
-    colnames(map2) = c("origin", "to")
-    reversionTable = rbind(map1, map2)
-
-    reverse[, `:=`(c(elementVar),
-                   reversionTable[match(measuredElementTrade,
-                                        reversionTable$origin), "to"])]
-    
-    originWithReverse =
-        merge(origin, reverse,
-              by = c(reportingCountryVar, partnerCountryVar, elementVar,
-                  itemVar, yearVar))
-    originWithReverse
-}
 
 
-getReliabilityIndex = function(dataContext){
-    countries =
-        GetCodeList(domain = "trade",
-                    dataset = "reliability_index",
-                    dimension = "geographicAreaM49")[type == "country", code]
-    
-    dimensions =
-        list(Dimension(name = "geographicAreaM49",
-                       keys = countries),
-             Dimension(name = "measuredElement",
-                       keys = "RELIDX"),
-             Dimension(name = "timePointYears",
-                       keys = dataContext@dimensions$timePointYears@keys))
-
-    newKey =
-        DatasetKey(domain = "trade",
-                   dataset = "reliability_index",
-                   dimensions = dimensions)
-
-    newPivot = c(
-        Pivoting(code = "geographicAreaM49", ascending = TRUE),
-        Pivoting(code = "timePointYears", ascending = FALSE),
-        Pivoting(code = "measuredElement", ascending = TRUE)
-    )
-
-    reliabilityData = GetData(key = newKey, pivoting = newPivot)
-    reliabilityData
-}
-
-mergeReliability = function(data, reliability){
-    reliabilityCopy =
-        copy(reliability[, list(geographicAreaM49, timePointYears, Value)])
-    dataCopy = copy(data)
-    
-    setnames(reliabilityCopy,
-             old = c(standardCountryVar, "Value"),
-             new = c(reportingCountryVar, "reportingReliability"))
-    dataWithReportingReliability =
-        merge(dataCopy, reliabilityCopy, by = c(reportingCountryVar, yearVar),
-              all.x = TRUE)
-
-    setnames(reliabilityCopy,
-             old = c(reportingCountryVar, "reportingReliability"),
-             new = c(partnerCountryVar, "partnerReliability"))
-    reliabilityFull =
-        merge(dataWithReportingReliability, reliabilityCopy,
-              by = c(partnerCountryVar, yearVar),
-              all.x = TRUE)
-
-    ## Countries that does not have reliability are less reliable than
-    ## countries that has reported every incorrectly.
-    reliabilityFull[is.na(reportingReliability),
-                    `:=`(c("reportingReliability"), -10)]
-    reliabilityFull[is.na(partnerReliability),
-                    `:=`(c("partnerReliability"), -10)]
-    reliabilityFull
-}
 
 
-balanceTrade = function(data){
-    balanceData = copy(data)
-
-    balanceData[, reliableValue :=
-                 ifelse(reportingReliability >= partnerReliability,
-                        .SD[[valuePrefix]],
-                        .SD[[paste0("reverse_", valuePrefix)]])]
-    balanceData[, reliabilityFlag :=
-                    aggregateObservationFlag(balanceData[[flagPrefix]],
-                                             balanceData[[paste0("reverse_",
-                                                                 flagPrefix)]],
-                                             flagTable = tradeFlowFlagTable)]
-                    
-
-    stdData =
-        balanceData[, sqrt(sum((.SD[[valuePrefix]] - reliableValue)^2)/.N),
-                 by = c(reportingCountryVar, elementVar, itemVar, yearVar)]
-    setnames(stdData,
-             old = c(reportingCountryVar, "V1"),
-             new = c(standardCountryVar, "Value"))
-    stdData[, measuredElementTrade := paste0("SD", measuredElementTrade)]
-    stdData[, `:=`(c("flagObservationStatus", "flagMethod"),
-                   list("E", "e"))]
-    list(balanceData = balanceData, stdData = stdData)
-}
 
 
-saveTradeStandardDeviation = function(stdData){
-    SaveData(domain = "trade",
-                dataset = "stddev_quantity",
-                data = stdData)
-}
+
+
+
+
+
+
+
 
 
 
@@ -332,21 +199,6 @@ comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Na
 
 ## End of HACK
 
-selectSaveSelection = function(data){    
-    saveSelection =
-        data[, c(names(swsContext.datasets[[1]]@dimensions),
-                 "reliableValue", "reliabilityFlag"), with = FALSE]
-    setnames(saveSelection,
-             old = c("reliableValue", "reliabilityFlag"),
-             new = c(valuePrefix, flagPrefix))
-    saveSelection
-}
-
-saveBalancedData = function(data){
-    SaveData(domain = "trade",
-                dataset = "ct_published_tf",
-                data = data)
-}
     
 ## Procedure for trade balancing and calculate trade standard deviation.
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
