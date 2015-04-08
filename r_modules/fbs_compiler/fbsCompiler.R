@@ -16,9 +16,7 @@ yearVar = "timePointYears"
 itemVar = "measuredItemCPC"
 standardizedItemVar = "cpc_standardized_code"
 elementVar = "measuredElement"
-## Make this a parameter in the module
-selectedCountry = "840"
-selectedYear = "2010"
+
 
 ## set up for the test environment and parameters
 if(Sys.getenv("USER") == "mk"){
@@ -33,6 +31,10 @@ if(Sys.getenv("USER") == "mk"){
 } else {
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
 }
+
+
+selectedCountry = swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
+selectedYear = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 
 primaryMeasuredItemCPC = getPrimaryMeasuredItemCPC(swsContext.datasets[[1]])
 
@@ -253,6 +255,8 @@ tableWithFeed =
     copy(tableExcludeFeed) %>%
     ## Calculate feed availability
     calculateFeedAvailability(data = .,
+                              areaVar = areaVar,
+                              yearVar = yearVar,
                               production = "Value_measuredElement_250",
                               import = "Value_measuredElement_251",
                               export = "Value_measuredElement_252",
@@ -296,8 +300,7 @@ contingencyTable =
                           residualVariable = "Value_measuredElement_50712")
 
 ## Calculate contingency table in per capita per day
-##
-## NOTE (Michael): Need to check the element used in the getPopulationData
+
 contingencyTableCaput =
     copy(contingencyTable) %>%
     {
@@ -319,20 +322,20 @@ contingencyTableCaput =
                 valuePrefix = "Value",
                 flagObsStatusPrefix = "flagObservationStatus",
                 flagMethodPrefix = "flagMethod") %>%
-    setnames(. ,old = "cpc_standardized_code", new = "measuredItemSuaFbs") %T>%
+    setnames(. ,old = "cpc_standardized_code", new = "measuredItemSuaFbs") %>%
     saveContingencyCaputTable(data = .)
 
 
 
 ## checkTable =
-##     contingencyTableCaput[, c("geographicAreaM49", "cpc_standardized_code",
+##     contingencyTableCaput[, c("geographicAreaM49", "measuredItemSuaFbs",
 ##                               "timePointYears",
-##                               grep("Value_measuredElementCalorie",
+##                               grep("Value_measuredElement",
 ##                                    colnames(contingencyTable),
 ##                                    value = TRUE)),
 ##                           with = FALSE]
 ## setnames(checkTable,
-##          old = grep("Value_measuredElementCalorie", colnames(contingencyTable),
+##          old = grep("Value_measuredElement", colnames(contingencyTable),
 ##              value = TRUE),
 ##          new = c("production", "import", "export", "seed", "loss",
 ##              "industrialUse", "food", "feed", "stockChanges"))
