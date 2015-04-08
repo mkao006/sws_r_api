@@ -18,7 +18,7 @@ if(verbose){
 
 
 ## Year should be a paramameter selected.
-selectedYear = "2010"
+
 
 
 faoswsTradeFlagTable =
@@ -41,7 +41,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "4419f4bb-132f-40a2-b699-2d03ba709f34"
+        token = "afad677a-5d69-4bcd-8eda-4aa1145dcdd1"
         )
     files = dir(path = "./tradeMirroring", pattern = "\\.R$", recursive = TRUE,
         full.names = TRUE)
@@ -106,7 +106,7 @@ assignElementName = function(elementTable){
 
 assignElementName(elementTable)
 
-
+selectedYear = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 selectedItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
 for(i in selectedItems){
     cat("Perform mirroring for HS item:", i, "\n")
@@ -197,9 +197,8 @@ for(i in selectedItems){
 
             ## Save mirrored data back
             mirroredData %>%
-                subsetRequiredData(data = .) %>%
-                saveMirroredTradeData(requiredData = .)
-
+                selectMirroredTargetData(data = .) %>%
+                saveMirroredData(requiredData = .)
             if(verbose){
                 endTime = Sys.time()
                 timeUsed = endTime - currentTime
