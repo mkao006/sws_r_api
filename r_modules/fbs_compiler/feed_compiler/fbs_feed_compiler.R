@@ -62,8 +62,8 @@ getFeedRequirementData = function(){
 }
 
 
-calculateFeedAvailability = function(data, production, import, export, seed, loss,
-    industrialUse, food){
+calculateFeedAvailability = function(data, areaVar, yearVar, production, import,
+    export, seed, loss, industrialUse, food){
 
     dataCopy = copy(data)
     dataCopy[, `:=`(c("Value_measuredElementCalorie_feedAvail"),
