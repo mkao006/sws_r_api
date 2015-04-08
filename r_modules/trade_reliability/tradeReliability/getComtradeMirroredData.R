@@ -1,4 +1,20 @@
-getComtradeMirroredData = function(dataContext){
+##' Get Comtrade Mirrored Data
+##' 
+##' @param reportingCountries A character vector of the country codes for all
+##' reporting countries which should be pulled.
+##' @param partnerCountries A character vector of the country codes for all
+##' partner countries which should be pulled.
+##' @param item A character vector of all the HS commodity codes which should
+##' be pulled.
+##' @param dataContext A DatasetKey object (this class is defined in the
+##' faosws package).  This is used to specify which years should be pulled.
+##' 
+##' @return A data.table object containing trading data for all input
+##' reporting countries, partner countries, items, and years.
+##' 
+
+getComtradeMirroredData = function(reportingCountries, partnerCountries, items,
+                                   dataContext){
         dimensions =
             list(Dimension(name = "reportingCountryM49",
                            keys = as.character(allReportingCountryCode)),

@@ -76,18 +76,20 @@ elementTable =
 
 ## Calculate Trade reliability
 reliabilityIndex = 
-    getComtradeMirroredData(swsContext.datasets[[1]]) %>%
-    mergeReverseTrade(data = .) %>%
+    getComtradeMirroredData(reportingCountries = allReportingCountryCode,
+                            partnerCountries = allPartnerCountryCode,
+                            items = allItem,
+                            dataContext = swsContext.datasets[[1]]) %>%
+    mergeReverseTrade(data = ., elementTable = elementTable) %>%
     calculatePairWiseConcordance(data = .,
-                                 reportingCountry = "reportingCountryM49",
-                                 partnerCountry = "partnerCountryM49",
-                                 year = "timePointYears",
-                                 mirroredFlag = "m",
-                                 tolerance = 0) %>%
+                                 reportingCountry = reportingCountryVar,
+                                 partnerCountry = partnerCountry,
+                                 year = yearVar,
+                                 mirroredFlag = "m") %>%
     calculateReliability(data = .,
-                         reportingCountry = "reportingCountryM49",
-                         partnerCountry = "partnerCountryM49",
-                         yearVar = "timePointYears",
+                         reportingCountry = reportingCountryVar,
+                         partnerCountry = partnerCountry,
+                         year = yearVar,
                          concordance = "concordance") %>%
     setnames(x = ., old = "reliability", new = "Value_measuredElement_RELIDX") %>%
     .[, `:=`(c("flagObservationStatus_measuredElement_RELIDX",
