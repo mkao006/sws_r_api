@@ -14,10 +14,10 @@
 		<MainDataset>
 			<Code>fbs_prebalance</Code>
 			<SelectableDimensions>
-				<SelectableDimension compulsory="false">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
 				<SelectableDimension compulsory="false">measuredItemCPC</SelectableDimension>
 				<SelectableDimension compulsory="false">measuredElement</SelectableDimension>
-				<SelectableDimension compulsory="false">timePointYears</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
 		<Dataset>
