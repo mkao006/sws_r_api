@@ -1,3 +1,13 @@
+##' Save Reliability Index
+##' 
+##' @param reliability A data.table object containing columns
+##' geographicAreaM49, timePointYears, and 3 columns for the reliability
+##' (value, observation flag, and method flag).
+##' 
+##' @return No object is returned, but the reliability object is written to the
+##' database.
+##' 
+
 saveReliabilityIndex = function(reliability){
 
     ## HACK (Michael): The reliability is loaded with standard M49

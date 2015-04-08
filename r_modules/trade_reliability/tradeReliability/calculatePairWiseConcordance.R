@@ -1,5 +1,28 @@
-calculatePairWiseConcordance = function(data, reportingCountry, partnerCountry,
-    year, mirroredFlag, tolerance){
+##' Calculate Pairwise Concordance
+##' 
+##' @param data A data.table object containing the trade data and the reversed
+##' values.  This object should come from the mergeReverseTrade function to
+##' ensure it has the right column structure.
+##' @param reportingCountry The column name of data corresponding to the
+##' reporting country.
+##' @param partnerCountry The column name of data corresponding to the
+##' partner country.
+##' @param year The column name of data corresponding to the year variable.
+##' @param mirroredFlag The flag which indicates that an observation of data
+##' is mirrored.
+##' @param valuePrefix The column name of data which contains the trade value.
+##' @param flagPrefix The column name of data which contains the trade flag.
+##' 
+##' @return
+##' 
+
+calculatePairWiseConcordance = function(data,
+                                    reportingCountry = "reportingCountryM49",
+                                    partnerCountry = "partnerCountryM49",
+                                    year = "timePointYears",
+                                    mirroredFlag = "m",
+                                    valuePrefix = "Value",
+                                    flagPrefix = "flagTrade"){
 
     tmp = data[!(data[[flagPrefix]] %in% mirroredFlag) &
                !(data[[paste0("reverse_", flagPrefix)]] %in% mirroredFlag), ]

@@ -1,27 +1,39 @@
-## calculateReliability = function(data, mirroredFlag = "m", tolerance = 0.05){
-##     tmp = data[!(data[[flagPrefix]] %in% mirroredFlag) &
-##                !(data[[paste0("reverse_", flagPrefix)]] %in% mirroredFlag), ]
-    
-##     reliability =
-##         tmp[,sum((.SD[[valuePrefix]] - .SD[[paste0("reverse_", valuePrefix)]])/
-##                  .SD[[valuePrefix]] <= tolerance)/.N,
-##              by = c(reportingCountryVar, yearVar)]
-##     setnames(reliability, old = c(reportingCountryVar, "V1"),
-##              new = c(areaVar, "Value_measuredElement_RELIDX"))
-##     reliability[, `:=`(c("flagObservationStatus_measuredElement_RELIDX",
-##                          "flagMethod_measuredElement_RELIDX"),
-##                        list("E", "e"))]
-##     reliability
-## }
+##' Calculate Reliability
+##' 
+##' This function calculates the trade reliability for the reporting
+##' country.  The reliability is the "eigenvector centrality" score, and is
+##' computed via the evcent function in the igraph package.  Qualitatively,
+##' this score measures how important a particular node is in a network when
+##' we're examining flow through a network.  In this context, we can think
+##' loosely think about concordance as a measure of flow through the network,
+##' and in this context the eigenvector centrality score will give a measure of
+##' which nodes "have the most concordance flowing through them", or really
+##' which nodes are the most reliable.
+##'
+##' @param data A data table object summarizing the concordance between a
+##' reporting and partner country.  This data.table object is usually generated
+##' by calculatePairWiseConcordance.
+##' @param reportingCountry The column name of data corresponding to the
+##' reporting country.
+##' @param partnerCountry The column name of data corresponding to the
+##' partner country.
+##' @param year The column name of data corresponding to the year variable.
+##' @param concordance The column name of data which contains the pairwise
+##' concordance values.
+##' @param plot Logical.  Currently unused.
+##'
+##' @return A data.table object containing three columns: geographicAreaM49,
+##' timePointYears, and reliability.  The reliability column provides a measure
+##' of how reliable an individual country is at reporting trade in a particular
+##' year.
+##' 
+##' @seealso igraph::evcent
+##' 
 
+calculateReliability = function(data, reportingCountry, partnerCountry, year,
+    concordance = "concordance", plot = FALSE){
 
-
-calculateReliability = function(data, reportingCountry, partnerCountry, yearVar,
-    concordance, plot = FALSE){
-
-
-    yearData = split(data, data[[yearVar]])
-    
+    yearData = split(data, data[[year]])
     
     calculateEigenReliability = function(data){
         singleYearGraph =
@@ -32,7 +44,7 @@ calculateReliability = function(data, reportingCountry, partnerCountry, yearVar,
             evcent(singleYearGraph, weights = data[[concordance]])$vector
         reliabilityTable =
             data.table(geographicAreaM49 = names(reliability),
-                       timePointYears = unique(data[[yearVar]]),
+                       timePointYears = unique(data[[year]]),
                        reliability = reliability)
         reliabilityTable
     }
