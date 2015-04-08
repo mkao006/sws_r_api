@@ -25,8 +25,7 @@ if(Sys.getenv("USER") == "mk"){
         token = "eff61a14-33cf-4126-a8ed-e455543ffff9"
         )
     R_SWS_SHARE_PATH = getwd()
-    files = dir(pattern = "\\.R$", recursive = TRUE, full.names = TRUE)
-    files = files[files != "./fbsCompiler.R"]
+    files = dir(path = "fbsCompiler/", full.names = TRUE)
     lapply(files, FUN = function(x) source(x))
 } else {
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/kao"
