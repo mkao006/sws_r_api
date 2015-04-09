@@ -19,6 +19,8 @@ if(Sys.getenv("USER") == "mk"){
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         token = "d91934e8-6bf9-4f44-b051-504a18c885fc"
         )
+    files = dir(path = "fbsBalancing/", full.names = TRUE)
+    lapply(files, source)
 }
 
 
@@ -29,7 +31,32 @@ standardizedItem =
 
 
 preBalanceTable = getPreBalancingTable()
-setnames(preBalanceTable,
+
+
+
+
+feedRequirement = getFeedRequirementData()
+
+structuralZeroParam = getStructuralZeroParam()
+    
+
+oldFormat =
+    readFBS(file = "adjustedCommodityContigencyTable.csv",
+            file0 = "structuralZeroParameter.csv",
+            filef = "adjustedFeedRange.csv")
+calStd = getTradeStandardDeviationCaput()
+
+finalTable = merge(preBalanceTable, calStd, by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs"), all.x = TRUE)
+finalTable[is.na(Value_measuredElementTrade_SD5600),
+           Value_measuredElementTrade_SD5600 := 0]
+finalTable[is.na(Value_measuredElementTrade_SD5900),
+           Value_measuredElementTrade_SD5900 := 0]
+
+
+newData =
+    finalTable[, grep("Value", colnames(preBalanceTable), value = TRUE),
+                    with = FALSE]
+setnames(newData,
          old = c("Value_measuredElement_250",
              "Value_measuredElement_251", 
              "Value_measuredElement_252",
@@ -39,38 +66,38 @@ setnames(preBalanceTable,
              "Value_measuredElement_51422", 
              "Value_measuredElement_55202", 
              "Value_measuredElement_50712"),
-         new = c("Production", "Imports", "Exports", "Seed", "Loss",
-             "IndustrialUse", "Food", "Feed", "Stock"))
+         new = c("Production", "Imports", "Exports", "Seed", "Losses",
+             "Industrial", "Food", "Feed", "Stock"))
+newData = data.matrix(newData[, Production := NULL])
+newData[, 1] = newData[, 1] * -1
+attr(newData, "dimnames")[[1]] = preBalanceTable$measuredItemSuaFbs
+
+## This is to prevent numerical error
+newDataRowTotal = round(rowSums(newData), 5)
+
+
+
+tradeSd =
+    data.matrix(finalTable[, list(Value_measuredElementTrade_SD5900,
+                                  Value_measuredElementTrade_SD5900)])
+attr(tradeSd, "dimnames")[[1]] = preBalanceTable$measuredItemSuaFbs
+
+feed = feedRequirement[, list(EDemand_lb, EDemand_ub)]
+
+
+
+newList = list(data = newData, row_Tot = newDataRowTotal,
+    sd = tradeSd, feed = feed)
+
+newFormat = list(`840` = list(`2010` = newList))
+f = balanceFBS(FBS = newFormat, sanityCheck = FALSE, maxErr = 10)
+
+test = f(Country = "840", year = "2010", nIter = 5)
 
 
 
 
-feedRequirement = getFeedRequirementData()
 
-
-getStructuralZeroParam = function(){
-    GetTableData(schemaName = "ess", tableName = "fbs_structural_zero")
-}
-
-    
-
-oldFormat =
-    readFBS(file = "adjustedCommodityContigencyTable.csv",
-            file0 = "structuralZeroParameter.csv",
-            filef = "adjustedFeedRange.csv")
-
-
-test = getContingencyTable()
-
-
-dataset = list(`840` = list(`2010` = test[[1]][[1]]))
-
-
-f = balanceFBS(FBS = dataset, sanityCheck = FALSE, maxErr = 10)
-
-f(Country = "840", year = "2010")
-
-getCaloricTradeStandardDeviation = function(){}
 
 
 ## Function to selecte the best table from the sampling
