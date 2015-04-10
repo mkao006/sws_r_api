@@ -1,4 +1,4 @@
-getPreBalancingTable = function(){
+getPreBalancingTable = function(valueOnly = TRUE){
     preBalanceKey = DatasetKey(
         domain = "suafbs",
         dataset = "fbs_prebalance",
@@ -34,5 +34,13 @@ getPreBalancingTable = function(){
 
     ## Convert time to numeric
     preBalanceQuery[, timePointYears := as.numeric(timePointYears)]
+    if(valueOnly)
+        preBalanceQuery = 
+            preBalanceQuery[, c("geographicAreaM49", "measuredItemSuaFbs",
+                                "timePointYears",
+                                grep("Value", colnames(preBalanceQuery),
+                                     value = TRUE)),
+                            with = FALSE]
+    
     preBalanceQuery
 }
