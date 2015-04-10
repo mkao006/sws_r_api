@@ -1,4 +1,4 @@
-getTradeStandardDeviationCaput = function(){
+getTradeStandardDeviationCaput = function(valueOnly = TRUE){
     tradeStdCaputKey = DatasetKey(
         domain = "trade",
         dataset = "stddev_caloriescap",
@@ -33,4 +33,12 @@ getTradeStandardDeviationCaput = function(){
     setkeyv(tradeStdCaputQuery, cols = c("geographicAreaM49", "timePointYears"))
     ## Convert time to numeric
     tradeStdCaputQuery[, timePointYears := as.numeric(timePointYears)]
+    if(valueOnly)
+        tradeStdCaputQuery =
+            tradeStdCaputQuery[, c("geographicAreaM49", "measuredItemSuaFbs",
+                                   "timePointYears",
+                                   grep("Value", colnames(tradeStdCaputQuery),
+                                        value = TRUE)),
+                               with = FALSE]
+    tradeStdCaputQuery    
 }
