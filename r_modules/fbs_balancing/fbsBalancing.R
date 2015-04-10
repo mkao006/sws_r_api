@@ -7,9 +7,6 @@ suppressMessages({
     library(reshape2)
 })
 
-## NOTE (Michael): The selected country code is in old FAO
-##                 classification, need to change to M49 codes when
-##                 the contingency table is set up.
 selectedCountry = "840"
 selectedYear = "2010"
 
@@ -30,88 +27,27 @@ standardizedItem =
                 dimension = "measuredItemSuaFbs")[grep("^S", code)]
 
 
-preBalanceTable = getPreBalancingTable()
-
-
-
-
-feedRequirement = getFeedRequirementData()
-
-structuralZeroParam = getStructuralZeroParam()
-    
-
-oldFormat =
-    readFBS(file = "adjustedCommodityContigencyTable.csv",
-            file0 = "structuralZeroParameter.csv",
-            filef = "adjustedFeedRange.csv")
-calStd = getTradeStandardDeviationCaput()
-
-finalTable = merge(preBalanceTable, calStd, by = c("geographicAreaM49", "timePointYears", "measuredItemSuaFbs"), all.x = TRUE)
-finalTable[is.na(Value_measuredElementTrade_SD5600),
-           Value_measuredElementTrade_SD5600 := 0]
-finalTable[is.na(Value_measuredElementTrade_SD5900),
-           Value_measuredElementTrade_SD5900 := 0]
-
-
-newData =
-    finalTable[, grep("Value", colnames(preBalanceTable), value = TRUE),
-                    with = FALSE]
-setnames(newData,
-         old = c("Value_measuredElement_250",
-             "Value_measuredElement_251", 
-             "Value_measuredElement_252",
-             "Value_measuredElement_55252", 
-             "Value_measuredElement_51202", 
-             "Value_measuredElement_51502", 
-             "Value_measuredElement_51422", 
-             "Value_measuredElement_55202", 
-             "Value_measuredElement_50712"),
-         new = c("Production", "Imports", "Exports", "Seed", "Losses",
-             "Industrial", "Food", "Feed", "Stock"))
-newData = data.matrix(newData[, Production := NULL])
-newData[, 1] = newData[, 1] * -1
-attr(newData, "dimnames")[[1]] = preBalanceTable$measuredItemSuaFbs
-
-## This is to prevent numerical error
-newDataRowTotal = round(rowSums(newData), 5)
-
-
-
-tradeSd =
-    data.matrix(finalTable[, list(Value_measuredElementTrade_SD5900,
-                                  Value_measuredElementTrade_SD5900)])
-attr(tradeSd, "dimnames")[[1]] = preBalanceTable$measuredItemSuaFbs
-
-feed = feedRequirement[, list(EDemand_lb, EDemand_ub)]
-
-
-
-newList = list(data = newData, row_Tot = newDataRowTotal,
-    sd = tradeSd, feed = feed)
-
-newFormat = list(`840` = list(`2010` = newList))
-f = balanceFBS(FBS = newFormat, sanityCheck = FALSE, maxErr = 10)
-
-test = f(Country = "840", year = "2010", nIter = 5)
-
-
-
-
 
 
 
 ## Function to selecte the best table from the sampling
-sampleBalancedTable = function(contingencyTable, sanityCheck = FALSE, maxErr = 10,
-    selectedCountry, selectedYear, ...){
+sampleBalancedTable = function(contingencyTableList, selectedCountry,
+    selectedYear, sanityCheck = FALSE, maxErr = 10, ...){
     
     balancingFunction =
-        balanceFBS(FBS = contingencyTable,
+        balanceFBS(FBS = contingencyTableList,
                    sanityCheck = sanityCheck, maxErr = maxErr)
+
     sampledTables =
         balancingFunction(Country = selectedCountry, year = selectedYear, ...)
+
+    if(is.null(sampledTables))
+        sampledTables =
+            new("conTa",
+                bestTab =
+                    contingencyTableList[[selectedCountry]][[selectedYear]]$data)
     sampledTables
 }
-
 
 plotItemSamplingDistribution = function(balancingObject,
     selectedItem = "wheat.and.products"){
@@ -146,25 +82,62 @@ plotItemSamplingDistribution = function(balancingObject,
 }
 
 
-## Carry out the balancing
-bestBalancedTable =
-    getContingencyTable() %>%
-    ## test %>%
-    sampleBalancedTable(contingencyTable = .,
-                        selectedCountry = selectedCountry,
-                        selectedYear = selectedYear,
-                        oset = c(30, 30, 30, 30, 30, 10000),
-                        prop = NULL,
-                        nIter = 500,
-                        verbose = TRUE,
-                        checks = "none",
-                        feedShift = 30) %>%
-    {
-        bestTable <<- .@bestTab
-        balancingObject <<- .
-    }
-
-plotItemSamplingDistribution(balancingObject = balancingObject,
-                             selectedItem = "cassava.and.products")
 
 
+balancing =
+    try({
+            meanTable <<- getPreBalancingTable()
+            stdTable <<- getTradeStandardDeviationCaput()
+            feedRequirement <<- getFeedRequirementData()
+            structuralZeroParam <<- getStructuralZeroParam()
+            
+
+            finalTable =
+                mergeAllTables(meanTable = meanTable,
+                               stdTable = stdTable,
+                               feedRequirementTable = feedRequirement,
+                               keys = c("geographicAreaM49", "measuredItemSuaFbs",
+                                   "timePointYears"))
+            finalTable[, Imports := Imports * -1]
+            finalInputList = convertToInputList(finalTable)
+
+            ## balancingFunction =
+            ##     balanceFBS(FBS = finalInputList,
+            ##                sanityCheck = FALSE,
+            ##                maxErr = 10)
+
+            ## optimalTable =
+            ##     balancingFunction(selectedCountry, selectedYear, nIter = 5)
+            
+            
+            optimalTable =
+                sampleBalancedTable(contingencyTableList = finalInputList,
+                                    selectedCountry = selectedCountry,
+                                    selectedYear = selectedYear,
+                                    nIter = 5)
+
+            saveOptimalBalancedTable(optimalTable,
+                                     selectedCountry = selectedCountry,
+                                     selectedYear = selectedYear)
+            
+        })
+
+
+## plotItemSamplingDistribution(balancingObject = balancingObject,
+##                              selectedItem = "cassava.and.products")
+
+
+
+
+## ## Old testing
+## oldFormat =
+##      readFBS(file = "adjustedCommodityContigencyTable.csv",
+##              file0 = "structuralZeroParameter.csv",
+##              filef = "adjustedFeedRange.csv")
+
+## oldBalancingFunction =
+##     balanceFBS(FBS = oldFormat,
+##                sanityCheck = FALSE, maxErr = 10)
+
+## oldTables =
+##     oldBalancingFunction(Country = "231", year = "2010", nIter = 5)
