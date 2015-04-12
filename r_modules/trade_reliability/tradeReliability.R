@@ -77,11 +77,15 @@ for(i in allYears){
     selectedYear = i
     cat("Calculating Reliability for Year", i, "\n")
     ## Calculate Trade reliability
-    reliabilityIndex = 
+    mirroredData =
         getComtradeMirroredData(reportingCountries = allReportingCountryCode,
                                 partnerCountries = allPartnerCountryCode,
                                 items = allItem,
-                                years = selectedYear) %>%
+                                years = selectedYear)
+    if(NROW(mirroredData) == 0)
+        next
+    reliabilityIndex = 
+        copy(mirroredData) %>%
         mergeReverseTrade(data = ., elementTable = elementTable) %>%
         calculatePairWiseConcordance(data = .,
                                      reportingCountry = reportingCountryVar,
