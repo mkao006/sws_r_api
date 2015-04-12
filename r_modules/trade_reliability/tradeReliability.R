@@ -16,9 +16,6 @@ if(verbose){
 }
 
 
-## Year should be a paramameter selected.
-selectedYear = "2010"
-
 
 ## Setting up variables
 areaVar = "geographicAreaM49"
@@ -37,7 +34,7 @@ if(Sys.getenv("USER") == "mk"){
     GetTestEnvironment(
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "1e5c87fe-320f-4faa-9485-fde92f5b8fef"
+        token = "66234348-c65d-4060-a430-9fd5622b4c11"
     )
     verbose = TRUE
     files = dir(path = "./tradeReliability", pattern = "\\.R$", recursive = TRUE,
@@ -73,29 +70,37 @@ elementTable =
                reexport = c("5912", "5923", NA),
                stringsAsFactors = FALSE)
 
+## Select year
+allYears = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 
-## Calculate Trade reliability
-reliabilityIndex = 
-    getComtradeMirroredData(reportingCountries = allReportingCountryCode,
-                            partnerCountries = allPartnerCountryCode,
-                            items = allItem,
-                            dataContext = swsContext.datasets[[1]]) %>%
-    mergeReverseTrade(data = ., elementTable = elementTable) %>%
-    calculatePairWiseConcordance(data = .,
-                                 reportingCountry = reportingCountryVar,
-                                 partnerCountry = partnerCountry,
-                                 year = yearVar,
-                                 mirroredFlag = "m") %>%
-    calculateReliability(data = .,
-                         reportingCountry = reportingCountryVar,
-                         partnerCountry = partnerCountry,
-                         year = yearVar,
-                         concordance = "concordance") %>%
-    setnames(x = ., old = "reliability", new = "Value_measuredElement_RELIDX") %>%
-    .[, `:=`(c("flagObservationStatus_measuredElement_RELIDX",
-               "flagMethod_measuredElement_RELIDX"),
-             list("E", "e"))] %>%
-    saveReliabilityIndex(reliability = .)
+for(i in allYears){
+    selectedYear = i
+    cat("Calculating Reliability for Year", i, "\n")
+    ## Calculate Trade reliability
+    reliabilityIndex = 
+        getComtradeMirroredData(reportingCountries = allReportingCountryCode,
+                                partnerCountries = allPartnerCountryCode,
+                                items = allItem,
+                                years = selectedYear) %>%
+        mergeReverseTrade(data = ., elementTable = elementTable) %>%
+        calculatePairWiseConcordance(data = .,
+                                     reportingCountry = reportingCountryVar,
+                                     partnerCountry = partnerCountry,
+                                     year = yearVar,
+                                     mirroredFlag = "m") %>%
+        calculateReliability(data = .,
+                             reportingCountry = reportingCountryVar,
+                             partnerCountry = partnerCountry,
+                             year = yearVar,
+                             concordance = "concordance") %>%
+        setnames(x = ., old = "reliability",
+                 new = "Value_measuredElement_RELIDX") %>%
+        .[, `:=`(c("flagObservationStatus_measuredElement_RELIDX",
+                   "flagMethod_measuredElement_RELIDX"),
+                 list("E", "e"))] %>%
+        saveReliabilityIndex(reliability = .)
+    gc()
+}
 
 
 
