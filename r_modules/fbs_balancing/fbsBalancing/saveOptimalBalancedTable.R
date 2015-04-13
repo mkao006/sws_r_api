@@ -1,15 +1,14 @@
 saveOptimalBalancedTable = function(optimalTable, selectedCountry, selectedYear){
 
-    optimalDataTable =
-        data.table(cbind(optimalTable@bestTab,
-                         Production = rowSums(optimalTable@bestTab)))
-
+    ## optimalDataTable =
+    ##     data.table(cbind(optimalTable@bestTab,
+    ##                      Production = rowSums(optimalTable@bestTab)))
+    optimalDataTable = data.table(optimalTable@bestTab)
     optimalDataTable[, Imports := Imports * -1]
     optimalDataTable[, measuredItemSuaFbs := rownames(optimalTable@bestTab)]
     optimalDataTable[, geographicAreaM49 := selectedCountry]
     optimalDataTable[, timePointYears := selectedYear]
-    optimalDataTable
-
+    
     setnames(optimalDataTable,
              new = c("Value_measuredElement_250",
                  "Value_measuredElement_251", 
