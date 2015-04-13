@@ -15,8 +15,6 @@ if(verbose){
 }
 
 
-## Year should be a paramameter selected.
-selectedYear = "2010"
 
 
 ## Setting up variables
@@ -182,9 +180,11 @@ comtradeM49ToStandardM49 = function(comtradeData, comtradeM49Name, standardM49Na
 
 ## End of HACK
 
-    
+
 ## Procedure for trade balancing and calculate trade standard deviation.
 allItems = swsContext.datasets[[1]]@dimensions$measuredItemHS@keys
+selectedYear = swsContext.datasets[[1]]@dimensions$timePointYears@keys
+
 subContext = swsContext.datasets[[1]]
 for(i in allItems){
     cat("Perform Balancing for HS item:", i, "\n")
