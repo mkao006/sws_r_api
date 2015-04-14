@@ -190,7 +190,7 @@ if(testing){
                       by = 3)))
     bagEarthPredicted = predict(bagEarthFit, testing)
     confusionMatrix(data = bagEarthPredicted, testing$valid)
-
+    ## 126 correct, 123 incorrect.  Always predicted "N".
 }
 
 
