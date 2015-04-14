@@ -2,15 +2,12 @@ balanceTrade = function(data){
     balanceData = copy(data)
 
     balanceData[, reliableValue :=
-                 ifelse(reportingReliability >= partnerReliability,
-                        .SD[[valuePrefix]],
-                        .SD[[paste0("reverse_", valuePrefix)]])]
+                    ifelse(reportingReliability >= partnerReliability,
+                           get(valuePrefix),
+                           get(paste0("reverse_", valuePrefix)))]
     balanceData[, reliabilityFlag :=
-                    aggregateObservationFlag(balanceData[[flagPrefix]],
-                                             balanceData[[paste0("reverse_",
-                                                                 flagPrefix)]],
-                                             flagTable = tradeFlowFlagTable)]
-                    
+                    ifelse(reportingReliability >= partnerReliability,
+                           get(flagPrefix), "b")]
 
     stdData =
         balanceData[, sqrt(sum((.SD[[valuePrefix]] - reliableValue)^2)/.N),
