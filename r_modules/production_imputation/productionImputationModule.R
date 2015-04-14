@@ -18,30 +18,36 @@ R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
 if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
+    cat("Not on server, so setting up environment...\n")
+    
     ## Define directories
-    apiDirectory = "~/Documents/Github/sws_r_api/r_modules/production_imputation/packageCode"
-    packageDirectory1 = "~/Documents/SVN/RModules/faoswsProduction/R/"
+    apiDirectory1 = "~/Documents/Github/sws_r_api/r_modules/production_imputation/faoswsProduction/"
+    apiDirectory2 = "~/Documents/Github/sws_r_api/r_modules/production_imputation/faoswsProductionImputation/"
+    packageDirectory1 = "~/Documents/Github/sws_production/faoswsProduction/R/"
     packageDirectory2 = "~/Documents/Github/sws_imputation/codes/R/"
     
     ## Get SWS Parameters
     GetTestEnvironment(
-        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "a94b4c47-3d8c-4076-be7e-21297fca3d36"
+        ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
+        ## token = "a94b4c47-3d8c-4076-be7e-21297fca3d36"
+        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        token = "90bb0f92-e345-4401-945d-1e43af801167"
         )
     
-    ## Copy over scripts from package directory
-    file.copy(from = dir(packageDirectory1, pattern = ".*\\.R$",
-                         full.names = TRUE),
-              to = apiDirectory, overwrite = TRUE)
-    file.copy(from = dir(packageDirectory2, pattern = ".*\\.R$",
-                         full.names = TRUE),
-              to = apiDirectory, overwrite = TRUE)
+    # Don't copy right now, as we're using original productionImputation pkg.
+#     ## Copy over scripts from package directory
+#     file.copy(from = dir(packageDirectory1, pattern = ".*\\.R$",
+#                          full.names = TRUE),
+#               to = apiDirectory, overwrite = TRUE)
+#     file.copy(from = dir(packageDirectory2, pattern = ".*\\.R$",
+#                          full.names = TRUE),
+#               to = apiDirectory, overwrite = TRUE)
 
     ## Source copied scripts for this local test
-    for(file in dir(apiDirectory, full.names = T))
+    for(file in dir(apiDirectory1, full.names = T))
         source(file)
-
+    for(file in dir(apiDirectory2, full.names = T))
+        source(file)
 }
 
 ## Function to get the yield formula triplets
@@ -162,6 +168,45 @@ getImputationData = function(dataContext){
          prefixTuples = prefixTuples)
 }
 
+assignColumnNameVars = function(prefixTuples, formulaTuples){
+    assign("productionValue",
+        paste0(prefixTuples$valuePrefix,
+               formulaTuples$output),
+           envir = .GlobalEnv)
+    assign("productionObservationFlag",
+        paste0(prefixTuples$flagObsPrefix,
+               formulaTuples$output),
+           envir = .GlobalEnv)
+    assign("productionMethodFlag",
+        paste0(prefixTuples$flagMethodPrefix,
+               formulaTuples$output),
+           envir = .GlobalEnv)
+    assign("areaHarvestedValue",
+        paste0(prefixTuples$valuePrefix,
+               formulaTuples$input),
+           envir = .GlobalEnv)
+    assign("areaHarvestedObservationFlag",
+        paste0(prefixTuples$flagObsPrefix,
+               formulaTuples$input),
+           envir = .GlobalEnv)
+    assign("areaHarvestedMethodFlag",
+        paste0(prefixTuples$flagMethodPrefix,
+               formulaTuples$input),
+           envir = .GlobalEnv)
+    assign("yieldValue",
+        paste0(prefixTuples$valuePrefix,
+               formulaTuples$productivity),
+           envir = .GlobalEnv)
+    assign("yieldObservationFlag",
+        paste0(prefixTuples$flagObsPrefix,
+               formulaTuples$productivity),
+           envir = .GlobalEnv)
+    assign("yieldMethodFlag",
+        paste0(prefixTuples$flagMethodPrefix,
+               formulaTuples$productivity),
+           envir = .GlobalEnv)
+}
+
 executeImputationModule = function(){
     fullKey = swsContext.datasets[[1]]
     subKey = fullKey
@@ -171,55 +216,35 @@ executeImputationModule = function(){
         print(paste0("Imputation for item: ", singleItem))
         
         impute = try({
+            cat("Reading in the data...\n")
             datasets = getImputationData(subKey)
             ## This is a temporary hack until the API issue is
             ## resolved
             ## datasets$query =
             ##     as.data.table(lapply(datasets$query, FUN = NULLtoNA))
-            with(datasets, {
-                ## NOTE (Michael): The yield should have been
-                ##                 calculated a priori to the
-                ##                 imputation modeul.
+
+            ## NOTE (Michael): The yield should have been
+            ##                 calculated a priori to the
+            ##                 imputation module.
+            
+            ## Some commodities have multiple formulas.  For example, the LNSP
+            ## (livestock non-primary) item type has beef, indigenous beef, and
+            ## biological beef.  Rather than being different commodities, these
+            ## three commodities are stored under the beef commodity with
+            ## different element codes for production/yield/output.  So, we
+            ## need to process each one and thus loop over all the
+            ## formulaTuples (which specifies the multiple element codes if
+            ## applicable).
+            for(i in 1:nrow(datasets$formulaTuples)){
+                cat("Processing pair", i, "of", nrow(datasets$formulaTuples),
+                    "element triples.\n")
                 
                 ## Set the names
-                assign("productionValue",
-                    paste0(prefixTuples$valuePrefix,
-                           formulaTuples$output),
-                       envir = .GlobalEnv)
-                assign("productionObservationFlag",
-                    paste0(prefixTuples$flagObsPrefix,
-                           formulaTuples$output),
-                       envir = .GlobalEnv)
-                assign("productionMethodFlag",
-                    paste0(prefixTuples$flagMethodPrefix,
-                           formulaTuples$output),
-                       envir = .GlobalEnv)
-                assign("areaHarvestedValue",
-                    paste0(prefixTuples$valuePrefix,
-                           formulaTuples$input),
-                       envir = .GlobalEnv)
-                assign("areaHarvestedObservationFlag",
-                    paste0(prefixTuples$flagObsPrefix,
-                           formulaTuples$input),
-                       envir = .GlobalEnv)
-                assign("areaHarvestedMethodFlag",
-                    paste0(prefixTuples$flagMethodPrefix,
-                           formulaTuples$input),
-                       envir = .GlobalEnv)
-                assign("yieldValue",
-                    paste0(prefixTuples$valuePrefix,
-                           formulaTuples$productivity),
-                       envir = .GlobalEnv)
-                assign("yieldObservationFlag",
-                    paste0(prefixTuples$flagObsPrefix,
-                           formulaTuples$productivity),
-                       envir = .GlobalEnv)
-                assign("yieldMethodFlag",
-                    paste0(prefixTuples$flagMethodPrefix,
-                           formulaTuples$productivity),
-                       envir = .GlobalEnv)
-
+                assignColumnNameVars(prefixTuples = datasets$prefixTuples,
+                                     formulaTuples = datasets$formulaTuples[i])
+    
                 ## Recompute the yield
+                cat("Computing yield...\n")
                 computeYield(productionValue = productionValue,
                              productionObservationFlag =
                                  productionObservationFlag,
@@ -233,15 +258,15 @@ executeImputationModule = function(){
                              yieldMethodFlag = yieldMethodFlag,
                              newMethodFlag = "i",
                              flagTable = faoswsFlagTable,
-                             data = query,
+                             data = datasets$query,
                              unitConversion =
-                                 formulaTuples$unitConversion)
-
+                                 datasets$formulaTuples$unitConversion[i])
+    
                 ## Impute the dataset
                 yieldDefaultFormula =
                     paste0(yieldValue, " ~ -1 + (1 + bs(timePointYears, df = 2, degree = 1)|geographicAreaM49)")
                 
-                imputed = imputeProductionDomain(data = query,
+                imputed = imputeProductionDomain(data = datasets$query,
                     productionValue = productionValue,
                     productionObservationFlag =
                         productionObservationFlag,
@@ -268,16 +293,18 @@ executeImputationModule = function(){
                     maximumWeights = 0.7,
                     yieldFormula =
                         yieldDefaultFormula)
-
-#                 ## Validate data: not necessary since saveProductionData does this
-#                 valid = faoswsUtil::removeInvalidDates(data = imputed)
-
+    
+    #                 ## Validate data: not necessary since saveProductionData does this
+    #                 valid = faoswsUtil::removeInvalidDates(data = imputed)
+    
                 ## Save back to database
-                saveProductionData(imputed)
-            }
-                 )
-        }
-                     )
+                saveProductionData(imputed,
+                        areaHarvestedCode = datasets$formulaTuples$input[i],
+                        yieldCode = datasets$formulaTuples$productivity[i],
+                        productionCode = datasets$formulaTuples$output[i],
+                        verbose = TRUE)
+            } # close item type for loop
+        }) # close try block
         if(inherits(impute, "try-error")){
             print("Imputation Module Failed")
         } else {
@@ -287,3 +314,4 @@ executeImputationModule = function(){
 }
 
 executeImputationModule()
+"Module completed!"
