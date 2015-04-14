@@ -13,7 +13,8 @@
 ##' @param valuePrefix The column name of data which contains the trade value.
 ##' @param flagPrefix The column name of data which contains the trade flag.
 ##' 
-##' @return
+##' @return Data.table with coefficients of concordance for given reporters, 
+##' partners and years.
 ##' 
 
 calculatePairWiseConcordance = function(data,
