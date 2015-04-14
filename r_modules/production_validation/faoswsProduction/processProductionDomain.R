@@ -68,10 +68,10 @@ processProductionDomain = function(data, processingParameters){
     }
 
     ### Remove byKey groups that have no data
-    faoswsUtil::removeNoInfo(data = data,
-                 value = p$yieldValue,
-                 observationFlag = p$yieldObservationFlag,
-                 byKey = p$byKey)
+#     faoswsUtil::removeNoInfo(data = data,
+#                  value = p$yieldValue,
+#                  observationFlag = p$yieldObservationFlag,
+#                  byKey = p$byKey)
     # removeNoInfo assigns the new data.table to the variable "data" in the
     # environment of this function.  Thus, to ensure "data" is returned to the
     # caller of this function, assign the data.table to the calling environment.
