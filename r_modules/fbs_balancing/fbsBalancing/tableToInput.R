@@ -12,7 +12,8 @@ tableToInput = function(table, meanVariables, sdVariables, feedDemandVariables){
         data.matrix(table[, c(sdVariables), with = FALSE])
     rownames(sdMatrix) = table$measuredItemSuaFbs
 
-    feedDemandDf = unique(table[, c(feedDemandVariables), with = FALSE])
+    feedDemandDf =
+        unique(data.frame(table[, c(feedDemandVariables), with = FALSE]))
     list(data = dataMatrix, row_Tot = rowTotalMatrix, sd = sdMatrix,
          feed = feedDemandDf)
 }

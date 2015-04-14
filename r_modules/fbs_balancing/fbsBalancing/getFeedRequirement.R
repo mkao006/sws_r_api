@@ -37,6 +37,6 @@ getFeedRequirementData = function(){
     ## Convert time to numeric
     feedRequirementQuery[, timePointYears := as.numeric(timePointYears)]
     feedRequirementQuery[, list(geographicAreaM49, timePointYears,
-                                EDemand_lb = Value_estimator_3,
-                                EDemand_ub = Value_estimator_2)]
+                                EDemand_lb = Value_estimator_2,
+                                EDemand_ub = Value_estimator_3)]
 }

@@ -6,18 +6,17 @@
 	<Category>Balancing</Category>
 	<Authors>
 		<Author>
-			<Name>Marco Garieri and Luca Pozzi</Name>
-			<Mail>marco.garieri@fao.org</Mail>
+			<Name>Michael. C. J. Kao</Name>
+			<Mail>michael.kao@fao.org</Mail>
 		</Author>
 	</Authors>
-	<!-- Need to change the dataset when it has been set up. -->
 	<Datasets>
 		<MainDataset>
-			<Code>total_trade</Code>
+			<Code>fbs_balanced</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
-				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemSuaFbs</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
