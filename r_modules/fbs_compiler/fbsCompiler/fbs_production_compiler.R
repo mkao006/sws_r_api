@@ -1,63 +1,9 @@
 ## Need to get all the elements associated with production
-getProductionElement = function(measuredItemCPC){
-    condition =
-        paste0("WHERE cpc_code IN (",
-               paste0(shQuote(as.character(measuredItemCPC)),
-                      collapse = ", "), ")")
-    yieldFormula =
-        GetTableData(schemaName = "ess",
-                     tableName = "item_yield_elements",
-                     whereClause = condition)
-    yieldFormula
-}
 
 
 ## Get production data
 
-getProductionData = function(){
 
-    ## NOTE (Michael): Need to select all the items, waiting for response
-    ##                 from Nick on the item table.
-    productionKey = DatasetKey(
-        domain = "agriculture",
-        dataset = "agriculture",
-        dimensions = list(
-            Dimension(name = areaVar,
-                      keys = selectedCountry),
-            Dimension(name = elementVar,
-                      keys = unique(productionElements$element_51)),
-            Dimension(name = itemVar,
-                      keys = primaryMeasuredItemCPC),
-            Dimension(name = yearVar,
-                      keys = selectedYear)
-        )
-    )
-
-    ## Pivot to vectorize yield computation
-    productionPivot = c(
-        Pivoting(code = areaVar, ascending = TRUE),
-        Pivoting(code = itemVar, ascending = TRUE),
-        Pivoting(code = yearVar, ascending = FALSE),
-        Pivoting(code = elementVar, ascending = TRUE)
-    )
-
-    ## Query the data
-    ##
-    ## NOTE (Michael): Need to check this, 570 items are queried, but only
-    ##                 105 are returned. Also, there are no value for
-    ##                 element 5518 which caused the type to be logical.
-    productionQuery = GetData(
-        key = productionKey,
-        flags = TRUE,
-        normalized = FALSE,
-        pivoting = productionPivot
-    )
-
-
-    ## Convert time to numeric
-    productionQuery[, timePointYears := as.numeric(timePointYears)]
-    productionQuery
-}
 
 
     
