@@ -1,10 +1,11 @@
+cat("Loading packages...")
+
 suppressMessages({
     library(faosws)
     library(faoswsUtil)
     library(data.table)
     library(magrittr)
     library(reshape2)
-    library(caret)
 })
 
 ## set up for the test environment and parameters
@@ -12,6 +13,8 @@ R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
 if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
+    cat("Running locally")
+    
     ## Define directories
     apiDirectory1 = "~/Documents/Github/sws_r_api/r_modules/production_validation/faoswsProduction/"
     packageDirectory1 = "~/Documents/Github/sws_production/faoswsProduction/R/"
@@ -40,8 +43,8 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     for(file in dir(apiDirectory2, full.names = T))
         source(file)
 } else {
+    cat("Running on the SWS")
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/browningj/production/validationModels"
-    updateModel = as.logical(swsContext.computationParams$updateModel)
 }
 
 # swsContext.datasets[[1]]@dimensions$measuredItemCPC@keys = c("0111", "0112")
@@ -62,6 +65,8 @@ getValidationData = function(){
     validationData
 }
 
+cat("Setting up validation models...")
+
 ## Set up validation models
 validationModels = list()
 param = swsContext.computationParams
@@ -78,7 +83,9 @@ intervalTest = function(y){
 }
 validationModels = c(validationModels, intervalTest)
 
-getValidationData() %>%
+cat("Fitting validation models...")
+
+validatedData = getValidationData() %>%
     ## The flagmethod "s" is an error, probably a test by someone.
     ## The flagmethod "n" corresponds to missing data.
     .[!get(paste0("flagMethod_measuredElement_", param$elementCode)) %in%
@@ -87,10 +94,16 @@ getValidationData() %>%
                                              param$elementCode),
                  byKey = c("geographicAreaM49", "measuredItemCPC"),
                  validationModels = validationModels) %>%
-    ## Define severity based on the number of tests which were successful
-    .[, Severity := flaggedCounts / successfulTests] %>%
-    SaveValidation(domain = "agriculture",
-                   dataset = "agriculture",
-                   validation = .)
+    ## Define severity based on the number of tests which were successful.
+    ## Also, it must be between 0 and 5, so scale appropriately.
+    .[, Severity := round(5 * flaggedCounts / successfulTests)]
+
+cat("Saving validated data back to the database...")
+
+validatedData[, Description := ""]
+
+SaveValidation(domain = "agriculture",
+               dataset = "agriculture",
+               validation = validatedData)
 
 "Validation completed!"
