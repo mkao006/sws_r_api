@@ -45,7 +45,7 @@ if(Sys.getenv("USER") == "mk"){
         )
     files = dir(path = "./tradeMirroring", pattern = "\\.R$", recursive = TRUE,
         full.names = TRUE)
-    lapply(files, FUN = function(x) source(x))
+    lapply(files, source)
     verbose = TRUE
 }
 
