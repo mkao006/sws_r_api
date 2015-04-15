@@ -1,4 +1,4 @@
-cat("Loading packages...")
+cat("Loading packages...\n")
 
 suppressMessages({
     library(faosws)
@@ -6,6 +6,7 @@ suppressMessages({
     library(data.table)
     library(magrittr)
     library(reshape2)
+    library(tidyr)
 })
 
 ## set up for the test environment and parameters
@@ -13,7 +14,7 @@ R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 
 if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
-    cat("Running locally")
+    cat("Running locally\n")
     
     ## Define directories
     apiDirectory1 = "~/Documents/Github/sws_r_api/r_modules/production_validation/faoswsProduction/"
@@ -25,7 +26,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     GetTestEnvironment(
         # baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "13f167bf-839f-40a6-b724-fcc25b0ec0df"
+        token = "e83ab505-a8bf-421c-a500-df7a8a8912db"
     )
     R_SWS_SHARE_PATH = paste0(apiDirectory1, "/..")
 
@@ -43,7 +44,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     for(file in dir(apiDirectory2, full.names = T))
         source(file)
 } else {
-    cat("Running on the SWS")
+    cat("Running on the SWS\n")
     R_SWS_SHARE_PATH = "/work/SWS_R_Share/browningj/production/validationModels"
 }
 
@@ -59,13 +60,13 @@ getValidationData = function(){
         Pivoting(code = "timePointYears", ascending = TRUE),
         Pivoting(code = "measuredElement", ascending = TRUE)
     )
-    validationData = GetData(swsContext.datasets[[1]], normalized = FALSE,
-                             pivoting = pivot)
+    validationData = GetData(key = swsContext.datasets[[1]],
+                             normalized = FALSE, pivoting = pivot)
     validationData = validationData[geographicAreaM49 %in% allCountries, ]
     validationData
 }
 
-cat("Setting up validation models...")
+cat("Setting up validation models...\n")
 
 ## Set up validation models
 validationModels = list()
@@ -83,7 +84,7 @@ intervalTest = function(y){
 }
 validationModels = c(validationModels, intervalTest)
 
-cat("Fitting validation models...")
+cat("Fitting validation models...\n")
 
 validatedData = getValidationData() %>%
     ## The flagmethod "s" is an error, probably a test by someone.
@@ -98,12 +99,24 @@ validatedData = getValidationData() %>%
     ## Also, it must be between 0 and 5, so scale appropriately.
     .[, Severity := round(5 * flaggedCounts / successfulTests)]
 
-cat("Saving validated data back to the database...")
+cat("Restructuring validated data so it can be saved...\n")
 
+valueColumns = (1:ncol(validatedData))[grep("Value_measuredElement",
+                                            colnames(validatedData))]
+validatedData = gather(data = validatedData, key = "measuredElement",
+                       value = "Value", valueColumns)
+# Remove values which don't exist in the database:
+validatedData = validatedData[!is.na(Value), ]
+validatedData = validatedData[, c("geographicAreaM49", "measuredItemCPC",
+                                  "timePointYears", "measuredElement",
+                                  "Severity"), with = FALSE]
+validatedData[, measuredElement := gsub("Value_measuredElement_", "",
+                                        measuredElement)]
 validatedData[, Description := ""]
 
-SaveValidation(domain = "agriculture",
-               dataset = "agriculture",
+cat("Attempting to save validation data to database...\n")
+
+SaveValidation(domain = "agriculture", dataset = "agriculture",
                validation = validatedData)
 
 "Validation completed!"
