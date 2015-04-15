@@ -5,7 +5,6 @@ suppressMessages({
     library(data.table)
     library(magrittr)
     library(reshape2)
-    # library(igraph)
 })
 
 verbose = FALSE
@@ -73,14 +72,14 @@ elementTable =
 ## Select year
 allYears = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 
-for(i in allYears[5:6]){
+for(i in allYears[6:7]){
     selectedYear = i
     cat("Calculating Reliability for Year", i, "\n")
     ## Calculate Trade reliability
     mirroredData =
         getComtradeMirroredData(reportingCountries = allReportingCountryCode,
                                 partnerCountries = allPartnerCountryCode,
-                                items = allItem[4000:4999],
+                                items = allItem[4000:5000],
                                 years = selectedYear)
     if(NROW(mirroredData) == 0)
         next
