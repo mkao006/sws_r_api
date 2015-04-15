@@ -5,7 +5,7 @@ suppressMessages({
     library(data.table)
     library(magrittr)
     library(reshape2)
-    library(igraph)
+    # library(igraph)
 })
 
 verbose = FALSE
@@ -73,14 +73,14 @@ elementTable =
 ## Select year
 allYears = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 
-for(i in allYears){
+for(i in allYears[5:6]){
     selectedYear = i
     cat("Calculating Reliability for Year", i, "\n")
     ## Calculate Trade reliability
     mirroredData =
         getComtradeMirroredData(reportingCountries = allReportingCountryCode,
                                 partnerCountries = allPartnerCountryCode,
-                                items = allItem,
+                                items = allItem[4000:4999],
                                 years = selectedYear)
     if(NROW(mirroredData) == 0)
         next
@@ -88,15 +88,15 @@ for(i in allYears){
         copy(mirroredData) %>%
         mergeReverseTrade(data = ., elementTable = elementTable) %>%
         calculatePairWiseConcordance(data = .,
-                                     reportingCountry = reportingCountryVar,
-                                     partnerCountry = partnerCountry,
-                                     year = yearVar,
+                                     reportingCountryVar = reportingCountryVar,
+                                     partnerCountryVar = partnerCountryVar,
+                                     yearVar = yearVar,
                                      mirroredFlag = "m") %>%
         calculateReliability(data = .,
-                             reportingCountry = reportingCountryVar,
-                             partnerCountry = partnerCountry,
-                             year = yearVar,
-                             concordance = "concordance") %>%
+                             reportingCountryVar = reportingCountryVar,
+                             partnerCountryVar = partnerCountryVar,
+                             yearVar = yearVar,
+                             concordanceVar = "concordance") %>%
         setnames(x = ., old = "reliability",
                  new = "Value_measuredElement_RELIDX") %>%
         .[, `:=`(c("flagObservationStatus_measuredElement_RELIDX",

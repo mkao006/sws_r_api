@@ -13,12 +13,12 @@
 ##' @param data A data table object summarizing the concordance between a
 ##' reporting and partner country.  This data.table object is usually generated
 ##' by calculatePairWiseConcordance.
-##' @param reportingCountry The column name of data corresponding to the
+##' @param reportingCountryVar The column name of data corresponding to the
 ##' reporting country.
-##' @param partnerCountry The column name of data corresponding to the
+##' @param partnerCountryVar The column name of data corresponding to the
 ##' partner country.
-##' @param year The column name of data corresponding to the year variable.
-##' @param concordance The column name of data which contains the pairwise
+##' @param yearVar The column name of data corresponding to the year variable.
+##' @param concordanceVar The column name of data which contains the pairwise
 ##' concordance values.
 ##' @param plot Logical.  Currently unused.
 ##'
@@ -30,24 +30,24 @@
 ##' @seealso igraph::evcent
 ##' 
 
-calculateReliability = function(data, reportingCountry, partnerCountry, year,
-    concordance = "concordance", plot = FALSE){
-
-    yearData = split(data, data[[year]])
-    
-    calculateEigenReliability = function(data){
-        singleYearGraph =
-            graph.data.frame(data[, c(reportingCountry, partnerCountry,
-                                      concordance), with = FALSE],
-                             directed = FALSE)
-        reliability =
-            evcent(singleYearGraph, weights = data[[concordance]])$vector
-        reliabilityTable =
-            data.table(geographicAreaM49 = names(reliability),
-                       timePointYears = unique(data[[year]]),
-                       reliability = reliability)
-        reliabilityTable
-    }
-
-    do.call("rbind", lapply(yearData, FUN = calculateEigenReliability))
+calculateReliability = function(data, reportingCountryVar, partnerCountryVar, yearVar,
+                                concordanceVar = "concordance", plot = FALSE){
+  
+  yearData = split(data, data[[yearVar]])
+  
+  calculateEigenReliability = function(data){
+    singleYearGraph =
+      igraph::graph.data.frame(data[, c(reportingCountryVar, partnerCountryVar,
+                                        concordanceVar), with = FALSE],
+                               directed = FALSE)
+    reliability =
+      igraph::evcent(singleYearGraph, weights = data[[concordanceVar]])$vector
+    reliabilityTable =
+      data.table(geographicAreaM49 = names(reliability),
+                 timePointYears = unique(data[[yearVar]]),
+                 reliability = reliability)
+    reliabilityTable
+  }
+  
+  do.call("rbind", lapply(yearData, FUN = calculateEigenReliability))
 }
