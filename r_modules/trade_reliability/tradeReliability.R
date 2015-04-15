@@ -72,14 +72,14 @@ elementTable =
 ## Select year
 allYears = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 
-for(i in allYears[6:7]){
+for(i in allYears){
     selectedYear = i
     cat("Calculating Reliability for Year", i, "\n")
     ## Calculate Trade reliability
     mirroredData =
         getComtradeMirroredData(reportingCountries = allReportingCountryCode,
                                 partnerCountries = allPartnerCountryCode,
-                                items = allItem[4000:5000],
+                                items = allItem,
                                 years = selectedYear)
     if(NROW(mirroredData) == 0)
         next
