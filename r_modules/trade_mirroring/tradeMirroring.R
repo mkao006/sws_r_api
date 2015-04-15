@@ -26,6 +26,8 @@ faoswsTradeFlagTable =
                flagObservationWeights = c(1, 0.5, 0.25))
 
 ## Setting up variables
+domain  <- "trade"
+dataset <- "ct_raw_tf"
 reportingCountryVar = "reportingCountryM49"
 partnerCountryVar = "partnerCountryM49"
 yearVar = "timePointYears"
@@ -45,21 +47,21 @@ if(Sys.getenv("USER") == "mk"){
         )
     files = dir(path = "./tradeMirroring", pattern = "\\.R$", recursive = TRUE,
         full.names = TRUE)
-    lapply(files, FUN = function(x) source(x))
+    lapply(files, source)
     verbose = TRUE
 }
 
 
 ## Get all reporting country codes
 allReportingCountryCode =
-    GetCodeList(domain = "trade",
-                dataset = "ct_raw_tf",
+    GetCodeList(domain = domain,
+                dataset = dataset,
                 dimension = reportingCountryVar)[type == "country", code]
 
 ## Get all partner country codes
 allPartnerCountryCode =
-    GetCodeList(domain = "trade",
-                dataset = "ct_raw_tf",
+    GetCodeList(domain = domain,
+                dataset = dataset,
                 dimension = partnerCountryVar)[type == "country", code]
 
 
@@ -69,9 +71,9 @@ allPartnerCountryCode =
 ##                 when we have the formula table.
 
 allElementTable =
-    GetCodeList(domain = "trade",
-                dataset =  "ct_raw_tf",
-                dimension = "measuredElementTrade")
+    GetCodeList(domain = domain,
+                dataset =  dataset,
+                dimension = elementVar)
 ## elementCode = c("5600", "5612", "5621", "5623", "5630", "5900", "5912", "5921",
 ##     "5923", "5930")
 ## elementCodeName = c("importQuantity", "reimportQuantity", "importValue",
