@@ -16,14 +16,10 @@ selectedYear = "2010"
 
 ## Setting up variables
 standardCountryVar = "geographicAreaM49"
-reportingCountryVar = "reportingCountryM49"
-partnerCountryVar = "partnerCountryM49"
 yearVar = "timePointYears"
 itemVar = "measuredItemHS"
-elementVar = "measuredElementTrade"
 valuePrefix = "Value_"
 flagPrefix = "flagTrade_"
-reverseTradePrefix = "reverse_"
 
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
@@ -32,12 +28,12 @@ DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     ## Define directories
     apiDirectory = "~/Documents/Github/sws_r_api/r_modules/production_validation/faoswsProduction/"
-    packageDirectory = "~/Documents/SVN/RModules/faoswsProduction/R/"
+    packageDirectory = "~/Documents/Github/sws_production/faoswsProduction/R/"
     
     ## Get SWS Parameters
     GetTestEnvironment(
-        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "6b16fcc4-8eb6-4cec-9009-680f11d0330a"
+        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        token = "58bfac1d-04cb-4150-856d-e0d10aec7b22"
     )
     R_SWS_SHARE_PATH = paste0(apiDirectory, "/..")
 
@@ -101,7 +97,7 @@ bagEarthControl = trainControl(method = "boot", number = 10)
 ## ---------------------------------------------------------------------
 
 if(testing){
-    subHistory = allHistory[sample(NROW(allHistory), 500), ]
+    subHistory = allHistory[sample(NROW(allHistory), 1000), ]
 
     inTrain = createDataPartition(y = subHistory$valid, p = 0.75, list = FALSE)
     training = subHistory[inTrain[, 1], ]
@@ -114,6 +110,7 @@ if(testing){
               trControl = logisticControl)
     logitBoostPredicted = predict(logitBoostFit, testing)
     confusionMatrix(data = logitBoostPredicted, testing$valid)
+    ## 42 correct, 33 incorrect, 174 NA's
 
     nnetFit =
         train(validationRule,
@@ -124,13 +121,13 @@ if(testing){
                   decay = 1/seq(1000, 10000, length = 10)))
     nnetPredicted = predict(nnetFit, testing)
     confusionMatrix(data = nnetPredicted, testing$valid)
+    ## 130 correct, 119 incorrect (almost all "N")
 
     ## lssvmRadialFit =
     ##     lssvm(validationRule,
     ##           data = data.frame(training), kernel = "rbfdot")
     ## lssvmRadialPredicted = predict(lssvmRadialFit, testing)
     ## confusionMatrix(data = lssvmRadialPredicted, testing$valid)
-
 
     rfFit =
         train(validationRule,
@@ -139,7 +136,7 @@ if(testing){
               trControl = rfControl)
     rfPredicted = predict(rfFit, testing)
     confusionMatrix(data = rfPredicted, testing$valid)
-
+    ## 125 correct, 124 incorrect
 
     fdaFit =
         train(validationRule, 
@@ -147,7 +144,7 @@ if(testing){
               method = "fda",  trControl = fdaControl)
     fdaPredicted = predict(fdaFit, testing)
     confusionMatrix(data = fdaPredicted, testing$valid)
-
+    ## 127 correct, 122 incorrect
 
     system.time({
         plsFit =
@@ -158,7 +155,7 @@ if(testing){
     })
     plsPredicted = predict(plsFit, testing)
     confusionMatrix(data = plsPredicted, testing$valid)
-
+    ## 135 correct, 114 incorrect
 
     system.time({
         somFit =
@@ -181,7 +178,7 @@ if(testing){
     })
     knnPredicted = predict(knnFit, testing)
     confusionMatrix(data = knnPredicted, testing$valid)
-
+    ## 122 correct, 127 incorrect
 
     bagEarthFit =
         train(validationRule,
@@ -193,7 +190,7 @@ if(testing){
                       by = 3)))
     bagEarthPredicted = predict(bagEarthFit, testing)
     confusionMatrix(data = bagEarthPredicted, testing$valid)
-
+    ## 126 correct, 123 incorrect.  Always predicted "N".
 }
 
 

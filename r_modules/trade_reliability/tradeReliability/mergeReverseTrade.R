@@ -38,6 +38,7 @@ mergeReverseTrade = function(data, elementTable,
     colnames(map2) = c("origin", "to")
     reversionTable = rbind(map1, map2)
 
+    # Changing elementVar (measuredElementTrade) to reverse element
     reverse[, `:=`(c(elementVar),
                    reversionTable[match(measuredElementTrade,
                                         reversionTable$origin), "to"])]

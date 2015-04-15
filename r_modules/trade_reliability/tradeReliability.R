@@ -5,7 +5,6 @@ suppressMessages({
     library(data.table)
     library(magrittr)
     library(reshape2)
-    library(igraph)
 })
 
 verbose = FALSE
@@ -88,15 +87,15 @@ for(i in allYears){
         copy(mirroredData) %>%
         mergeReverseTrade(data = ., elementTable = elementTable) %>%
         calculatePairWiseConcordance(data = .,
-                                     reportingCountry = reportingCountryVar,
-                                     partnerCountry = partnerCountry,
-                                     year = yearVar,
+                                     reportingCountryVar = reportingCountryVar,
+                                     partnerCountryVar = partnerCountryVar,
+                                     yearVar = yearVar,
                                      mirroredFlag = "m") %>%
         calculateReliability(data = .,
-                             reportingCountry = reportingCountryVar,
-                             partnerCountry = partnerCountry,
-                             year = yearVar,
-                             concordance = "concordance") %>%
+                             reportingCountryVar = reportingCountryVar,
+                             partnerCountryVar = partnerCountryVar,
+                             yearVar = yearVar,
+                             concordanceVar = "concordance") %>%
         setnames(x = ., old = "reliability",
                  new = "Value_measuredElement_RELIDX") %>%
         .[, `:=`(c("flagObservationStatus_measuredElement_RELIDX",

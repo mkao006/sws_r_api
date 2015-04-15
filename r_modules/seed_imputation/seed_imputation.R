@@ -40,7 +40,7 @@ DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
 if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     ## Define directories
     apiDirectory = "~/Documents/Github/sws_r_api/r_modules/seed_imputation/faoswsSeed"
-    packageDirectory = "~/Documents/SVN/RModules/faoswsSeed/R/"
+    packageDirectory = "~/Documents/Github/sws_seed/faoswsSeed/R/"
     
     ## Get SWS Parameters
     GetTestEnvironment(

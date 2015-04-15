@@ -14,9 +14,9 @@
 getComtradeMirroredData = function(reportingCountries, partnerCountries, items, years){
         dimensions =
             list(Dimension(name = "reportingCountryM49",
-                           keys = as.character(allReportingCountryCode)),
+                           keys = as.character(reportingCountries)),
                  Dimension(name = "partnerCountryM49",
-                           keys = as.character(allPartnerCountryCode)),
+                           keys = as.character(partnerCountries)),
                  Dimension(name = "measuredItemHS",
                            keys = items),
                  Dimension(name = "measuredElementTrade",
