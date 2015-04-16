@@ -4,7 +4,7 @@
 #' 
 #' @param unit Character vector with unit values from table of trade elements
 #' 
-#' @value Factor with dimensions
+#' @return Factor with dimensions
 
 groupUnits <- function(unit) {
   

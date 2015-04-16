@@ -1,4 +1,11 @@
-
+#' Extracts from original SWS table of trade elements data on direction 
+#' of flow, unit and dimension of unit.
+#' 
+#' @param elTable data.table (or data.frame) from getTradeElementTable function.
+#' 
+#' @return data.tame with columns code, direction, backflow, unit, unitgroup, description.
+#' 
+#' @import dplyr
 
 normalizeTradeElementTable <- function(elTable) {
 
