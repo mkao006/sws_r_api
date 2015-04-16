@@ -3,7 +3,7 @@
 #' @param code Vector with codes of elements 
 #' @param description Vector with description of elements
 #' 
-#' @value Factor with levels "inflow" and "outflow".
+#' @value Factor with levels "in" and "out".
 
 detectTradeDirection <- function(code, description) {
   
@@ -14,11 +14,11 @@ detectTradeDirection <- function(code, description) {
                                      "56\\d{2}") |              # Inflow if code is 56xx
                    stringr::str_detect(description,
                                        "Import|Inflow"),        # OR desc contains Import or Inflow
-                 "inflow",
+                 "in",
                  ifelse(stringr::str_detect(code, 
                                             "59\\d{2}") |       # Similar for outflow
                           stringr::str_detect(description, "Export|Outflow"), 
-                        "outflow", 
+                        "out", 
                         NA))                                    # NA if nothing detected
   as.factor(flow)
 }
