@@ -12,11 +12,15 @@
 
 
 
-elems <- function(...) {
+elems <- function(..., detailed = F) {
   
-  getTradeElementTable() %>%
+  els <- getTradeElementTable() %>%
     normalizeTradeElementTable %>%
-    filter(...) %>% # NSE here? Can you top this? :)
+    filter(...)     # NSE here? Can you top this? :)
+  
+  if(detailed) return(els)
+  
+  els %>%
     select_(~code) %>%
     unlist %>%      # To drop data.table
     as.vector       # To drop names
