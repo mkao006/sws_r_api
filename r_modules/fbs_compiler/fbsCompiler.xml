@@ -15,8 +15,8 @@
 			<Code>fbs_prebalance</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
-				<SelectableDimension compulsory="false">measuredItemCPC</SelectableDimension>
-				<SelectableDimension compulsory="false">measuredElement</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemSuaFbs</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
