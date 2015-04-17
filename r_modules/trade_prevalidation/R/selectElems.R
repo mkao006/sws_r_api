@@ -2,8 +2,11 @@
 #' 
 #' @param ... String to pass to filter with conditions on direction, backflow,
 #' unit and unitgroup
+#' @param detailed Logical, should full description of code be returned. 
+#' FALSE by default.
 #' 
-#' @return character vector of trade elements codes.
+#' @return character vector of trade elements codes if detailed is false 
+#' or data.table if detailed is true.
 #' @import dplyr
 #' @examples
 #' elems(direction == "in", unitgroup == "cost")
@@ -12,7 +15,7 @@
 
 
 
-elems <- function(..., detailed = F) {
+selectElems <- function(..., detailed = F) {
   
   els <- getTradeElementTable() %>%
     normalizeTradeElementTable %>%
