@@ -28,10 +28,10 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     
     ## Get SWS Parameters
     GetTestEnvironment(
-        ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        ## token = "a94b4c47-3d8c-4076-be7e-21297fca3d36"
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "90bb0f92-e345-4401-945d-1e43af801167"
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
+        token = "a94b4c47-3d8c-4076-be7e-21297fca3d36"
+        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        ## token = "90bb0f92-e345-4401-945d-1e43af801167"
         )
     
     # Don't copy right now, as we're using original productionImputation pkg.
