@@ -11,7 +11,7 @@ groupUnits <- function(unit) {
   head   <- c("head", "1000 head")
   weight <- c("t", "1000 t", "kg")
   volume <- c("l", "m3")
-  cost   <- c("$", "1000 $", "US$")
+  cost   <- c("1000 $", "US$")
   price  <- c("$/t", "$/m3", "$/head")
   
   unitgroup <- ifelse(unit %in% head, "head",
