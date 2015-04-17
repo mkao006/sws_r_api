@@ -36,14 +36,14 @@ selectedCountry = swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys
 selectedYear = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 
 ## Get all the primary measured item in CPC
-primaryMeasuredItemCPC = getPrimaryMeasuredItemCPC(swsContext.datasets[[1]])
+primaryMeasuredItemCPC = getPrimaryMeasuredItemCPC()
 
 ## NOTE (Michael): Need to check those cpc items which are not mapped
 ##                 in the commodity tree
 commodityTree = getCPCHiearchy(level = 2)
 
 ## Obtain the calorie conversion factors
-calorieConversionData = getCalorieConversionFactor()
+calorieConversionData = getCalorieConversionFactor(items = primaryMeasuredItemCPC)
 
 
 ## Compute standardization for each element
