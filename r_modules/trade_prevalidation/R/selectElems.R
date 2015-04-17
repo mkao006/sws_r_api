@@ -9,9 +9,9 @@
 #' or data.table if detailed is true.
 #' @import dplyr
 #' @examples
-#' elems(direction == "in", unitgroup == "cost")
-#' elems(direction == "in")
-#' elems(direction == "in", !is.na(unit))
+#' selectElems(direction == "in", unitgroup == "cost")
+#' selectElems(direction == "in")
+#' selectElems(direction == "in", !is.na(unit))
 
 
 
