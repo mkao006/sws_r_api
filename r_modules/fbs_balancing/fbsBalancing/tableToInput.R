@@ -6,7 +6,7 @@ tableToInput = function(table, meanVariables, sdVariables, feedDemandVariables){
 
     ## Rounding is required to avoid numerical error which results in
     ## negative values.
-    rowTotalMatrix = round(rowSums(dataMatrix, na.rm = TRUE), 10)
+    rowTotalMatrix = round(rowSums(dataMatrix, na.rm = TRUE), 5)
 
     sdMatrix = 
         data.matrix(table[, c(sdVariables), with = FALSE])
