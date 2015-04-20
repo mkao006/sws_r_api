@@ -1,6 +1,6 @@
 getAllPartnersRaw <- function(dmn   = "trade",
                               dtset = "ct_raw_tf",
-                              dimen = "reportingCountryM49") {
+                              dimen = "partnerCountryM49") {
   
   getAllReportersRaw(dmn, dtset, dimen)
   
