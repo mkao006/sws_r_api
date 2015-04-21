@@ -11,11 +11,12 @@
 #' with code and description columns.
 
 getCountryName <- function(areacodes, type = "reporter", drop = T) {
-    
+  
   if(!is.element(type, c("reporter", "partner")))
      stop("Uknown type. Possible variants are partner and reporter.")
   
-  areacodes <- as.character(areacodes)
+  areacodes <- data.table(pos = seq_along(areacodes), # Column to store original order
+                          code = as.character(areacodes))
   
   if(type == "reporter") areas <- getAllReportersRaw()
   if(type == "partner")  areas <- getAllPartnersRaw()
@@ -23,10 +24,12 @@ getCountryName <- function(areacodes, type = "reporter", drop = T) {
   
   areas <- areas %>%
     normalizeAreas %>% # Maybe remove this?
-    filter(is.element(code, areacodes)) %>%  #NSE here?
+    filter(is.element(code, areacodes$code)) %>%  #NSE here?
     select_(~code, ~description)
   
-  areas <- left_join(data.table(code = areacodes), areas, by = "code")
+  areas <- left_join(areacodes, areas, by = "code") %>%
+    arrange_(~pos) %>% # Arrange by original order
+    select_(~code, ~description)
   
   if(drop) return(areas$description)
   
