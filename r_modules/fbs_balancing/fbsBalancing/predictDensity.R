@@ -6,7 +6,7 @@
 ##'
 ##' @return The predicted sample density 
 
-predictDensity = function(density,xnew){
+predictDensity = function(density, xnew){
     ## Source:
     ## https://github.com/PecanProject/pecan/blob/master/modules/emulator/R/predict.density.R
     ##
