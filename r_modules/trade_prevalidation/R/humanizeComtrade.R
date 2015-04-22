@@ -7,10 +7,11 @@ humanizeComtrade <- function(data) {
             back     = ~getElementCodeDesc(measuredElementTrade)$backflow,
             unit     = ~getElementCodeDesc(measuredElementTrade)$unit,
             group    = ~getElementCodeDesc(measuredElementTrade)$unitgroup,
-            element  = ~getElementCodeDesc(measuredElementTrade)$description) %>%
+            element  = ~getElementCodeDesc(measuredElementTrade)$description,
+            year     = ~as.numeric(timePointYears)) %>%
     select_(~reporter,
             ~partner, 
-            year = ~timePointYears, 
+            ~year, 
             ~dir, 
             ~back, 
             hs = ~measuredElementTrade,
