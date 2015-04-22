@@ -8,5 +8,5 @@
 
 npmle = function(balancedObject){
     optimalMatrix = sapply(balancedObject@tables, c)
-    colSums(apply(optimalMatrix, 2, densityEstimation))
+    colSums(apply(optimalMatrix, 2, sampleDensity))
 }

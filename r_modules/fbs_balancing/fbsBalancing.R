@@ -87,14 +87,14 @@ predictDensity = function(den,xnew){
 
 
 
-
-optimal = which.max(npmle(optimalTable))
+NPMLE = npmle(optimalTable)
+optimal = which.max(NPMLE)
 
 pdf(file = "balancingCheck.pdf", width = 10, height = 10)
 for(i in rownames(finalInputList[[selectedCountry]][[selectedYear]]$data)){
 plotItemSamplingDistribution(balancingObject = optimalTable,
                              selectedItem = i,
-                             optimalTable = 184,
+                             optimalTable = optimal,
                              inputTable = finalInputList[[selectedCountry]][[selectedYear]])
 }
 graphics.off()
