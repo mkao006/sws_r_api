@@ -14,7 +14,7 @@ humanizeComtrade <- function(data) {
             ~year, 
             ~dir, 
             ~back, 
-            hs = ~measuredElementTrade,
+            hs = ~measuredItemHS,
             value = ~Value, 
             ~unit, 
             ~group, 
