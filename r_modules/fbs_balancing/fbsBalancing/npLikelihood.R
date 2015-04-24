@@ -6,7 +6,7 @@
 ##'
 ##' @return A vector of likelihood corressponding to each table.
 
-npmle = function(balancedObject){
+npLikelihood = function(balancedObject){
     optimalMatrix = sapply(balancedObject@tables, c)
     colSums(apply(optimalMatrix, 2, sampleDensity))
 }

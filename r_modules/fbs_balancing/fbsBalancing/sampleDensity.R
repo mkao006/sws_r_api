@@ -6,7 +6,7 @@
 ##' 
 
 sampleDensity = function(sample){
-    sample.dens = density(sample)
+    sample.dens = density(sample, n = length(sample))
     ## predict density based on splines
     with(sample.dens, spline(x = x, y = y, xout = sample))$y
 }
