@@ -53,7 +53,7 @@ balancing =
                 sampleBalancedTable(contingencyTableList = finalInputList,
                                     selectedCountry = selectedCountry,
                                     selectedYear = selectedYear,
-                                    nIter = 1000,
+                                    nIter = 10000,
                                     check = "Stock",
                                     stockShift = 20,
                                     verbose = FALSE)
@@ -62,29 +62,6 @@ balancing =
                                      selectedCountry = selectedCountry,
                                      selectedYear = selectedYear)
         })
-
-
-predictDensity = function(den,xnew){
-    ## Source:
-    ## https://github.com/PecanProject/pecan/blob/master/modules/emulator/R/predict.density.R
-    ##
-    ## function does simple interpolation of a density object to new points
-    neval = length(den$x)
-    nnew = length(xnew)
-    ynew = rep(NA,nnew)
-    for(i in 1:nnew){
-        j = findInterval(xnew[i],den$x)
-        if(j == 0 || j==neval){
-            ynew[i] = 0 ## don't extrapolate beyond range,set to 0
-        } else {
-             ynew[i] =
-                 den$y[j] + (den$y[j+1]-den$y[j])/
-                     (den$x[j+1]-den$x[j])*(xnew[i]-den$x[j])
-         }   
-    }
-    ynew
-}
-
 
 
 NPMLE = npmle(optimalTable)
@@ -103,8 +80,6 @@ graphics.off()
 ## plotItemSamplingDistribution(balancingObject = optimalTable,
 ##                              selectedItem = "S2513",
 ##                              inputTable = finalInputList[[selectedCountry]][[selectedYear]])
-
-
 
 
 
