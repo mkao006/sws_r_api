@@ -1,7 +1,11 @@
 getHSDesc <- function(hs) {
   
-  hs <- as.character(hs)
+  hs <- data.table(pos  = seq_along(hs),
+                   code = as.character(hs))
   
-  dplyr::left_join(data.table(code = hs),
-                   getAllItems(), by = "code")
+  left_join(hs,
+            getAllItems(), by = "code") %>%
+    arrange_(~pos) %>%
+    select_(~-pos)
+  
 }
