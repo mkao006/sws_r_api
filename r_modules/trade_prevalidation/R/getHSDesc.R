@@ -2,9 +2,8 @@ getHSDesc <- function(hs) {
   
   hs <- as.character(hs)
   
-  desc <- getAllItems() %>%
-    filter(is.element(code, hs)) %>% #NSE here?
-    as.data.frame()
+  dplyr::left_join(data.table(code = hs),
+                   getAllItems())
   
-  desc
+  
 }
