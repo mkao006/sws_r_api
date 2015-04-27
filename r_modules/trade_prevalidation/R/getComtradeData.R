@@ -25,6 +25,7 @@ getComtradeData <- function(reporter = NULL,
   
   ascharnotnullarg <- function(arg) {
     if(!is.null(arg) & !is.character(arg)) arg <- as.character(arg)
+    arg <- unname(arg) # SWS doesn't like unamed vectors
     arg
   }
   
