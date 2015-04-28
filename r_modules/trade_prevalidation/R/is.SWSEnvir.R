@@ -3,8 +3,8 @@
 #' Detecting existence of SWS Envir in calling env
 #' by counting swsContext.* vars
 #' 
-#' @return logical value. TRUE if there are 8 swsContext vars
+#' @return logical value. TRUE if there 
 
-is.SWSEnvir <- function() {
-  length(ls(pos = 1, pattern = "^swsContext\\.")) == 8
+is.SWSEnvir <- function(varToCheck = "swsContext.datasets") {
+  exists(varToCheck)
 }
