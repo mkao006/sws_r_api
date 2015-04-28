@@ -1,4 +1,4 @@
----
+t---
 title: 'Trade Prevalidation: LM residuals'
 author: "Aleksandr Matrunich"
 date: "04/27/2015"
@@ -182,6 +182,9 @@ data <- getComtradeData(reporter = c(getCountryCode("USA\\(1981-")$code,
 
 if(any(!is.element(unique(data$unit), c("kg", "US$")))) stop("Other than kg and US$ units present!")
 
+
+
+
 outers <- data %>%
   select_(.dots = list(~-unit)) %>% # We drop unit but we should to check unit consistensy before
   reshape2::dcast(... ~ group) %>%
@@ -203,16 +206,15 @@ Warning message:
 In `[.data.table`(`_dt`, , `:=`(item, getHSDesc(measuredItemHS)$description),  :
   Supplied 33 items to be assigned to 8304 items of column 'item' (recycled leaving remainder of 21 items).
   
-  
+Done.
   
 ```{r}
 getHSDesc(data$measuredItemHS)
 ```
 
-
 ```{r}
-
-
-
+broom_augment <- function(model) {
+  cbind(model.frame(model), .std.resid = rstandard(model))
+  }
 ```
 
