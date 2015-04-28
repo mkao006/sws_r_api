@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd">
+	<Name>Raw ComTrade Data Prevalidation</Name>
+	<Description>
+	  
+	</Description>
+	<Category>Validation</Category>
+	<Authors>
+		<Author>
+			<Name>Aleksandr Matrunich</Name>
+			<Mail>aleksandr.matrunich@fao.org</Mail>
+		</Author>
+	</Authors>
+  <Params>
+		<Param xsi:type="Number">
+			<Code>elementCode</Code>
+			<Label>elementCode</Label>
+			<Description> 
+			  The user must specify which element code should be analyzed in this
+			  time series.
+			</Description>
+			<Compulsory>true</Compulsory>
+			<Min>0</Min>
+			<Max>100000000000</Max>
+		</Param>
+		<Param xsi:type="List">
+			<Code>meanTest</Code>
+			<Label>Mean Test</Label>
+			<Description> 
+			  Should a test be performed that labels values as problematic if they
+			  are 3 standard deviations from the mean?  Note: robust estimators are
+			  used for the mean and standard deviation, as outliers may be present in
+        the data.
+			</Description>
+			<Compulsory>false</Compulsory>
+			<Options>
+				<Option>
+					<Label>TRUE</Label>
+					<Value>TRUE</Value>
+				</Option>
+				<Option>
+					<Label>FALSE</Label>
+					<Value>FALSE</Value>
+				</Option>
+			</Options>
+		</Param>
+		<Param xsi:type="List">
+			<Code>lmTest</Code>
+			<Label>Regression Test</Label>
+			<Description> 
+			  Should a test be performed that fits a linear regression model to the
+        data (estimating the value as a function of time) and labels values as
+        problematic if they are 3 standard deviations from the expected value?
+        Note: robust estimators are used for the mean and standard deviation,
+			  as outliers may be present in the data.
+			</Description>
+			<Compulsory>false</Compulsory>
+			<Options>
+				<Option>
+					<Label>TRUE</Label>
+					<Value>TRUE</Value>
+				</Option>
+				<Option>
+					<Label>FALSE</Label>
+					<Value>FALSE</Value>
+				</Option>
+			</Options>
+		</Param>
+		<Param xsi:type="List">
+			<Code>ratioTest</Code>
+			<Label>Ratio Test</Label>
+			<Description>
+			  Should a test be performed that computes the ratio of the value from
+			  one year to the next and labels values as outliers if that ratio
+			  exceeds 3 standard deviations from the mean?
+			</Description>
+			<Compulsory>false</Compulsory>
+			<Options>
+				<Option>
+					<Label>TRUE</Label>
+					<Value>TRUE</Value>
+				</Option>
+				<Option>
+					<Label>FALSE</Label>
+					<Value>FALSE</Value>
+				</Option>
+			</Options>
+		</Param>
+		<Param xsi:type="Number">
+			<Code>minValue</Code>
+			<Label>Minimum Value</Label>
+			<Description> 
+			  If a value is specified, then an additional test is performed to check
+			  if each value is within the minimum and maximum value.
+      </Description>
+			<Compulsory>false</Compulsory>
+			<Min>-100000000000</Min>
+			<Max>100000000000</Max>
+		</Param>
+		<Param xsi:type="Number">
+			<Code>maxValue</Code>
+			<Label>Maximum Value</Label>
+			<Description> 
+			  If a value is specified, then an additional test is performed to check
+			  if each value is within the minimum and maximum value.
+      </Description>
+			<Compulsory>false</Compulsory>
+			<Min>-100000000000</Min>
+			<Max>100000000000</Max>
+		</Param>
+	</Params>
+  <Datasets>
+		<MainDataset>
+                     <Code>completed_tf</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemHS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementTrade</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+                <Dataset>
+                    <Code>ct_raw_tf</Code>
+	        </Dataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
