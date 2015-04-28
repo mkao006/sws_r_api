@@ -13,14 +13,14 @@
 getCountryName <- function(areacodes, type = "reporter", drop = T) {
   
   if(!is.element(type, c("reporter", "partner")))
-     stop("Uknown type. Possible variants are partner and reporter.")
+    stop("Uknown type. Possible variants are partner and reporter.")
   
-  areacodes <- data.table(pos = seq_along(areacodes), # Column to store original order
-                          code = as.character(areacodes))
+  areacodes <- data.table::data.table(pos = seq_along(areacodes), # Column to store original order
+                                      code = as.character(areacodes))
   
   if(type == "reporter") areas <- getAllReportersRaw()
   if(type == "partner")  areas <- getAllPartnersRaw()
-
+  
   
   areas <- areas %>%
     normalizeAreas %>% # Maybe remove this?

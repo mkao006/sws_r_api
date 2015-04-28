@@ -7,8 +7,8 @@ elcode <- function(...) {
 
 getElementCodeDesc <- function(codes) {
   
-  codes <- data.table(pos = seq_along(codes), # Column to store original order
-                      code = as.character(codes))
+  codes <- data.table::data.table(pos = seq_along(codes), # Column to store original order
+                                  code = as.character(codes))
   
   codedescs <- getTradeElementTable() %>%
     normalizeTradeElementTable() %>%

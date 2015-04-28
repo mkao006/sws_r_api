@@ -4,6 +4,6 @@ getAllReportersRaw <- function(dmn   = "trade",
   
   if(!is.SWSEnvir()) stop("No SWS environment detected.")
   
-  GetCodeList(dmn, dtset, dimen)
+  faosws::GetCodeList(dmn, dtset, dimen)
   
 }
