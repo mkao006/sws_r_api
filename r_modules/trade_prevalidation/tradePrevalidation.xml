@@ -3,7 +3,7 @@
 	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd">
 	<Name>Raw ComTrade Data Prevalidation</Name>
 	<Description>
-	  This module detects potential outliers in original ComTrade trade and dumps them 
+	  This module detects potential outliers in original ComTrade data and dumps them 
     into csv-file for further investigation.
 	</Description>
 	<Category>Validation</Category>
@@ -13,9 +13,34 @@
 			<Mail>aleksandr.matrunich@fao.org</Mail>
 		</Author>
 	</Authors>
+  <Params>
+    <Param xsi:type="List">
+      <Code>rProf</Code>
+      <Label>R profiling</Label>
+      <Description>Should profiling of the execution of R expressions be enabled. It's for developing.</Description>
+      <Compulsory>false</Compulsory>
+      <Options>
+        <Option>
+          <Label>Enable</Label>
+          <Value>TRUE</Value>
+        </Option>
+        <Option>
+          <Label>Disable</Label>
+          <Value>FALSE</Value>
+        </Option>
+      </Options>
+    </Param>
+    <Param xsi:type="String">
+    <Code>reporters</Code>
+			<Label>List of reporters to check: codes separated by commas</Label>
+			<Description>List of reporters to check: codes separated by commas</Description>
+			<Compulsory>false</Compulsory>
+		</Param>
+  
+  </Params>
   <Datasets>
 		<MainDataset>
-                     <Code>ct_raw_tf</Code>
+                     <Code>completed_tf</Code>
 			<SelectableDimensions>
 				<SelectableDimension compulsory="true">reportingCountryM49</SelectableDimension>
 				<SelectableDimension compulsory="true">partnerCountryM49</SelectableDimension>
@@ -24,8 +49,11 @@
 				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
 			</SelectableDimensions>
 		</MainDataset>
+          <Dataset>
+                    <Code>ct_raw_tf</Code>
+          </Dataset>
 	</Datasets>
 	<InteractiveValidation>false</InteractiveValidation>
-	<Background>true</Background>
+	<Background>false</Background>
 </RScript>
 
