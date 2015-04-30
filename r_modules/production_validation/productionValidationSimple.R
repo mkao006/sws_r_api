@@ -24,7 +24,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     GetTestEnvironment(
         # baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "bcb96c8c-f652-40f4-9c98-d84db67f16ca"
+        token = "6d3613d9-d7e6-4fd0-b3ee-1c17ef5d734d"
     )
     R_SWS_SHARE_PATH = paste0(apiDirectory1, "/..")
 
@@ -69,13 +69,19 @@ getValidationData = function(){
 cat("Setting up validation models...\n")
 
 ## Set up validation models
+formals(basicMeanTest)$robust = FALSE
+formals(basicMeanTest)$alphaLevel = 2*pnorm(-1)
+formals(basicLmTest)$robust = FALSE
+formals(basicLmTest)$alphaLevel = 2*pnorm(-1)
+formals(basicRatioTest)$robust = FALSE
+formals(basicRatioTest)$alphaLevel = 2*pnorm(-1)
 validationModels = list()
 param = swsContext.computationParams
-if(is.null(param$meanTest) || param$meanTest)
+if(is.null(param$meanTest) || as.logical(param$meanTest))
     validationModels = c(validationModels, basicMeanTest)
-if(is.null(param$lmTest) || param$lmTest)
+if(is.null(param$lmTest) || as.logical(param$lmTest))
     validationModels = c(validationModels, basicLmTest)
-if(is.null(param$ratioTest) || param$ratioTest)
+if(is.null(param$ratioTest) || as.logical(param$ratioTest))
     validationModels = c(validationModels, basicRatioTest)
 intervalTest = function(y){
     basicIntervalTest(y = y,
@@ -90,6 +96,8 @@ validatedData = getValidationData() %>%
     ## The flagmethod "s" is an error, probably a test by someone.
     ## The flagmethod "n" corresponds to missing data.
     .[!flagMethod %in% c("s", "n"), ] %>%
+    .[measuredElement %in%
+          as.numeric(swsContext.computationParams$elementCode)] %>%
     validateData(., valueColumnName = "Value",
                  byKey = c("geographicAreaM49", "measuredItemCPC"),
                  validationModels = validationModels) %>%

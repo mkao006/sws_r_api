@@ -29,10 +29,10 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     ## Get SWS Parameters
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "a94b4c47-3d8c-4076-be7e-21297fca3d36"
+        token = "c1a2cc38-a9e9-4977-ae6e-4eed6a9568e7"
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         ## token = "90bb0f92-e345-4401-945d-1e43af801167"
-        )
+    )
     
     # Don't copy right now, as we're using original productionImputation pkg.
 #     ## Copy over scripts from package directory
@@ -54,6 +54,10 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
 getYieldFormula = function(itemCode){
     itemData = GetCodeList(domain = "agriculture", dataset = "agriculture",
                            dimension = "measuredItemCPC", codes = itemCode)
+    itemData = itemData[!is.na(type), ]
+    if(nrow(itemData) == 0)
+        stop("No valid data to process!  Maybe the item code isn't in the ",
+             "database?")
     uniqueItemTypes = unique(itemData$type)
     condition =
         paste0("WHERE item_type IN (",
@@ -208,7 +212,7 @@ assignColumnNameVars = function(prefixTuples, formulaTuples){
 }
 
 executeImputationModule = function(){
-    fullKey = swsContext.datasets[[1]]
+    fullKey = swsContext.[[1]]
     subKey = fullKey
     uniqueItem = fullKey@dimensions$measuredItemCPC@keys
     for(singleItem in uniqueItem){
@@ -264,7 +268,8 @@ executeImputationModule = function(){
     
                 ## Impute the dataset
                 yieldDefaultFormula =
-                    paste0(yieldValue, " ~ -1 + (1 + bs(timePointYears, df = 2, degree = 1)|geographicAreaM49)")
+                    paste0(yieldValue, " ~ -1 + (1 + bs(timePointYears,",
+                           "df = 2, degree = 1)|geographicAreaM49)")
                 
                 imputed = imputeProductionDomain(data = datasets$query,
                     productionValue = productionValue,
