@@ -53,9 +53,10 @@ balancing =
                 sampleBalancedTable(contingencyTableList = finalInputList,
                                     selectedCountry = selectedCountry,
                                     selectedYear = selectedYear,
-                                    nIter = 1000,
+                                    nIter = 10000,
                                     check = "Stock",
-                                    stockShift = 20)
+                                    stockShift = 20,
+                                    verbose = FALSE)
 
             saveOptimalBalancedTable(optimalTable,
                                      selectedCountry = selectedCountry,
@@ -63,9 +64,22 @@ balancing =
         })
 
 
-plotItemSamplingDistribution(balancingObject = optimalTable,
-                             selectedItem = "S2513")
+NPMLE = npmle(optimalTable)
+optimal = which.max(NPMLE)
 
+pdf(file = "balancingCheck.pdf", width = 10, height = 10)
+for(i in rownames(finalInputList[[selectedCountry]][[selectedYear]]$data)){
+plotItemSamplingDistribution(balancingObject = optimalTable,
+                             selectedItem = i,
+                             optimalTable = optimal,
+                             inputTable = finalInputList[[selectedCountry]][[selectedYear]])
+}
+graphics.off()
+
+
+## plotItemSamplingDistribution(balancingObject = optimalTable,
+##                              selectedItem = "S2513",
+##                              inputTable = finalInputList[[selectedCountry]][[selectedYear]])
 
 
 
@@ -81,3 +95,8 @@ plotItemSamplingDistribution(balancingObject = optimalTable,
 
 ## oldTables =
 ##     oldBalancingFunction(Country = "231", year = "2010", nIter = 5)
+
+
+## Tests
+## jointDist = do.call("rbind", lapply(optimalTable@tables, FUN = function(x) x[30, ]))
+## plot(data.frame(jointDist))

@@ -1,5 +1,5 @@
-
+#' Removes records where reporter and partner are the same
+#' 
 removeSelfTrade = function(data, reportingCountry, partnerCountry){
-    noSelfTrade = data[which(data[[reportingCountry]] != data[[partnerCountry]]), ]
-    noSelfTrade
+    data[which(data[[reportingCountry]] != data[[partnerCountry]]), ]
 }
