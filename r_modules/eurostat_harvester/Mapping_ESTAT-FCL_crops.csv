@@ -1,0 +1,313 @@
+crop_pro,strucpro,Elabel,Item,ItemLabel,Ele,Factor
+C1120,AR,Common wheat and spelt,15,Wheat,31,1000
+C1120,PR,Common wheat and spelt,15,Wheat,51,1000
+C1130,AR,Durum wheat,15,Wheat,31,1000
+C1130,PR,Durum wheat,15,Wheat,51,1000
+C1150,AR,Rye,71,Rye,31,1000
+C1150,PR,Rye,71,Rye,51,1000
+C1155,AR,Maslin,103,Mixed grain,31,1000
+C1155,PR,Maslin,103,Mixed grain,51,1000
+C1160,AR,Barley,44,Barley,31,1000
+C1160,PR,Barley,44,Barley,51,1000
+C1180,AR,Oats,75,Oats,31,1000
+C1180,PR,Oats,75,Oats,51,1000
+C1185,AR,Mixed grain other than maslin,103,Mixed grain,31,1000
+C1185,PR,Mixed grain other than maslin,103,Mixed grain,51,1000
+C1200,AR,Grain maize,56,Maize,31,1000
+C1200,PR,Grain maize,56,Maize,51,1000
+C1211,AR,Sorghum,83,Sorghum,31,1000
+C1211,PR,Sorghum,83,Sorghum,51,1000
+C1212,AR,Triticale,97,Triticale,31,1000
+C1212,PR,Triticale,97,Triticale,51,1000
+C1219,AR,"Buckwheat, millet, canary seed (other cereals)",79,Millet,31,1000
+C1219,AR,"Buckwheat, millet, canary seed (other cereals)",89,Buckwheat,31,1000
+C1219,AR,"Buckwheat, millet, canary seed (other cereals)",101,Canary seed,31,1000
+C1219,AR,"Buckwheat, millet, canary seed (other cereals)",108,Cereals n.e.s.,31,1000
+C1219,PR,"Buckwheat, millet, canary seed (other cereals)",79,Millet,51,1000
+C1219,PR,"Buckwheat, millet, canary seed (other cereals)",89,Buckwheat,51,1000
+C1219,PR,"Buckwheat, millet, canary seed (other cereals)",101,Canary seed,51,1000
+C1219,PR,"Buckwheat, millet, canary seed (other cereals)",108,Cereals n.e.s.,51,1000
+C1250,AR,Rice,27,"Rice, paddy",31,1000
+C1250,PR,Rice,27,"Rice, paddy",51,1000
+C1311,AR,Peas other than field peas (including chick peas),191,Chick peas ,31,1000
+C1311,AR,Peas other than field peas (including chick peas),195,"Cow peas, dry",31,1000
+C1311,AR,Peas other than field peas (including chick peas),197,Pigeon peas,31,1000
+C1311,PR,Peas other than field peas (including chick peas),191,Chick peas ,51,1000
+C1311,PR,Peas other than field peas (including chick peas),195,"Cow peas, dry",51,1000
+C1311,PR,Peas other than field peas (including chick peas),197,Pigeon peas,51,1000
+C1320,AR,Field peas,187,"Peas, dry",31,1000
+C1320,PR,Field peas,187,"Peas, dry",51,1000
+C1331,AR,Kidney beans,176,"Beans, dry",31,1000
+C1331,PR,Kidney beans,176,"Beans, dry",51,1000
+C1335,AR,Broad and field beans - total,181,"Broad beans, dry",31,1000
+C1335,PR,Broad and field beans - total,181,"Broad beans, dry",51,1000
+C1341,AR,Lentils,201,Lentils,31,1000
+C1341,PR,Lentils,201,Lentils,51,1000
+C1342,AR,Vetches,205,Vetches,31,1000
+C1342,PR,Vetches,205,Vetches,51,1000
+C1343,AR,Sweet lupines,210,Lupins,31,1000
+C1343,PR,Sweet lupines,210,Lupins,51,1000
+C1349,AR,"Other dried pulses, n.e.c. (old)",176,"Beans, dry",31,1000
+C1349,AR,"Other dried pulses, n.e.c. (old)",211,"Pulses, n.e.s.",31,1000
+C1349,PR,"Other dried pulses, n.e.c. (old)",176,"Beans, dry",51,1000
+C1349,PR,"Other dried pulses, n.e.c. (old)",211,"Pulses, n.e.s.",51,1000
+C1360,AR,Potatoes,116,Potatoes,31,1000
+C1360,PR,Potatoes,116,Potatoes,51,1000
+C1370,AR,Sugar beet (excluding seed),157,Sugar beets,31,1000
+C1370,PR,Sugar beet (excluding seed),157,Sugar beets,51,1000
+C1381,AR,Fodder beet,647,Beets for fodder,31,1000
+C1381,PR,Fodder beet,647,Beets for fodder,51,1000
+C1383,AR,Fodder kale,644,Cabbage for fodder,31,1000
+C1383,PR,Fodder kale,644,Cabbage for fodder,51,1000
+C1384,AR,Swedes,649,Swedes for fodder,31,1000
+C1384,PR,Swedes,649,Swedes for fodder,51,1000
+C1385,AR,Carrots for stock feeding,648,Carrots for fodder,31,1000
+C1385,PR,Carrots for stock feeding,648,Carrots for fodder,51,1000
+C1386,AR,Turnips for stock feeding,646,Turnips for fodder,31,1000
+C1386,PR,Turnips for stock feeding,646,Turnips for fodder,51,1000
+C1390,AR,Other root crops,122,Sweet potatoes,31,1000
+C1390,AR,Other root crops,125,Cassava,31,1000
+C1390,AR,Other root crops,137,Yams,31,1000
+C1390,AR,Other root crops,149,"Roots and tubers, n.e.c.",31,1000
+C1390,PR,Other root crops,122,Sweet potatoes,51,1000
+C1390,PR,Other root crops,125,Cassava,51,1000
+C1390,PR,Other root crops,137,Yams,51,1000
+C1390,PR,Other root crops,149,"Roots and tubers, n.e.c.",51,1000
+C1430,AR,Rape,270,Rapeseed,31,1000
+C1430,PR,Rape,270,Rapeseed,51,1000
+C1450,AR,Sunflower seed,267,Sunflower seed,31,1000
+C1450,PR,Sunflower seed,267,Sunflower seed,51,1000
+C1460,AR,Oil flax,333,Linseed,31,1000
+C1460,PR,Oil flax,333,Linseed,51,1000
+C1470,AR,Soya bean,236,Soybeans,31,1000
+C1470,PR,Soya bean,236,Soybeans,51,1000
+C1480,AR,Other oil seed crops,242,"Groundnuts, in shell",31,1000
+C1480,AR,Other oil seed crops,289,Sesame seed,31,1000
+C1480,AR,Other oil seed crops,292,Mustard seed,31,1000
+C1480,AR,Other oil seed crops,296,Poppy seed,31,1000
+C1480,AR,Other oil seed crops,299,Melonseed,31,1000
+C1480,AR,Other oil seed crops,336,Hempseed,31,1000
+C1480,AR,Other oil seed crops,339,Oilseeds n.e.c.,31,1000
+C1480,PR,Other oil seed crops,242,"Groundnuts, in shell",51,1000
+C1480,PR,Other oil seed crops,289,Sesame seed,51,1000
+C1480,PR,Other oil seed crops,292,Mustard seed,51,1000
+C1480,PR,Other oil seed crops,296,Poppy seed,51,1000
+C1480,PR,Other oil seed crops,299,Melonseed,51,1000
+C1480,PR,Other oil seed crops,336,Hempseed,51,1000
+C1480,PR,Other oil seed crops,339,Oilseeds n.e.c.,51,1000
+C1490,AR,Cotton seed,329,Cottonseed,31,1000
+C1490,PR,Cotton seed,329,Cottonseed,51,1000
+C1520,AR,Fibre flax,773,"Flax, fibre & tow",31,1000
+C1520,PR,Fibre flax,773,"Flax, fibre & tow",51,1000
+C1530,AR,Hemp (straw),777,Hemp tow waste,31,1000
+C1530,PR,Hemp (straw),777,Hemp tow waste,51,1000
+C1540,AR,Cotton fibre (deseeded),767,Cotton lint,31,1000
+C1540,PR,Cotton fibre (deseeded),767,Cotton lint,51,1000
+C1550,AR,Tobacco,826,"Tobacco, leaves",31,1000
+C1550,PR,Tobacco,826,"Tobacco, leaves",51,1000
+C1560,AR,Hops,677,Hops,31,1000
+C1560,PR,Hops,677,Hops,51,1000
+C1571,AR,Chicory,459,Chicory roots,31,1000
+C1571,PR,Chicory,459,Chicory roots,51,1000
+C1572,AR,Chicory for inulin,459,Chicory roots,31,1000
+C1572,PR,Chicory for inulin,459,Chicory roots,51,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",674,"Tea, n.e.s.",31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",687,Pepper,31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",689,Pimento,31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",692,Vanilla,31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",693,Cinnamon (canella),31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",698,Cloves,31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",702,"Nutmeg, mace, cardamons",31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",711,"Anise, badian, fennel",31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",720,Ginger,31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",723,Spices n.e.s.,31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",748,"Peppermint, spearmint",31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",754,"Pyrethrum, dried flowers",31,1000
+C1580,AR,"Aromatic plants, medicinal and culinary plants",1293,"Crude organic materials, n.e.s.",31,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",674,"Tea, n.e.s.",51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",687,Pepper,51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",689,Pimento,51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",692,Vanilla,51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",693,Cinnamon (canella),51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",698,Cloves,51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",702,"Nutmeg, mace, cardamons",51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",711,"Anise, badian, fennel",51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",720,Ginger,51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",723,Spices n.e.s.,51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",748,"Peppermint, spearmint",51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",754,"Pyrethrum, dried flowers",51,1000
+C1580,PR,"Aromatic plants, medicinal and culinary plants",1293,"Crude organic materials, n.e.s.",51,1000
+C1620,AR,Cauliflower and broccoli,393,Cauliflowers,31,1000
+C1620,PR,Cauliflower and broccoli,393,Cauliflowers,51,1000
+C1631,AR,Brussels sprouts,358,Cabbages,31,1000
+C1631,PR,Brussels sprouts,358,Cabbages,51,1000
+C1635,AR,Cabbage (white),358,Cabbages,31,1000
+C1635,PR,Cabbage (white),358,Cabbages,51,1000
+C1655,AR,Other brassicas n.e.c.,358,Cabbages,31,1000
+C1655,PR,Other brassicas n.e.c.,358,Cabbages,51,1000
+C1672,AR,Celery,463,"Vegetables, fresh n.e.s.",31,1000
+C1672,PR,Celery,463,"Vegetables, fresh n.e.s.",51,1000
+C1675,AR,Leeks,407,Leeks and other alliaceous vegetables,31,1000
+C1675,PR,Leeks,407,Leeks and other alliaceous vegetables,51,1000
+C1680,AR,Lettuce,372,Lettuce,31,1000
+C1680,PR,Lettuce,372,Lettuce,51,1000
+C1685,AR,Endive,372,Lettuce,31,1000
+C1685,PR,Endive,372,Lettuce,51,1000
+C1690,AR,Spinach,373,Spinach,31,1000
+C1690,PR,Spinach,373,Spinach,51,1000
+C1700,AR,Asparagus,367,Asparagus,31,1000
+C1700,PR,Asparagus,367,Asparagus,51,1000
+C1710,AR,Chicory,372,Lettuce,31,1000
+C1710,PR,Chicory,372,Lettuce,51,1000
+C1720,AR,Artichokes,366,Artichokes,31,1000
+C1720,PR,Artichokes,366,Artichokes,51,1000
+C1725,AR,Other leafy or stalked vegetables n.e.c.,407,Leeks and other alliaceous vegetables,31,1000
+C1725,AR,Other leafy or stalked vegetables n.e.c.,463,"Vegetables, fresh n.e.s.",31,1000
+C1725,PR,Other leafy or stalked vegetables n.e.c.,407,Leeks and other alliaceous vegetables,51,1000
+C1725,PR,Other leafy or stalked vegetables n.e.c.,463,"Vegetables, fresh n.e.s.",51,1000
+C1750,AR,Tomatoes,388,Tomatoes,31,1000
+C1750,PR,Tomatoes,388,Tomatoes,51,1000
+C1761,AR,Cucumbers,397,"Cucumbers, gherkins",31,1000
+C1761,PR,Cucumbers,397,"Cucumbers, gherkins",51,1000
+C1766,AR,Gherkins,397,"Cucumbers, gherkins",31,1000
+C1766,PR,Gherkins,397,"Cucumbers, gherkins",51,1000
+C1771,AR,Melons,568,Melos,31,1000
+C1771,PR,Melons,568,Melos,51,1000
+C1777,AR,Water melons,567,Watermelons,31,1000
+C1777,PR,Water melons,567,Watermelons,51,1000
+C1781,AR,Egg-plant,399,Eggplants,31,1000
+C1781,PR,Egg-plant,399,Eggplants,51,1000
+C1786,AR,Gourds and pumpkins,394,"Pumpkins, squash, gourds",31,1000
+C1786,PR,Gourds and pumpkins,394,"Pumpkins, squash, gourds",51,1000
+C1787,AR,Courgettes,394,"Pumpkins, squash, gourds",31,1000
+C1787,PR,Courgettes,394,"Pumpkins, squash, gourds",51,1000
+C1790,AR,"Red pepper, capsicum",401,"Chillies, peppers (green)",31,1000
+C1790,AR,"Red pepper, capsicum",689,Pimento,31,1000
+C1790,PR,"Red pepper, capsicum",401,"Chillies, peppers (green)",51,1000
+C1790,PR,"Red pepper, capsicum",689,Pimento,51,1000
+C1810,AR,Kohl-Rabi,358,Cabbages,31,1000
+C1810,PR,Kohl-Rabi,358,Cabbages,51,1000
+C1820,AR,Turnips,463,"Vegetables, fresh n.e.s.",31,1000
+C1820,PR,Turnips,463,"Vegetables, fresh n.e.s.",51,1000
+C1830,AR,Carrots,426,Carrots,31,1000
+C1830,PR,Carrots,426,Carrots,51,1000
+C1840,AR,Garlic,406,Garlic,31,1000
+C1840,PR,Garlic,406,Garlic,51,1000
+C1851,AR,Onions,402,"Onions, shallots (green)",31,1000
+C1851,AR,Onions,403,"Onions, dry",31,1000
+C1851,PR,Onions,402,"Onions, shallots (green)",51,1000
+C1851,PR,Onions,403,"Onions, dry",51,1000
+C1855,AR,Shallots,402,"Onions, shallots (green)",31,1000
+C1855,PR,Shallots,402,"Onions, shallots (green)",51,1000
+C1860,AR,Beetroot,463,"Vegetables, fresh n.e.s.",31,1000
+C1860,PR,Beetroot,463,"Vegetables, fresh n.e.s.",51,1000
+C1870,AR,Salsify and scorzonera,463,"Vegetables, fresh n.e.s.",31,1000
+C1870,PR,Salsify and scorzonera,463,"Vegetables, fresh n.e.s.",51,1000
+C1872,AR,Celeriac,463,"Vegetables, fresh n.e.s.",31,1000
+C1872,PR,Celeriac,463,"Vegetables, fresh n.e.s.",51,1000
+C1877,AR,Radishes,463,"Vegetables, fresh n.e.s.",31,1000
+C1877,PR,Radishes,463,"Vegetables, fresh n.e.s.",51,1000
+C1884,AR,Other root and tuber vegetables n.e.c.,463,"Vegetables, fresh n.e.s.",31,1000
+C1884,PR,Other root and tuber vegetables n.e.c.,463,"Vegetables, fresh n.e.s.",51,1000
+C1890,AR,Peas,417,"Peas, green",31,1000
+C1890,PR,Peas,417,"Peas, green",51,1000
+C1901,AR,"Beans, runner and French",414,"Beans, green",31,1000
+C1901,PR,"Beans, runner and French",414,"Beans, green",51,1000
+C1905,AR,Other pulses n.e.c.,420,"Other pulses, n.e.s.",31,1000
+C1905,PR,Other pulses n.e.c.,420,"Other pulses, n.e.s.",51,1000
+C1910,AR,Cultivated mushrooms,449,Mushrooms,31,1000
+C1910,PR,Cultivated mushrooms,449,Mushrooms,51,1000
+C1920,AR,Fresh vegetables n.e.c.,463,"Vegetables, fresh n.e.s.",31,1000
+C1920,PR,Fresh vegetables n.e.c.,463,"Vegetables, fresh n.e.s.",51,1000
+C2090,AR,Apples (including cider apples),515,Apples,31,1000
+C2090,PR,Apples (including cider apples),515,Apples,51,1000
+C2095,AR,Pears (including perry pears),521,Pears,31,1000
+C2095,PR,Pears (including perry pears),521,Pears,51,1000
+C2180,AR,Peaches,534,Peaches and nectarines,31,1000
+C2180,PR,Peaches,534,Peaches and nectarines,51,1000
+C2190,AR,Apricots,526,Apricots,31,1000
+C2190,PR,Apricots,526,Apricots,51,1000
+C2200,AR,"Cherries, including sour cherries",530,Sour cherries,31,1000
+C2200,AR,"Cherries, including sour cherries",531,Cherries,31,1000
+C2200,PR,"Cherries, including sour cherries",530,Sour cherries,51,1000
+C2200,PR,"Cherries, including sour cherries",531,Cherries,51,1000
+C2210,AR,Plums,536,Plums,31,1000
+C2210,PR,Plums,536,Plums,51,1000
+C2221,AR,Nectarines,534,Peaches and nectarines,31,1000
+C2221,PR,Nectarines,534,Peaches and nectarines,51,1000
+C2229,AR,Other stone fruits n.e.c.,541,"Stone fruits, fresh n.e.s.",31,1000
+C2229,PR,Other stone fruits n.e.c.,541,"Stone fruits, fresh n.e.s.",51,1000
+C2231,AR,Walnuts,222,Walnuts,31,1000
+C2231,PR,Walnuts,222,Walnuts,51,1000
+C2232,AR,Hazelnuts,225,Hazelnuts (filberts),31,1000
+C2232,PR,Hazelnuts,225,Hazelnuts (filberts),51,1000
+C2233,AR,Almonds,221,Almonds,31,1000
+C2233,PR,Almonds,221,Almonds,51,1000
+C2236,AR,Chestnuts,220,Chestnuts,31,1000
+C2236,PR,Chestnuts,220,Chestnuts,51,1000
+C2240,AR,Other nuts n.e.s.,223,Pistachios,31,1000
+C2240,AR,Other nuts n.e.s.,234,Nuts n.e.c.,31,1000
+C2240,PR,Other nuts n.e.s.,223,Pistachios,51,1000
+C2240,PR,Other nuts n.e.s.,234,Nuts n.e.c.,51,1000
+C2251,AR,Figs,569,Figs,31,1000
+C2251,PR,Figs,569,Figs,51,1000
+C2252,AR,Quinces,523,Quinces,31,1000
+C2252,PR,Quinces,523,Quinces,51,1000
+C2253,AR,Avocados,572,Avocados,31,1000
+C2253,PR,Avocados,572,Avocados,51,1000
+C2254,AR,Bananas,486,Bananas,31,1000
+C2254,PR,Bananas,486,Bananas,51,1000
+C2259,AR,Other fruits from fruit trees n.e.c.,587,Persimmons,31,1000
+C2259,AR,Other fruits from fruit trees n.e.c.,619,"Other fruits, fresh, n.e.s.",31,1000
+C2259,PR,Other fruits from fruit trees n.e.c.,587,Persimmons,51,1000
+C2259,PR,Other fruits from fruit trees n.e.c.,619,"Other fruits, fresh, n.e.s.",51,1000
+C2260,AR,Strawberries,544,Strawberries,31,1000
+C2260,PR,Strawberries,544,Strawberries,51,1000
+C2271,AR,Currants,550,Currants,31,1000
+C2271,PR,Currants,550,Currants,51,1000
+C2278,AR,Raspberries,547,Raspberries,31,1000
+C2278,PR,Raspberries,547,Raspberries,51,1000
+C2281,AR,Gooseberries,549,Gooseberries,31,1000
+C2281,PR,Gooseberries,549,Gooseberries,51,1000
+C2285,AR,Kiwi,592,Kiwi fruit,31,1000
+C2285,PR,Kiwi,592,Kiwi fruit,51,1000
+C2290,AR,Other soft fruit n.e.c.,552,Blueberries,31,1000
+C2290,AR,Other soft fruit n.e.c.,554,Cranberries,31,1000
+C2290,AR,Other soft fruit n.e.c.,558,Berries n.e.s.,31,1000
+C2290,PR,Other soft fruit n.e.c.,552,Blueberries,51,1000
+C2290,PR,Other soft fruit n.e.c.,554,Cranberries,51,1000
+C2290,PR,Other soft fruit n.e.c.,558,Berries n.e.s.,51,1000
+C2320,AR,Oranges,490,Oranges,31,1000
+C2320,PR,Oranges,490,Oranges,51,1000
+C2350,AR,Mandarines,495,"Tangerines, mandarines, clementines, satsumas",31,1000
+C2350,PR,Mandarines,495,"Tangerines, mandarines, clementines, satsumas",51,1000
+C2352,AR,Satsumas,495,"Tangerines, mandarines, clementines, satsumas",31,1000
+C2352,PR,Satsumas,495,"Tangerines, mandarines, clementines, satsumas",51,1000
+C2360,AR,Clementines,495,"Tangerines, mandarines, clementines, satsumas",31,1000
+C2360,PR,Clementines,495,"Tangerines, mandarines, clementines, satsumas",51,1000
+C2370,AR,Lemons and acid limes,497,Lemons and limes,31,1000
+C2370,PR,Lemons and acid limes,497,Lemons and limes,51,1000
+C2380,AR,Pomeloes and grapfruit,507,Grapefruits and pomeloes,31,1000
+C2380,PR,Pomeloes and grapfruit,507,Grapefruits and pomeloes,51,1000
+C2390,AR,Other citrus fruit n.e.c.,495,"Tangerines, mandarines, clementines, satsumas",31,1000
+C2390,PR,Other citrus fruit n.e.c.,495,"Tangerines, mandarines, clementines, satsumas",51,1000
+C2410,AR,Total grapes,560,Grapes,31,1000
+C2410,PR,Total grapes,560,Grapes,51,1000
+C2450,AR,Total olives,260,Olives,31,1000
+C2450,PR,Total olives,260,Olives,51,1000
+C2611,AR,Annual plants harvested green/Annual green fodder,639,Grasses n.e.s. for forage,31,1000
+C2611,PR,Annual plants harvested green/Annual green fodder,639,Grasses n.e.s. for forage,51,1000
+C2625,AR,Green maize,636,Maize for forage,31,1000
+C2625,PR,Green maize,636,Maize for forage,51,1000
+C2671,AR,Clover and mixtures,640,Clover for forage,31,1000
+C2671,PR,Clover and mixtures,640,Clover for forage,51,1000
+C2672,AR,Lucerne,641,Afalfa for forage,31,1000
+C2672,PR,Lucerne,641,Afalfa for forage,51,1000
+C2680,AR,Temporary grasses and grazing,639,Grasses n.e.s. for forage,31,1000
+C2680,PR,Temporary grasses and grazing,639,Grasses n.e.s. for forage,51,1000
+C2971,AR,Carobs,461,Carobs,31,1000
+C2971,PR,Carobs,461,Carobs,51,1000
+C2980,AR,Other permanent crops n.e.c.,656,"Coffee, green",31,1000
+C2980,AR,Other permanent crops n.e.c.,667,Tea,31,1000
+C2980,PR,Other permanent crops n.e.c.,656,"Coffee, green",51,1000
+C2980,PR,Other permanent crops n.e.c.,667,Tea,51,1000
