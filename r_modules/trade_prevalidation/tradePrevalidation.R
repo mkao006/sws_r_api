@@ -91,17 +91,33 @@ if(any(!is.element(unique(data$unit), c("kg", "US$")))) stop("Other than kg and 
 data <- data %>%
   select_(.dots = list(~-unit)) %>% # We drop unit but we should to check unit consistensy before
   reshape2::dcast(... ~ group) %>%
-  mutate_(.dots = list(price = ~cost / weight)) %>% 
-  group_by_(~reporter, ~partner, ~dir, ~back, ~item, ~hs) %>%
-  do(broom_augment(lm(price ~ year, data = .))) %>% # NSE here!
-  ungroup() 
+  mutate_(.dots = list(price = ~cost / weight)) #TODO Can we work we other than weight quantities?
 
-outers <- data %>%
-  arrange_(~desc(abs(.std.resid))) %>%
-  select_(~reporter, ~partner, ~dir, ~back, ~item, ~hs, ~price, ~year, ~.std.resid) %>%
-  top_n(20, .std.resid) %>%
-  distinct()
+# Detecting rules' match
 
-write.table(outers, file.path(output_dir, "outers.csv"), sep = ";", row.names = F, col.names = T)
+# Adam's rule #1
+# Removing self-trade
+data <- data %>%
+  mutate_(rule1 = ~reporter == partner)
+
+# Rule #2. Completion through mirroring. Implemented in Mirroring module.
+
+# Rule #3. Completion through unit values: missing quantities but values exist
+
+data <- data %>%
+  mutate_(rule2 = ~((price == 0 & weight != 0) | (price != 0 & weight == 0)))
+
+# %>% 
+#   group_by_(~reporter, ~partner, ~dir, ~back, ~item, ~hs) %>%
+#   do(broom_augment(lm(price ~ year, data = .))) %>% # NSE here!
+#   ungroup() 
+
+# outers <- data %>%
+#   arrange_(~desc(abs(.std.resid))) %>%
+#   select_(~reporter, ~partner, ~dir, ~back, ~item, ~hs, ~price, ~year, ~.std.resid) %>%
+#   top_n(20, .std.resid) %>%
+#   distinct()
+# 
+# write.table(outers, file.path(output_dir, "outers.csv"), sep = ";", row.names = F, col.names = T)
 
 if(rProf) Rprof(NULL)
