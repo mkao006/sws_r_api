@@ -25,12 +25,25 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
 
 warning("UPDATE THIS WITH DATABASE TABLES!!!")
 dir = "~/Documents/Github/sws_r_api/r_modules/eurostat_harvester/"
+dir = "~/GitHub/sws_r_api/r_modules/eurostat_harvester/"
 animalMap = fread(input = paste0(dir, "Mapping_ESTAT-CPC_animals.csv"))
 animalMap[, Item := as.character(Item)]
+animalMap = removeNon1to1(data = animalMap, key1Colname = "animals",
+                          key2Colname = "Item")
 cropMap = fread(input = paste0(dir, "Mapping_ESTAT-FCL_crops.csv"))
 cropMap[, Item := as.character(Item)] # Are these necessary?
+## Two mappings in one table!  THS_T and THS_H map to different elements
+cropMap = cropMap[strucpro == "AR", ]
+cropMap[, c("strucpro", "Ele", "Factor") := NULL, with = FALSE]
+cropMap = removeNon1to1(data = cropMap, key1Colname = "Item",
+                        key2Colname = "crop_pro")
 meatMap = fread(input = paste0(dir, "Mapping_ESTAT-CPC_meat.csv"))
 meatMap[, Item := as.character(Item)]
+## Two mappings in one table!  THS_T and THS_H map to different elements
+meatMap = meatMap[unit == "THS_T", ]
+meatMap[, c("unit", "Ele", "Factor") := NULL, with = FALSE]
+meatMap = removeNon1to1(data = meatMap, key1Colname = "meat",
+                        key2Colname = "Item")
 
 ## Convert Commodity Codes (crops aren't CPC in SWS, but animals and meat are)
 commodityCPC = data.table(
@@ -53,7 +66,7 @@ setnames(cropItems, c("measuredItemCPC", "EurostatCode"))
 meatItems = merge(commodityCPC, meatMap, by = "Item")
 meatItems = meatItems[, c("Item", "meat"), with = FALSE]
 setnames(meatItems, c("measuredItemCPC", "EurostatCode"))
-if(max(nrow(eurostatItems), nrow(meatItems), nrow(cropItems)) == 0)
+if(max(nrow(animalItems), nrow(meatItems), nrow(cropItems)) == 0)
     stop("No rows match with eurostat items")
 
 ## Convert Country Codes
@@ -68,7 +81,11 @@ if(length(eurostatAreas) == 0)
 ## Convert Element Codes
 ## Waiting on table to be loaded:
 ## elementMap = GetTableData(schemaName = "ess", tableName = "eurostat_element")
-elementMap = data.table(strucpro = c(NA, NA, "AR", "PR", NA, NA, NA, NA),
+elementMap = data.table(dataset = c("raw_apro_mt_pann", "raw_apro_mt_pann",
+                                    "raw_apro_cpp_crop", "raw_apro_cpp_crop",
+                                    "raw_apro_mt_lscatl", "raw_apro_mt_lsgoat",
+                                    "raw_apro_mt_lssheep", "raw_apro_mt_lspig"),
+                        strucpro = c(NA, NA, "AR", "PR", NA, NA, NA, NA),
                         meatitem = c(NA, NA, "SL", "SL", NA, NA, NA, NA),
                         unit = c("THS_HD", "THS_T", NA, NA, rep("THS_HD", 4)),
                         element = c(5330, 5315, 5312, 5510, rep(5511, 4)),
@@ -86,6 +103,7 @@ eurostatYears = swsContext.datasets[[1]]@dimensions$timePointYears@keys
 eurostatUnits = c("THS_HD", "THS_T")
 
 ## Pull relevant Eurostat data
+newFAOData = NULL
 if(nrow(animalItems) > 0){
     keyPig = DatasetKey(domain = "eurostat", dataset = "raw_apro_mt_lspig",
                          dimensions = list(
@@ -110,8 +128,23 @@ if(nrow(animalItems) > 0){
     goatData = GetData(keyGoat)
     sheepData = GetData(keySheep)
     cattleData = GetData(keyCattle)
-    stop("Is this still true?  Something's wrong if it is...")
-    identical(sheepData, cattleData)
+    #stop("Is this still true?  Something's wrong if it is...")
+    #identical(sheepData, cattleData)
+    newTempData = rbind(newFAOData, pigData, goatData, sheepData, cattleData)
+    convertCode(data = newTempData, mappingTable = countryMap,
+                keyData = "eurostatRawGeo", newKeyName = "geographicAreaM49",
+                newKeyMap = "m49", oldKeyMap = "eurostat")
+    convertCode(data = newTempData,
+                mappingTable = elementMap[dataset == "raw_apro_mt_lscatl", ],
+                keyData = "eurostatRawUnit", newKeyName = "measuredElement",
+                newKeyMap = "element", oldKeyMap = "unit")
+    convertCode(data = newTempData, mappingTable = animalMap,
+                keyData = "eurostatRawAgriprod", newKeyName = "measuredItem",
+                newKeyMap = "Ele", oldKeyMap = "animals")
+    ## Eurostat reporting at end of year, so adjust year down one
+    newTempData[, timePointYears := as.numeric(timePointYears) - 1]
+    newTempData[, eurostatRawMonth := NULL]
+    newFAOData = rbind(newFAOData, newTempData)
 }
 if(nrow(cropItems) > 0){
     cropElements = eurostatElements[!is.na(strucpro), strucpro]
@@ -127,12 +160,52 @@ if(nrow(cropItems) > 0){
                                        keys = eurostatYears)
                      ))
     cropData = GetData(keyCrop)
+    convertCode(data = cropData, mappingTable = countryMap,
+                keyData = "eurostatRawGeo", newKeyName = "geographicAreaM49",
+                newKeyMap = "m49", oldKeyMap = "eurostat")
+    convertCode(data = cropData,
+                mappingTable = elementMap[dataset == "raw_apro_cpp_crop", ],
+                keyData = "eurostatRawStrucpro", newKeyName = "measuredElement",
+                newKeyMap = "element", oldKeyMap = "strucpro")
+    convertCode(data = cropData, mappingTable = cropMap,
+                keyData = "eurostatRawCroppro", newKeyName = "measuredItem",
+                newKeyMap = "Item", oldKeyMap = "crop_pro")
+    newFAOData = rbind(newFAOData, cropData)    
 }
 if(nrow(meatItems) > 0){
+    meatElements = eurostatElements[!is.na(meatitem), meatitem]
+    keyMeat = DatasetKey(domain = "eurostat", dataset = "raw_apro_mt_pann",
+                         dimensions = list(
+                             Dimension(name = "eurostatRawAgriprod",
+                                       keys = meatItems$EurostatCode),
+                             Dimension(name = "eurostatRawMeatItem",
+                                       keys = meatElements),
+                             Dimension(name = "eurostatRawUnit",
+                                       keys = eurostatUnits),
+                             Dimension(name = "eurostatRawGeo",
+                                       keys = eurostatAreas),
+                             Dimension(name = "timePointYears",
+                                       keys = eurostatYears)
+                     ))
+    meatData = GetData(keyMeat)
+    convertCode(data = meatData, mappingTable = countryMap,
+                keyData = "eurostatRawGeo", newKeyName = "geographicAreaM49",
+                newKeyMap = "m49", oldKeyMap = "eurostat")
+    convertCode(data = meatData,
+                mappingTable = elementMap[dataset == "raw_apro_mt_pann", ],
+                keyData = "eurostatRawUnit", newKeyName = "measuredElement",
+                newKeyMap = "element", oldKeyMap = "unit")
+    convertCode(data = meatData, mappingTable = meatMap,
+                keyData = "eurostatRawAgriprod", newKeyName = "measuredItem",
+                newKeyMap = "Item", oldKeyMap = "meat")
+    meatData[, eurostatRawMeatItem := NULL]
+    newFAOData = rbind(newFAOData, meatData)    
 }
 
 ## Convert Flags
+newFAOData[, flagRawEurostat]
 
 ## Convert Values (Conversion Factors)
+
 
 "Module completed!"

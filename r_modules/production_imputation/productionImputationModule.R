@@ -29,7 +29,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     ## Get SWS Parameters
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "c1a2cc38-a9e9-4977-ae6e-4eed6a9568e7"
+        token = "22fb397d-d9e6-416d-acb8-717451714c62"
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         ## token = "90bb0f92-e345-4401-945d-1e43af801167"
     )
@@ -212,7 +212,7 @@ assignColumnNameVars = function(prefixTuples, formulaTuples){
 }
 
 executeImputationModule = function(){
-    fullKey = swsContext.[[1]]
+    fullKey = swsContext.datasets[[1]]
     subKey = fullKey
     uniqueItem = fullKey@dimensions$measuredItemCPC@keys
     for(singleItem in uniqueItem){
