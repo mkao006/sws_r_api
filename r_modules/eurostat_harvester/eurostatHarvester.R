@@ -25,7 +25,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
 
 warning("UPDATE THIS WITH DATABASE TABLES!!!")
 dir = "~/Documents/Github/sws_r_api/r_modules/eurostat_harvester/"
-dir = "~/GitHub/sws_r_api/r_modules/eurostat_harvester/"
+# dir = "~/GitHub/sws_r_api/r_modules/eurostat_harvester/"
 animalMap = fread(input = paste0(dir, "Mapping_ESTAT-CPC_animals.csv"))
 animalMap[, Item := as.character(Item)]
 animalMap = removeNon1to1(data = animalMap, key1Colname = "animals",
@@ -139,7 +139,7 @@ if(nrow(animalItems) > 0){
                 keyData = "eurostatRawUnit", newKeyName = "measuredElement",
                 newKeyMap = "element", oldKeyMap = "unit")
     convertCode(data = newTempData, mappingTable = animalMap,
-                keyData = "eurostatRawAgriprod", newKeyName = "measuredItem",
+                keyData = "eurostatRawAgriprod", newKeyName = "measuredItemCPC",
                 newKeyMap = "Ele", oldKeyMap = "animals")
     ## Eurostat reporting at end of year, so adjust year down one
     newTempData[, timePointYears := as.numeric(timePointYears) - 1]
@@ -168,7 +168,7 @@ if(nrow(cropItems) > 0){
                 keyData = "eurostatRawStrucpro", newKeyName = "measuredElement",
                 newKeyMap = "element", oldKeyMap = "strucpro")
     convertCode(data = cropData, mappingTable = cropMap,
-                keyData = "eurostatRawCroppro", newKeyName = "measuredItem",
+                keyData = "eurostatRawCroppro", newKeyName = "measuredItemCPC",
                 newKeyMap = "Item", oldKeyMap = "crop_pro")
     newFAOData = rbind(newFAOData, cropData)    
 }
@@ -196,16 +196,52 @@ if(nrow(meatItems) > 0){
                 keyData = "eurostatRawUnit", newKeyName = "measuredElement",
                 newKeyMap = "element", oldKeyMap = "unit")
     convertCode(data = meatData, mappingTable = meatMap,
-                keyData = "eurostatRawAgriprod", newKeyName = "measuredItem",
+                keyData = "eurostatRawAgriprod", newKeyName = "measuredItemCPC",
                 newKeyMap = "Item", oldKeyMap = "meat")
     meatData[, eurostatRawMeatItem := NULL]
     newFAOData = rbind(newFAOData, meatData)    
 }
 
 ## Convert Flags
-newFAOData[, flagRawEurostat]
+flagMappingTable = GetTableData(schemaName = "ess",
+                                tableName = "eurostat_flag_sws")
+setnames(flagMappingTable, c("eurostat_flag", "status",
+                             "method", "descritpion"),
+         c("flagRawEurostat", "flagObservationStatus",
+           "flagMethod", "Metadata"))
+flagMappingTable[is.na(flagObservationStatus), flagObservationStatus := ""]
+newFAOData = merge(newFAOData, flagMappingTable, by = "flagRawEurostat",
+                   all.x = TRUE)
+newFAOData[, flagRawEurostat := NULL]
 
 ## Convert Values (Conversion Factors)
+newFAOData[, Value := Value * 1000]
 
+## Merge with original data to determine which values to overwrite
+keys = names(swsContext.datasets[[1]]@dimensions)
+oldFAOData = GetData(swsContext.datasets[[1]], metadata = TRUE)
+## Convert keys to character for the join
+for(key in keys){
+    oldFAOData[, c(key) := as.character(get(key))]
+    newFAOData[, c(key) := as.character(get(key))]
+}
+newFAOData = merge(newFAOData, oldFAOData, by = keys, all.x = TRUE)
+## Don't overwrite non-missing (old) values with missing (new) values
+newFAOData = newFAOData[flagObservationStatus.x != "M" |
+                        flagObservationStatus.y == "M", ]
+newFAOData[, c("Value.y", "flagObservationStatus.y", "flagMethod.y") :=
+                list(NULL)]
+setnames(newFAOData, c("Value.x", "flagObservationStatus.x", "flagMethod.x"),
+         c("Value", "flagObservationStatus", "flagMethod"))
+metadata = newFAOData[, c(keys), with = FALSE]
+metadata[, Metadata := "SOURCE"]
+metadata[, Metadata_Language := "en"]
+metadata[, Metadata_Group := 1]
+metadata[, Metadata_Element := "COMMENT"]
+metadata[, Metadata_Value := newFAOData[, Metadata]]
+SaveData(domain = "agriculture", dataset = "agriculture",
+         data = newFAOData[, c(key, "Value", "flagObservationStatus",
+                               "flagMethod"), with = FALSE],
+         metadata = metadata)
 
 "Module completed!"
