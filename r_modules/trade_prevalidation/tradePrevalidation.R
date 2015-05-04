@@ -2,17 +2,20 @@
 
 
 rProf <- TRUE
-reporters <- c(643, 381)
 
-# suppressMessages({
-#library(faosws)
-# library(data.table)
+
 suppressPackageStartupMessages(library(dplyr))
-# library(stringr)
-# library(ggplot2)
-# })
 
+token       <- "11ac4873-4747-43cd-b942-711d0ebfe844"
 module_name <- "trade_prevalidation"
+domain      <- "trade"
+dataset     <- "ct_raw_tf"
+reportVar   <- "reportingCountryM49"
+partnerVar  <- "partnerCountryM49"
+itemVar     <- "measuredItemHS"
+eleVar      <- "measuredElementTrade"
+yearVar     <- "timePointYears"
+
 startMoment <- format(Sys.time(), "%Y%m%d%H%M%S")
 
 
@@ -29,7 +32,7 @@ if(Sys.getenv("DEBUG_MODE") %in% c("", "TRUE", "T", "1")) {
   
   faosws::GetTestEnvironment(
     baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-    token = "11ac4873-4747-43cd-b942-711d0ebfe844")
+    token = token)
   
   
 } 
@@ -45,42 +48,40 @@ if(Sys.getenv("DEBUG_MODE") %in% c("FALSE", "F", "0")) {
   if(!is.null(swsContext.computationParams$rProf))
     rProf <- as.logical(swsContext.computationParams$rProf)
   
-  # If user has inputed country codes
+  
+  # LIST OF REPORTERS
+  # If user has inputed country codes in R plugin execution window
   if(!is.null(swsContext.computationParams$reporters))
     reporters <- swsContext.computationParams$reporters %>%
     stringr::str_extract_all('([0-9]+)') %>%
     unlist() %>%
     as.integer()
   
-  # If user hasn't inputed country codes we take full list of
-  # countries
+  # If user hasn't inputed country codes we take countries from 
+  # swsContext.datasets
   if(is.null(swsContext.computationParams$reporters))
-    reporters <- getAllReportersRaw() %>%
-    normalizeAreas() %>%
-    filter_(.dots = list(~type == "country")) %>%
-    select_(~code)  %>% unlist()
+    reporters <- swsContext.datasets[[1]]@dimensions[[reportVar]]@keys
   
 }
 
-dir.create(output_dir, showWarnings = F, recursive = T) 
 
+# Creating directory for execution profiling
+dir.create(output_dir, showWarnings = F, recursive = T) 
+# Start execution profiling
 if(rProf) Rprof(file.path(output_dir, "Rprof.txt"))
 
+
+# TODO Should we put here some checkings on input parameters?
+partners <- swsContext.datasets[[1]]@dimensions[[partnerVar]]@keys
+years    <- swsContext.datasets[[1]]@dimensions[[yearVar]]@keys
+items    <- swsContext.datasets[[1]]@dimensions[[itemVar]]@keys
+elements <- swsContext.datasets[[1]]@dimensions[[eleVar]]@keys
+
 data <- getComtradeData(reporter = reporters,
-                        partner = getAllPartnersRaw() %>%
-                          normalizeAreas() %>%
-                          filter_(.dots = list(~type == "country")) %>%
-                          select_(~code)  %>% unlist(),
-                        year = 1990:2014, 
-                        item = getAllItems() %>%
-                          filter_(.dots = list(~stringr::str_detect(code, "^10") &
-                                                 stringr::str_length(code) == 6)) %>%
-                          select_(~code) %>% unlist(),
-                        element = selectElems(direction == "in" &
-                                                unitgroup %in% c("weight", 
-                                                                 "cost", 
-                                                                 "price", 
-                                                                 "volume"))) %>%
+                        partner  = partners,
+                        year     = years, 
+                        item     = items,
+                        element  = elements %>%
   humanizeComtrade()
 
 if(any(!is.element(unique(data$unit), c("kg", "US$")))) stop("Other than kg and US$ units present!")
