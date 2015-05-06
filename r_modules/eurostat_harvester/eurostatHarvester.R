@@ -16,7 +16,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "a2dd0e14-1cdc-4486-bc4b-1f65d9ecad01"
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "d8e833c8-a837-4713-b1c9-52582d089e06"
+        token = "dc3d92ac-aea3-4205-8a9f-79825e93c03f"
     )
     files = dir("~/Documents/Github/sws_r_api/r_modules/eurostat_harvester/R",
                 full.names = TRUE)
