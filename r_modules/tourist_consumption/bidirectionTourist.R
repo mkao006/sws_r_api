@@ -4,21 +4,15 @@
 ## Created by JAM 19/2/2015 at FAO Rome
 ## Last updated on 5/3/2015 by JAM
 
-## remove before uploading to SWS
-## rm(list = ls())
-
 ## Load required functions
 library(data.table)
 library(faosws)
 library(dplyr)
 library(reshape2)
 
-TEST_MODE=FALSE
-
-if(!exists("DEBUG_MODE") || DEBUG_MODE)  {
+if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     token = "bdcbefca-0dfe-4dd5-aeeb-3e8bb36dbd4d"
     GetTestEnvironment("https://hqlprswsas1.hq.un.fao.org:8181/sws",token)
-    TEST_MODE=TRUE
 }
 
 ## shows a list of parameters that have been set within the SWS by user at
@@ -103,36 +97,29 @@ data4 <- setcolorder(data4, neworder = c("year", "orig", "dest", "onVisNum",
 ## "onVisDays" and this affects the bi-directional calculations for them, but
 ## also all of the other countries as well, so this imputes the missing number
 ## of days, by taking the mean of all day numbers present, grouped by year.
-data4[ , onVisDays := ifelse (is.na (onVisDays), round (mean
-                       (onVisDays, na.rm=TRUE), 2), onVisDays), by = year]
+data4[, onVisDays := ifelse(is.na(onVisDays), mean(onVisDays, na.rm=TRUE),
+                            onVisDays), by = year]
 
 ## calculate the total number tourist visitor days, the product of overnight
 ## visitor number and days per visit
-data4[ , onVisTotDays := onVisNum * onVisDays]
-
-## set the keys for the data.table to sort by year and country of origin
-setkey(data4, year, orig, dest)
+data4[, onVisTotDays := onVisNum * onVisDays]
 
 ## calculate a new total overnight visitor number per country of destination, to
 ## be used later to proportion the day visitor number, because we do not have
 ## data for country of origin, and allocate them to a country of origin,
 ## assuming they arrive in the same relative proportions as the overnight
 ## visitors
-data5 <- data4[ , totOnVisNum := sum(onVisNum), by=list(year,dest)]
-
-## do the proportioning of the total day visitor number, based on the
-## proportions of overnight visitors that originated from each country
-data5 <- data5[ , proDayVisNum := round (onVisNum / totOnVisNum * totDayVisNum, 1)]
+data4[, totOnVisNum := sum(onVisNum), by=list(year,dest)]
 
 ## create a new total visitor days by summing the overnight viistor days, and
 ## the day visitor days
-data5 <- data5[ , totVisDays := onVisTotDays + proDayVisNum]
+data4[, totVisDays := onVisTotDays + totDayVisNum]
 
 ## calculate the number of calories consumed by all tourists as the product of
 ## number of days and average tourist consumption in calories, which was input
 ## as a parameter
-data5 <- data5[ , totVisCals := totVisDays * as.numeric
-               (swsContext.computationParams$tourist_consumption) ]
+data4[, totVisCals := totVisDays *
+           as.numeric(swsContext.computationParams$tourist_consumption)]
 
 ## set the keys to get the calorie consuption, by individual FBS commodity for
 ## each country from the FAO working system
@@ -156,51 +143,51 @@ key <- DatasetKey(domain = "suafbs", dataset = "fbs",
 data6 <- GetData(key, flags = FALSE)
 
 ## remove the measuredElement column which is of no value to me here
-data6 <- data6[, which(!grepl("Element", colnames(data6))), with=FALSE]
+data6[, which(!grepl("Element", colnames(data6))), with=FALSE]
 
 ## set the column names to small simple ones representing destination, database
 ## element, year and value
 setnames(data6, old = colnames(data6), new = c("orig", "item", "year", "calValue"))
 
 ## rearrange the column order to match previous data.tables
-data6 <- setcolorder(data6, neworder = c("year", "orig", "item", "calValue"))
+setcolorder(data6, neworder = c("year", "orig", "item", "calValue"))
 
 ## calculate the total calories consumed, per day, by each country as the sum of
 ## all individual commodity calories, based on the supply utilization account -
 ## food balance sheet data
-data6[ , totalCaloriesByOrigSuaFbs := sum(calValue), by = list (orig, year)]
+data6[, totalCaloriesByOrigSuaFbs := sum(calValue), by = list(orig, year)]
 
 ## calculate the proportional calories consumed, by Item, per day, as Item
 ## calories divided by the total for the whole country
-data6[ , propCaloriesByItemSuaFbs := calValue / totalCaloriesByOrigSuaFbs]
+data6[, propCaloriesByItemSuaFbs := calValue / totalCaloriesByOrigSuaFbs]
 
 ## calculate total calories consumed by Item, per day by the tourist in the
 ## country they are visiting, based on proportions of what they eat at home
-data6[ , totCaloriesByItemPerDay :=
+data6[, totCaloriesByItemPerDay :=
       as.numeric(swsContext.computationParams$tourist_consumption) *
       propCaloriesByItemSuaFbs]
 
 ## set the keys for the data.table to sort by year and country of origin
 setkey(data6, year, orig, item)
 
-## merge data5 and data6 to allow calculation of calories by commodity
-data7 <- merge(data5,data6, allow.cartesian=TRUE)
+## merge data4 and data6 to allow calculation of calories by commodity
+data7 <- merge(data4, data6, allow.cartesian=TRUE, by = c("year", "orig"))
 
 ## calculate the total calories consumed, by item, for the entire year
-data7[ , totCaloriesByItemPerYear := totVisCals * propCaloriesByItemSuaFbs]
+data7[, totCaloriesByItemPerYear := totVisCals * propCaloriesByItemSuaFbs]
 
 ## calculate calories consumed within a country, by tourists visiting from other
 ## countries, and therefore these calories can be subtracted from the total
 ## calories available to the permanent population in the country listed in
 ## column #3
-touristTotalCaloriesInCountry <- data5[, list(calsVisToCountry = sum(totVisCals)),
+touristTotalCaloriesInCountry <- data4[, list(calsVisToCountry = sum(totVisCals)),
                                   by = list(year,dest)]
 
 ## calculate calories by people that left the country to be a tourist in the
 ## destination country, therefore these calories can be added to the total
 ## calories available to the permanent population country of origin, which is
 ## listed in column
-touristTotalCaloriesOutCountry <- data5[, list(calsVisFromCountry = sum(totVisCals)),
+touristTotalCaloriesOutCountry <- data4[, list(calsVisFromCountry = sum(totVisCals)),
                                   by = list(year,orig)]
 
 ## sort the calories consumed within a country, by individual food balance sheet
@@ -218,8 +205,9 @@ touristCaloriesOutCountryByItem <- data7[ , list(totCaloriesByItemPerYear),
                                         by = list(year, orig, dest, item) ]
 
 ## this is a crosscheck of calorie totals summed by dest, orig and year in data7
-## to make sure they corroborate with the originals in data5
-crosscheck <- data7[, sum(totCaloriesByItemPerYear), by = list (dest, orig, year)]
+## to make sure they corroborate with the originals in data4
+crosscheck <- data7[, sum(totCaloriesByItemPerYear),
+                     by = list(dest, orig, year)]
 
 ## assemble two outputs into a list to be returned
 touristCalories <- list(touristTotalCaloriesInCountry,
@@ -229,6 +217,4 @@ touristCalories <- list(touristTotalCaloriesInCountry,
 touristCaloriesByItem <- list(touristCaloriesInCountryByItem,
                               touristCaloriesOutCountryByItem)
 
-## SWS will not exit unless it passes a small message of <1000 characters back
-## to the screen so this allows it to complete when testing on the SWS
-print("I've finished")
+"Module completed!"
