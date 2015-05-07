@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Bi-directional Tourist Calorie Consumption</Name>
+	<Description>Calculate the consumption of calories by tourists</Description>
+	<Category>Computation</Category>
+	<Authors>
+		<Author>
+			<Name>Jim Maas</Name>
+			<Mail>james.maas@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Params>
+		<Param xsi:type="Number">
+			<Code>tourist_consumption</Code>
+			<Label>Tourist Consumption</Label>
+			<Description>Number of calories consumed per Cap for tourists</Description>
+			<Compulsory>true</Compulsory>
+			<Min>500</Min>
+			<Max>5000</Max>
+		</Param>
+		<Param xsi:type="String">
+			<Code>year_range</Code>
+			<Label>Year Range</Label>
+			<Description>Start and End years of data to download</Description>
+			<Compulsory>true</Compulsory>
+		</Param>
+	</Params>
+	<Datasets>
+		<MainDataset>
+			<Code>tourist_consumption</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="false">touristElement</SelectableDimension>
+				<SelectableDimension compulsory="false">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="false">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+		<Dataset>
+		  <Code>tourist_flow</Code>
+		</Dataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>true</Background>
+</RScript>
+

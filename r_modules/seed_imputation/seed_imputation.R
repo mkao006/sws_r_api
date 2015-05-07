@@ -81,6 +81,8 @@ seedLmeModel =
          (log(Value_measuredElement_5025)|cpcLvl3/measuredItemCPC:geographicAreaM49),
          data = seedModelData)
 
+seedLmeVariance = bootMer(seedLmeModel)
+
 selectedSeed =
     getSelectedSeedData(swsContext.datasets[[1]]) %>%
     removeCarryForward(data = ., variable = "Value_measuredElement_5525") %>%
