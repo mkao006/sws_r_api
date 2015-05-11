@@ -1,6 +1,6 @@
 #' Looks for HS commodity codes for given character pattern of commodity description.
 #' 
-#' @param pattern regular expression. Character of length 1.
+#' @param pattern regular expression. String of length 1.
 #' @param ignore.case logical. Ignore case while searching. TRUE by default.
 #' @param perl logical. Should pattern use the Perl regular expression engine.
 #' 
