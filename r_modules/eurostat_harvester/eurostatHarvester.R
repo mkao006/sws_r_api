@@ -1,8 +1,8 @@
 ## load the library
 library(faosws)
+library(data.table)
 library(faoswsUtil)
 library(faoswsFlag)
-library(data.table)
 
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
@@ -16,7 +16,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "a2dd0e14-1cdc-4486-bc4b-1f65d9ecad01"
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "dc3d92ac-aea3-4205-8a9f-79825e93c03f"
+        token = "5887b57d-1cd9-4d07-94da-6ece2f1eeeaf"
     )
     files = dir("~/Documents/Github/sws_r_api/r_modules/eurostat_harvester/R",
                 full.names = TRUE)
@@ -105,39 +105,49 @@ if(nrow(animalItems) > 0){
                              ## we have to adjust here and in the extracted
                              ## data.
                              Dimension(name = "timePointYears",
-                                       keys = eurostatYears - 1)
+                                       keys = as.character(as.numeric(eurostatYears) - 1))
                      ))
-    keyGoat = keyPig
-    keyGoat@dataset = "raw_apro_mt_lsgoat"
-    keySheep = keyPig
-    keySheep@dataset = "raw_apro_mt_lssheep"
-    keyCattle = keyPig
-    keyCattle@dataset = "raw_apro_mt_lscatl"
-    pigData = GetData(keyPig)
-    goatData = GetData(keyGoat)
-    sheepData = GetData(keySheep)
-    cattleData = GetData(keyCattle)
-    #stop("Is this still true?  Something's wrong if it is...")
-    #identical(sheepData, cattleData)
-    newTempData = rbind(newFAOData, pigData, goatData, sheepData, cattleData)
-    ## HACK!  Convert year values back to original to match SWS
-    convertCode(data = newTempData, mappingTable = countryMap,
-                keyData = "eurostatRawGeo", newKeyName = "geographicAreaM49",
-                newKeyMap = "m49", oldKeyMap = "eurostat")
-    convertCode(data = newTempData,
-                mappingTable = elementMap[dataset == "raw_apro_mt_lscatl", ],
-                keyData = "eurostatRawUnit", newKeyName = "measuredElement",
-                newKeyMap = "element", oldKeyMap = "unit")
-    convertCode(data = newTempData, mappingTable = animalMap,
-                keyData = "eurostatRawAgriprod", newKeyName = "measuredItemCPC",
-                newKeyMap = "cpc", oldKeyMap = "animals")
-    ## HACK!  Eurostat reports at end of year, so adjust year up one
-    newTempData[, timePointYears := timePointYears + 1]
-    newTempData[, eurostatRawMonth := NULL]
-    newFAOData = rbind(newFAOData, newTempData)
+    ## If any keys have a length of 0, then we'll get an error with GetData.
+    ## To avoid that, check here first and only pull the data if all keys
+    ## exist.
+    keyLength = lapply(keyPig@dimensions, function(x) length(x@keys))
+    if(all(keyLength > 0)){
+        keyGoat = keyPig
+        keyGoat@dataset = "raw_apro_mt_lsgoat"
+        keySheep = keyPig
+        keySheep@dataset = "raw_apro_mt_lssheep"
+        keyCattle = keyPig
+        keyCattle@dataset = "raw_apro_mt_lscatl"
+        pigData = GetData(keyPig)
+        goatData = GetData(keyGoat)
+        sheepData = GetData(keySheep)
+        cattleData = GetData(keyCattle)
+        #stop("Is this still true?  Something's wrong if it is...")
+        #identical(sheepData, cattleData)
+        newTempData = rbind(newFAOData, pigData, goatData,
+                            sheepData, cattleData)
+        ## HACK!  Convert year values back to original to match SWS
+        convertCode(data = newTempData, mappingTable = countryMap,
+                    keyData = "eurostatRawGeo",
+                    newKeyName = "geographicAreaM49",
+                    newKeyMap = "m49", oldKeyMap = "eurostat")
+        convertCode(data = newTempData,
+                    mappingTable = elementMap[dataset == "apro_mt_lscatl",],
+                    keyData = "eurostatRawUnit",
+                    newKeyName = "measuredElement",
+                    newKeyMap = "element", oldKeyMap = "unit")
+        convertCode(data = newTempData, mappingTable = animalMap,
+                    keyData = "eurostatRawAgriprod",
+                    newKeyName = "measuredItemCPC",
+                    newKeyMap = "cpc", oldKeyMap = "animals")
+        ## HACK!  Eurostat reports at end of year, so adjust year up one
+        newTempData[, timePointYears := as.character(as.numeric(timePointYears) + 1)]
+        newTempData[, eurostatRawMonth := NULL]
+        newFAOData = rbind(newFAOData, newTempData)
+    }
 }
 if(nrow(cropItems) > 0){
-    cropElements = eurostatElements[!is.na(strucpro), strucpro]
+    cropElements = eurostatElements[!is.na(strcupro), strcupro]
     keyCrop = DatasetKey(domain = "eurostat", dataset = "raw_apro_cpp_crop",
                          dimensions = list(
                              Dimension(name = "eurostatRawCroppro",
@@ -149,18 +159,27 @@ if(nrow(cropItems) > 0){
                              Dimension(name = "timePointYears",
                                        keys = eurostatYears)
                      ))
-    cropData = GetData(keyCrop)
-    convertCode(data = cropData, mappingTable = countryMap,
-                keyData = "eurostatRawGeo", newKeyName = "geographicAreaM49",
-                newKeyMap = "m49", oldKeyMap = "eurostat")
-    convertCode(data = cropData,
-                mappingTable = elementMap[dataset == "raw_apro_cpp_crop", ],
-                keyData = "eurostatRawStrucpro", newKeyName = "measuredElement",
-                newKeyMap = "element", oldKeyMap = "strucpro")
-    convertCode(data = cropData, mappingTable = cropMap,
-                keyData = "eurostatRawCroppro", newKeyName = "measuredItemCPC",
-                newKeyMap = "cpc", oldKeyMap = "crop_pro")
-    newFAOData = rbind(newFAOData, cropData)    
+    ## If any keys have a length of 0, then we'll get an error with GetData.
+    ## To avoid that, check here first and only pull the data if all keys
+    ## exist.
+    keyLength = lapply(keyCrop@dimensions, function(x) length(x@keys))
+    if(all(keyLength > 0)){
+        cropData = GetData(keyCrop)
+        convertCode(data = cropData, mappingTable = countryMap,
+                    keyData = "eurostatRawGeo",
+                    newKeyName = "geographicAreaM49",
+                    newKeyMap = "m49", oldKeyMap = "eurostat")
+        convertCode(data = cropData,
+                    mappingTable = elementMap[dataset == "raw_apro_cpp_crop",],
+                    keyData = "eurostatRawStrucpro",
+                    newKeyName = "measuredElement",
+                    newKeyMap = "element", oldKeyMap = "strcupro")
+        convertCode(data = cropData, mappingTable = cropMap,
+                    keyData = "eurostatRawCroppro",
+                    newKeyName = "measuredItemCPC",
+                    newKeyMap = "cpc", oldKeyMap = "crop_pro")
+        newFAOData = rbind(newFAOData, cropData)
+    }
 }
 if(nrow(meatItems) > 0){
     meatElements = eurostatElements[!is.na(meatitem), meatitem]
@@ -177,74 +196,90 @@ if(nrow(meatItems) > 0){
                              Dimension(name = "timePointYears",
                                        keys = eurostatYears)
                      ))
-    meatData = GetData(keyMeat)
-    convertCode(data = meatData, mappingTable = countryMap,
-                keyData = "eurostatRawGeo", newKeyName = "geographicAreaM49",
-                newKeyMap = "m49", oldKeyMap = "eurostat")
-    convertCode(data = meatData,
-                mappingTable = elementMap[dataset == "raw_apro_mt_pann", ],
-                keyData = "eurostatRawUnit", newKeyName = "measuredElement",
-                newKeyMap = "element", oldKeyMap = "unit")
-    convertCode(data = meatData, mappingTable = meatMap,
-                keyData = "eurostatRawAgriprod", newKeyName = "measuredItemCPC",
-                newKeyMap = "cpc", oldKeyMap = "meat")
-    meatData[, eurostatRawMeatItem := NULL]
-    newFAOData = rbind(newFAOData, meatData)    
-}
-
-## Convert Flags
-flagMappingTable = GetTableData(schemaName = "ess",
-                                tableName = "eurostat_flag_sws")
-setnames(flagMappingTable, c("eurostat_flag", "status",
-                             "method", "description"),
-         c("flagRawEurostat", "flagObservationStatus",
-           "flagMethod", "Metadata"))
-flagMappingTable[is.na(flagObservationStatus), flagObservationStatus := ""]
-newFAOData = merge(newFAOData, flagMappingTable, by = "flagRawEurostat",
-                   all.x = TRUE)
-if(any(is.na(newFAOData$flagObservationStatus)))
-    stop("Invalid Eurostat flag!  Please update the flag conversion table.")
-newFAOData[, flagRawEurostat := NULL]
-
-## Convert Values (Conversion Factors)
-newFAOData[, Value := Value * 1000]
-
-## Merge with original data to determine which values to overwrite
-keys = names(swsContext.datasets[[1]]@dimensions)
-oldFAOData = GetData(swsContext.datasets[[1]])
-if(nrow(oldFAOData) > 0){
-    ## Convert keys to character for the join
-    for(key in keys){
-        oldFAOData[, c(key) := as.character(get(key))]
-        newFAOData[, c(key) := as.character(get(key))]
+    ## If any keys have a length of 0, then we'll get an error with GetData.
+    ## To avoid that, check here first and only pull the data if all keys
+    ## exist.
+    keyLength = lapply(keyMeat@dimensions, function(x) length(x@keys))
+    if(all(keyLength > 0)){
+        meatData = GetData(keyMeat)
+        convertCode(data = meatData, mappingTable = countryMap,
+                    keyData = "eurostatRawGeo",
+                    newKeyName = "geographicAreaM49",
+                    newKeyMap = "m49", oldKeyMap = "eurostat")
+        convertCode(data = meatData,
+                    mappingTable = elementMap[dataset == "raw_apro_mt_pann", ],
+                    keyData = "eurostatRawUnit",
+                    newKeyName = "measuredElement",
+                    newKeyMap = "element", oldKeyMap = "unit")
+        convertCode(data = meatData, mappingTable = meatMap,
+                    keyData = "eurostatRawAgriprod",
+                    newKeyName = "measuredItemCPC",
+                    newKeyMap = "cpc", oldKeyMap = "meat")
+        meatData[, eurostatRawMeatItem := NULL]
+        newFAOData = rbind(newFAOData, meatData)
     }
-    newFAOData = merge(newFAOData, oldFAOData, by = keys, all.x = TRUE)
-    ## Don't overwrite non-missing (old) values with missing (new) values
-    newFAOData = newFAOData[flagObservationStatus.x != "M" |
-                            flagObservationStatus.y == "M", ]
-    newFAOData[, c("Value.y", "flagObservationStatus.y", "flagMethod.y") :=
-                    list(NULL)]
-    setnames(newFAOData, c("Value.x", "flagObservationStatus.x", "flagMethod.x"),
-             c("Value", "flagObservationStatus", "flagMethod"))
 }
-metadata = newFAOData[, c(keys), with = FALSE]
-metadata[, Metadata := "GENERAL"]
-metadata[, Metadata_Language := "en"]
-metadata[, Metadata_Group := 1]
-metadata[, Metadata_Element := "COMMENT"]
-metadata[, Metadata_Value := newFAOData[, Metadata]]
-metadata = metadata[Metadata_Value != "/", ]
-## Also write to metadata to indicate it was pulled from Eurostat
-metadataCopy = copy(metadata)
-metadataCopy[, Metadata := "SOURCE"]
-metadataCopy[, Metadata_Language := "en"]
-metadataCopy[, Metadata_Group := 1]
-metadataCopy[, Metadata_Element := "ORGANIZATION"]
-metadataCopy[, Metadata_Value := "Eurostat"]
 
-SaveData(domain = "agriculture", dataset = "agriculture",
-         data = newFAOData[, c(keys, "Value", "flagObservationStatus",
-                               "flagMethod"), with = FALSE],
-         metadata = rbind(metadata, metadataCopy))
+if(is.null(newFAOData)){
+    outMessage = "No Eurostat data available for these keys!"
+} else {
+    ## Convert Flags
+    flagMappingTable = GetTableData(schemaName = "ess",
+                                    tableName = "eurostat_flag_sws")
+    setnames(flagMappingTable, c("eurostat_flag", "status",
+                                 "method", "description"),
+             c("flagRawEurostat", "flagObservationStatus",
+               "flagMethod", "Metadata"))
+    flagMappingTable[is.na(flagObservationStatus), flagObservationStatus := ""]
+    newFAOData = merge(newFAOData, flagMappingTable, by = "flagRawEurostat",
+                       all.x = TRUE)
+    if(any(is.na(newFAOData$flagObservationStatus)))
+        stop("Invalid Eurostat flag!  Please update the flag conversion table.")
+    newFAOData[, flagRawEurostat := NULL]
+    
+    ## Convert Values (Conversion Factors)
+    newFAOData[, Value := Value * 1000]
+    
+    ## Merge with original data to determine which values to overwrite
+    keys = names(swsContext.datasets[[1]]@dimensions)
+    oldFAOData = GetData(swsContext.datasets[[1]])
+    if(nrow(oldFAOData) > 0){
+        ## Convert keys to character for the join
+        for(key in keys){
+            oldFAOData[, c(key) := as.character(get(key))]
+            newFAOData[, c(key) := as.character(get(key))]
+        }
+        newFAOData = merge(newFAOData, oldFAOData, by = keys, all.x = TRUE)
+        ## Don't overwrite non-missing (old) values with missing (new) values
+        newFAOData = newFAOData[flagObservationStatus.x != "M" |
+                                flagObservationStatus.y == "M", ]
+        newFAOData[, c("Value.y", "flagObservationStatus.y", "flagMethod.y") :=
+                        list(NULL)]
+        setnames(newFAOData, c("Value.x", "flagObservationStatus.x", "flagMethod.x"),
+                 c("Value", "flagObservationStatus", "flagMethod"))
+    }
+    metadata = newFAOData[, c(keys), with = FALSE]
+    metadata[, Metadata := "GENERAL"]
+    metadata[, Metadata_Language := "en"]
+    metadata[, Metadata_Group := 1]
+    metadata[, Metadata_Element := "COMMENT"]
+    metadata[, Metadata_Value := newFAOData[, Metadata]]
+    ## Also write to metadata to indicate it was pulled from Eurostat
+    metadataCopy = copy(metadata)
+    metadataCopy[, Metadata := "SOURCE"]
+    metadataCopy[, Metadata_Language := "en"]
+    metadataCopy[, Metadata_Group := 1]
+    metadataCopy[, Metadata_Element := "ORGANIZATION"]
+    metadataCopy[, Metadata_Value := "Eurostat"]
+    metadata = metadata[Metadata_Value != "/", ]
+    
+    SaveData(domain = "agriculture", dataset = "agriculture",
+             data = newFAOData[, c(keys, "Value", "flagObservationStatus",
+                                   "flagMethod"), with = FALSE],
+             metadata = rbind(metadata, metadataCopy))
+    
+    outMessage = "Module completed!"
+}
 
-"Module completed!"
+outMessage
+"Module completed"
