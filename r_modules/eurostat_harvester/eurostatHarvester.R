@@ -16,7 +16,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "a2dd0e14-1cdc-4486-bc4b-1f65d9ecad01"
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "5887b57d-1cd9-4d07-94da-6ece2f1eeeaf"
+        token = "c5497f05-54ad-48e0-8c8f-9882426f0f25"
     )
     files = dir("~/Documents/Github/sws_r_api/r_modules/eurostat_harvester/R",
                 full.names = TRUE)
@@ -126,24 +126,27 @@ if(nrow(animalItems) > 0){
         #identical(sheepData, cattleData)
         newTempData = rbind(newFAOData, pigData, goatData,
                             sheepData, cattleData)
-        ## HACK!  Convert year values back to original to match SWS
-        convertCode(data = newTempData, mappingTable = countryMap,
-                    keyData = "eurostatRawGeo",
-                    newKeyName = "geographicAreaM49",
-                    newKeyMap = "m49", oldKeyMap = "eurostat")
-        convertCode(data = newTempData,
-                    mappingTable = elementMap[dataset == "apro_mt_lscatl",],
-                    keyData = "eurostatRawUnit",
-                    newKeyName = "measuredElement",
-                    newKeyMap = "element", oldKeyMap = "unit")
-        convertCode(data = newTempData, mappingTable = animalMap,
-                    keyData = "eurostatRawAgriprod",
-                    newKeyName = "measuredItemCPC",
-                    newKeyMap = "cpc", oldKeyMap = "animals")
-        ## HACK!  Eurostat reports at end of year, so adjust year up one
-        newTempData[, timePointYears := as.character(as.numeric(timePointYears) + 1)]
-        newTempData[, eurostatRawMonth := NULL]
-        newFAOData = rbind(newFAOData, newTempData)
+        if(nrow(newTempData) > 0){ # Only continue if data is available
+            ## HACK!  Convert year values back to original to match SWS
+            convertCode(data = newTempData, mappingTable = countryMap,
+                        keyData = "eurostatRawGeo",
+                        newKeyName = "geographicAreaM49",
+                        newKeyMap = "m49", oldKeyMap = "eurostat")
+            convertCode(data = newTempData,
+                        mappingTable = elementMap[dataset == "apro_mt_lscatl",],
+                        keyData = "eurostatRawUnit",
+                        newKeyName = "measuredElement",
+                        newKeyMap = "element", oldKeyMap = "unit")
+            convertCode(data = newTempData, mappingTable = animalMap,
+                        keyData = "eurostatRawAgriprod",
+                        newKeyName = "measuredItemCPC",
+                        newKeyMap = "cpc", oldKeyMap = "animals")
+            ## HACK!  Eurostat reports at end of year, so adjust year up one
+            newTempData[, timePointYears :=
+                            as.character(as.numeric(timePointYears) + 1)]
+            newTempData[, eurostatRawMonth := NULL]
+            newFAOData = rbind(newFAOData, newTempData)
+        }
     }
 }
 if(nrow(cropItems) > 0){
@@ -165,20 +168,22 @@ if(nrow(cropItems) > 0){
     keyLength = lapply(keyCrop@dimensions, function(x) length(x@keys))
     if(all(keyLength > 0)){
         cropData = GetData(keyCrop)
-        convertCode(data = cropData, mappingTable = countryMap,
-                    keyData = "eurostatRawGeo",
-                    newKeyName = "geographicAreaM49",
-                    newKeyMap = "m49", oldKeyMap = "eurostat")
-        convertCode(data = cropData,
-                    mappingTable = elementMap[dataset == "raw_apro_cpp_crop",],
-                    keyData = "eurostatRawStrucpro",
-                    newKeyName = "measuredElement",
-                    newKeyMap = "element", oldKeyMap = "strcupro")
-        convertCode(data = cropData, mappingTable = cropMap,
-                    keyData = "eurostatRawCroppro",
-                    newKeyName = "measuredItemCPC",
-                    newKeyMap = "cpc", oldKeyMap = "crop_pro")
-        newFAOData = rbind(newFAOData, cropData)
+        if(nrow(cropData) > 0){ # Only continue if data is available
+            convertCode(data = cropData, mappingTable = countryMap,
+                        keyData = "eurostatRawGeo",
+                        newKeyName = "geographicAreaM49",
+                        newKeyMap = "m49", oldKeyMap = "eurostat")
+            convertCode(data = cropData,
+                        mappingTable = elementMap[dataset == "raw_apro_cpp_crop",],
+                        keyData = "eurostatRawStrucpro",
+                        newKeyName = "measuredElement",
+                        newKeyMap = "element", oldKeyMap = "strcupro")
+            convertCode(data = cropData, mappingTable = cropMap,
+                        keyData = "eurostatRawCroppro",
+                        newKeyName = "measuredItemCPC",
+                        newKeyMap = "cpc", oldKeyMap = "crop_pro")
+            newFAOData = rbind(newFAOData, cropData)
+        }
     }
 }
 if(nrow(meatItems) > 0){
@@ -202,21 +207,23 @@ if(nrow(meatItems) > 0){
     keyLength = lapply(keyMeat@dimensions, function(x) length(x@keys))
     if(all(keyLength > 0)){
         meatData = GetData(keyMeat)
-        convertCode(data = meatData, mappingTable = countryMap,
-                    keyData = "eurostatRawGeo",
-                    newKeyName = "geographicAreaM49",
-                    newKeyMap = "m49", oldKeyMap = "eurostat")
-        convertCode(data = meatData,
-                    mappingTable = elementMap[dataset == "raw_apro_mt_pann", ],
-                    keyData = "eurostatRawUnit",
-                    newKeyName = "measuredElement",
-                    newKeyMap = "element", oldKeyMap = "unit")
-        convertCode(data = meatData, mappingTable = meatMap,
-                    keyData = "eurostatRawAgriprod",
-                    newKeyName = "measuredItemCPC",
-                    newKeyMap = "cpc", oldKeyMap = "meat")
-        meatData[, eurostatRawMeatItem := NULL]
-        newFAOData = rbind(newFAOData, meatData)
+        if(nrow(meatData) > 0){ # Only continue if data is available
+            convertCode(data = meatData, mappingTable = countryMap,
+                        keyData = "eurostatRawGeo",
+                        newKeyName = "geographicAreaM49",
+                        newKeyMap = "m49", oldKeyMap = "eurostat")
+            convertCode(data = meatData,
+                        mappingTable = elementMap[dataset == "raw_apro_mt_pann", ],
+                        keyData = "eurostatRawUnit",
+                        newKeyName = "measuredElement",
+                        newKeyMap = "element", oldKeyMap = "unit")
+            convertCode(data = meatData, mappingTable = meatMap,
+                        keyData = "eurostatRawAgriprod",
+                        newKeyName = "measuredItemCPC",
+                        newKeyMap = "cpc", oldKeyMap = "meat")
+            meatData[, eurostatRawMeatItem := NULL]
+            newFAOData = rbind(newFAOData, meatData)
+        }
     }
 }
 
@@ -282,4 +289,3 @@ if(is.null(newFAOData)){
 }
 
 outMessage
-"Module completed"

@@ -83,7 +83,7 @@ data3$totDayVisNum[is.na(data3$totDayVisNum)] <- 0
 ## merge the two data sets, one containing overnight visitor numbers and number
 ## of days they visited, the other data set the number of tourists travelling to
 ## and from each country
-data4 <- merge(data1, data3, by=c("dest", "year"))
+data4 <- merge(data1, data3, by=c("dest", "year"), all.x = TRUE)
 
 ## rearrange the column order to make it easier to view
 data4 <- setcolorder(data4, neworder = c("year", "orig", "dest", "onVisNum",
