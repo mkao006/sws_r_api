@@ -16,8 +16,7 @@ getCountryCode <- function(pattern,
   if(!is.element(type, c("reporter", "partner")))
     stop("Uknown type. Possible variants are partner and reporter.")
   
-  if(ignore.case) pattern <- stringr::ignore.case(pattern)
-  if(perl) pattern <- stringr::perl(pattern)
+  if(perl) pattern <- stringr::regex(pattern, ignore_case = ignore.case)
     
   if(type == "reporter") areas <- getAllReportersRaw()
   if(type == "partner") areas  <- getAllPartnersRaw()
