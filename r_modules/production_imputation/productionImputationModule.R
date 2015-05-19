@@ -29,7 +29,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     ## Get SWS Parameters
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "22fb397d-d9e6-416d-acb8-717451714c62"
+        token = "9b01baf4-1654-4fdc-b406-e1528157992d"
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         ## token = "90bb0f92-e345-4401-945d-1e43af801167"
     )
