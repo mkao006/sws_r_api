@@ -29,7 +29,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     ## Get SWS Parameters
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "9b01baf4-1654-4fdc-b406-e1528157992d"
+        token = "cf76e035-6a8d-4b0c-9750-579d9553e343"
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         ## token = "90bb0f92-e345-4401-945d-1e43af801167"
     )
@@ -133,8 +133,9 @@ getImputationData = function(dataContext){
                           "dimensions")$measuredItemCPC, "keys")),
             Dimension(name = yearVar,
                       keys = selectedYears)
-            )
-        )
+            ),
+        sessionId = swsContext.datasets[[1]]@sessionId
+    )
 
     ## Pivot to vectorize yield computation
     newPivot = c(
