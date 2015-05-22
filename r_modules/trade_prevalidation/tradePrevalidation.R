@@ -19,7 +19,7 @@ itemVar     <- "measuredItemHS"
 eleVar      <- "measuredElementTrade"
 yearVar     <- "timePointYears"
 
-startMoment <- format(Sys.time(), "%Y%m%d%H%M%S")
+startMoment <- format(Sys.time(), "%Y%m%d%H%M")
 
 
 # Settings for developer's station
@@ -31,7 +31,7 @@ if(Sys.getenv("DEBUG_MODE") %in% c("", "TRUE", "T", "1")) {
   
   output_dir <- file.path(Sys.getenv("HOME"), 
                           module_name,
-                          startMoment)
+                          paste0(Sys.getenv("USER"), startMoment))
   
   faosws::GetTestEnvironment(
     baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
@@ -47,7 +47,7 @@ if(Sys.getenv("DEBUG_MODE") %in% c("FALSE", "F", "0")) {
 
   output_dir <- file.path(Sys.getenv("R_SWS_SHARE_PATH"),
                           module_name,
-                          startMoment)
+                          paste0(Sys.getenv("USER"), startMoment))
   
   # If rProf variable was set by module user
   if(!is.null(swsContext.computationParams$rProf))
