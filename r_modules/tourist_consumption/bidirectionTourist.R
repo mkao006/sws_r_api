@@ -5,19 +5,16 @@
 ## Last updated on 5/3/2015 by JAM
 
 ## Load required functions
-library(data.table)
 library(faosws)
 library(dplyr)
 library(reshape2)
+library(data.table)
+library(faoswsUtil)
 
 if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
-    token = "bdcbefca-0dfe-4dd5-aeeb-3e8bb36dbd4d"
+    token = "01ed4530-8f0c-4334-b426-1b2cc30e259b"
     GetTestEnvironment("https://hqlprswsas1.hq.un.fao.org:8181/sws",token)
 }
-
-## shows a list of parameters that have been set within the SWS by user at
-## startup
-swsContext.computationParams
 
 ## set the keys to get the tourist data from the FAO working system
 destinationAreaCodes <- faosws::GetCodeList("tourism", "tourist_flow",
@@ -28,14 +25,13 @@ tourismElementCodes <- faosws::GetCodeList("tourism", "tourist_consumption",
     "tourismElement")
 
 ## set the year range to pull data from the SWS
-yearRange <- as.character(2009:2011)
-## yearRange <- as.character(swsContext.computationParams$year_range)
+yearRange <- swsContext.datasets[[1]]@dimensions$timePointYears@keys
 
 ##Pull the bidirectional movement data from SWS pertaining to tourist visitors
 ##to all countries
-dim1 <- Dimension(name = "destinationCountryM49", keys =
-    destinationAreaCodes[ , code] )
-dim2 <- Dimension(name = "originCountryM49", keys = originAreaCodes [, code] )
+dim1 <- Dimension(name = "destinationCountryM49",
+                  keys = destinationAreaCodes[, code])
+dim2 <- Dimension(name = "originCountryM49", keys = originAreaCodes[, code])
 dim3 <- Dimension(name = "tourismElement", keys = ("60"))
 dim4 <- Dimension(name = "timePointYears", keys = yearRange)
 key <- DatasetKey(domain = "tourism", dataset = "tourist_flow",
@@ -71,7 +67,7 @@ data2 <- GetData(key, flags = FALSE)
 setnames(data2, old = colnames(data2), new = c("dest", "element", "year", "value"))
 
 ## cast the data table to get it in long format
-data3 <- as.data.table (dcast(data2, dest + year ~ element))
+data3 <- as.data.table(dcast(data2, dest + year ~ element))
 
 ## change the column names to something readable, "onVisDays" stands for the
 ## mean number of days that overnight visitors stayed in the destination country.
@@ -87,7 +83,7 @@ data3$totDayVisNum[is.na(data3$totDayVisNum)] <- 0
 ## merge the two data sets, one containing overnight visitor numbers and number
 ## of days they visited, the other data set the number of tourists travelling to
 ## and from each country
-data4 <- merge(data1, data3, by=c("dest", "year"))
+data4 <- merge(data1, data3, by=c("dest", "year"), all.x = TRUE)
 
 ## rearrange the column order to make it easier to view
 data4 <- setcolorder(data4, neworder = c("year", "orig", "dest", "onVisNum",
@@ -115,66 +111,79 @@ data4[, totOnVisNum := sum(onVisNum), by=list(year,dest)]
 ## the day visitor days
 data4[, totVisDays := onVisTotDays + totDayVisNum]
 
-## calculate the number of calories consumed by all tourists as the product of
-## number of days and average tourist consumption in calories, which was input
-## as a parameter
-data4[, totVisCals := totVisDays *
-           as.numeric(swsContext.computationParams$tourist_consumption)]
-
 ## set the keys to get the calorie consuption, by individual FBS commodity for
 ## each country from the FAO working system
 foodAreaCodes <- faosws::GetCodeList("suafbs", "fbs", "geographicAreaM49")
 foodElementCodes <- faosws::GetCodeList("suafbs", "fbs", "measuredElementSuaFbs")
-## the Item codes require subsetting to the get the 148 codes that correspond to
-## the FBS calculations
-foodItemCodes <- faosws::GetCodeList("suafbs", "fbs",
-                                     "measuredItemSuaFbs")[grep("^S", code)]
+## the Item codes contain a hierarchy.  We need to determine all the child
+## nodes of the hierarchy and add them to get total consumption.
+foodItemTree <- GetCodeTree("faostat_one", "FS1_SUA", "measuredItemFS")
+oldAreaCodes <- GetCodeList("faostat_one", "FS1_SUA", "geographicAreaFS")
+foodItemTree <- adjacent2edge(foodItemTree)
+children <- setdiff(foodItemTree$children, foodItemTree$parent)
 
 ##Pull the supply utilization account(SUA) food balance sheet (FBS) data from
 ##SWS pertaining to calorie consumption from each commodity in each country
-dim1 <- Dimension(name = "geographicAreaM49", keys = foodAreaCodes[ , code] )
-dim2 <- Dimension(name = "measuredElementSuaFbs", keys = ("664"))
-dim3 <- Dimension(name = "measuredItemSuaFbs", keys = foodItemCodes[, code] )
+dim1 <- Dimension(name = "geographicAreaFS",
+                  keys = oldAreaCodes[type == "country", code])
+## A bit hackish: get population from total calories and total calories/person/day
+dim2 <- Dimension(name = "measuredElementFS", keys = c("261", "264"))
+dim3 <- Dimension(name = "measuredItemFS", keys = children)
 dim4 <- Dimension(name = "timePointYears", keys = yearRange)
-key <- DatasetKey(domain = "suafbs", dataset = "fbs",
+key <- DatasetKey(domain = "faostat_one", dataset = "FS1_SUA",
                   dimensions = list(dim1, dim2, dim3, dim4))
 
 ## download the calorie consumption data from the SWS
 data6 <- GetData(key, flags = FALSE)
 
-## remove the measuredElement column which is of no value to me here
-data6[, which(!grepl("Element", colnames(data6))), with=FALSE]
+data6 <- dcast.data.table(data6,
+            geographicAreaFS + measuredItemFS + timePointYears ~ measuredElementFS,
+            value.var = "Value")
+setnames(data6, c("261", "264"), c("totalCal", "calPerPersonPerDay"))
+data6[, population := totalCal / 365 / calPerPersonPerDay * 1e6]
+data6[, population := mean(population, na.rm = TRUE), by = "geographicAreaFS"]
+data6[, totalCal := NULL]
+
+## Convert the area codes and item codes to M49 and CPC
+areaMap = GetTableData(schemaName = "ess", tableName = "fal_2_m49")
+itemMap = GetTableData(schemaName = "ess", tableName = "fcl_2_cpc")
+data6[, measuredItemFS := formatC(as.numeric(measuredItemFS), width = 4,
+                                  format = "g", flag = "0")]
+setkeyv(data6, "measuredItemFS")
+setnames(itemMap, "fcl", "measuredItemFS")
+setkeyv(itemMap, "measuredItemFS")
+data6 = merge(data6, itemMap)
+setnames(data6, "cpc", "measuredItemCPC")
+data6[, measuredItemFS := NULL]
+
+## And now the area codes
+setkeyv(data6, "geographicAreaFS")
+setnames(areaMap, "fal", "geographicAreaFS")
+setkeyv(areaMap, "geographicAreaFS")
+data6 = merge(data6, areaMap)
+setnames(data6, "m49", "geographicAreaM49")
+data6[, geographicAreaFS := NULL]
 
 ## set the column names to small simple ones representing destination, database
 ## element, year and value
-setnames(data6, old = colnames(data6), new = c("orig", "item", "year", "calValue"))
+setnames(data6, old = c("geographicAreaM49", "measuredItemCPC",
+                        "timePointYears", "calPerPersonPerDay"),
+         new = c("orig", "item", "year", "calValue"))
 
-## rearrange the column order to match previous data.tables
-setcolorder(data6, neworder = c("year", "orig", "item", "calValue"))
-
-## calculate the total calories consumed, per day, by each country as the sum of
-## all individual commodity calories, based on the supply utilization account -
-## food balance sheet data
-data6[, totalCaloriesByOrigSuaFbs := sum(calValue), by = list(orig, year)]
-
-## calculate the proportional calories consumed, by Item, per day, as Item
-## calories divided by the total for the whole country
-data6[, propCaloriesByItemSuaFbs := calValue / totalCaloriesByOrigSuaFbs]
-
-## calculate total calories consumed by Item, per day by the tourist in the
-## country they are visiting, based on proportions of what they eat at home
-data6[, totCaloriesByItemPerDay :=
-      as.numeric(swsContext.computationParams$tourist_consumption) *
-      propCaloriesByItemSuaFbs]
+## Compute total calories per person per day in orig country
+data6[, totalLocalCalories := sum(calValue), by = c("orig", "year")]
 
 ## set the keys for the data.table to sort by year and country of origin
 setkey(data6, year, orig, item)
 
 ## merge data4 and data6 to allow calculation of calories by commodity
 data7 <- merge(data4, data6, allow.cartesian=TRUE, by = c("year", "orig"))
+## Get rid of some of the tourist columns that we don't need anymore:
+data7[, c("onVisNum", "onVisDays", "totDayVisNum",
+          "onVisTotDays", "totOnVisNum") := NULL]
 
 ## calculate the total calories consumed, by item, for the entire year
-data7[, totCaloriesByItemPerYear := totVisCals * propCaloriesByItemSuaFbs]
+data7[, totCaloriesByItemPerYear := totVisDays * calValue]
 
 ## calculate calories consumed within a country, by tourists visiting from other
 ## countries, and therefore these calories can be subtracted from the total

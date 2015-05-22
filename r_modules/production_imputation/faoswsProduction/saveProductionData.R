@@ -13,6 +13,10 @@
 ##' corresponding to the production variable.
 ##' @param verbose Should output be printed about the progress of the save
 ##' data?  Defaults to FALSE.
+##' @param context The data context of data.  The production imputation module
+##' expands most sessions, as it requires at least 15 years of data and all
+##' countries.  Providing this context parameter ensures that only the data
+##' relevant to the initial session is saved back to the database.
 ##' 
 ##' @return No R objects are returned, as this functions purpose is solely to
 ##' write to the database.
@@ -22,10 +26,12 @@
 
 saveProductionData = function(data, areaHarvestedCode = "5312",
                               yieldCode = "5421", productionCode = "5510",
-                              verbose = FALSE){
+                              verbose = FALSE,
+                              context = swsContext.datasets[[1]]){
     
     ## Data Quality Checks
     stopifnot(is(data, "data.table"))
+    stopifnot(is(context, "DatasetKey"))
     
     ## Remove columns to match the database
     requiredColumns = c("geographicAreaM49", "measuredItemCPC",
@@ -56,6 +62,11 @@ saveProductionData = function(data, areaHarvestedCode = "5312",
              `:=`(c(valName, obsFlag, methodFlag),
                   list(0, "M", "n"))]
     }
+    
+    ## Collapse to passed context
+    data = data[geographicAreaM49 %in% context@dimensions$geographicAreaM49@keys &
+                measuredItemCPC %in% context@dimensions$measuredItemCPC@keys &
+                timePointYears %in% context@dimensions$timePointYears@keys, ]
         
     ## Save the data back
     if(verbose)
