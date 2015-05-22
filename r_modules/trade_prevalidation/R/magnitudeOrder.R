@@ -15,6 +15,7 @@ magnitudeOrder <- function(x, x0, maxorder = 4) {
   
   apply(df, 1, function(r) {
     
+    # TODO: change this fornext to apply to increase speed
     for(i in maxorder:1) {
       if(is.na(r[1])) break()
       if(r[1] > r[2] * 10 ^ (i - 1)) break()
