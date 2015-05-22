@@ -9,7 +9,9 @@
 
 magnitudeOrder <- function(x, x0, maxorder = 4) {
   
-  if(length(x0) != (length(x0) | 1)) stop("Length of base vector must be equal 1 or length of tested vector.")
+  if(!((length(x0) != length(x)) | (length(x0) != 1))) { 
+    stop("Length of base vector must be equal 1 or length of tested vector.")
+  }
   
   df <- data.frame(x = x, x0 = x0)
   
