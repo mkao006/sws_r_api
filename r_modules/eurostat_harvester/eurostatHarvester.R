@@ -16,7 +16,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "a2dd0e14-1cdc-4486-bc4b-1f65d9ecad01"
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "05b31c72-aeb9-43b9-ae74-44573da584fd"
+        token = "7c372ae2-6249-4fb0-b588-82d366f129f9"
     )
     files = dir("~/Documents/Github/sws_r_api/r_modules/eurostat_harvester/R",
                 full.names = TRUE)
@@ -107,9 +107,9 @@ if(nrow(animalItems) > 0){
                              Dimension(name = "timePointYears",
                                        keys = as.character(as.numeric(eurostatYears) - 1))
                      ))
-    ## If any keys have a length of 0, then we'll get an error with GetData.
-    ## To avoid that, check here first and only pull the data if all keys
-    ## exist.
+    ## If any keys have a length of 0, then we'll get an error with
+    ## GetDataFlexible. To avoid that, check here first and only pull the data
+    ## if all keys exist.
     keyLength = lapply(keyPig@dimensions, function(x) length(x@keys))
     if(all(keyLength > 0)){
         keyGoat = keyPig
@@ -118,10 +118,10 @@ if(nrow(animalItems) > 0){
         keySheep@dataset = "raw_apro_mt_lssheep"
         keyCattle = keyPig
         keyCattle@dataset = "raw_apro_mt_lscatl"
-        pigData = GetData(keyPig)
-        goatData = GetData(keyGoat)
-        sheepData = GetData(keySheep)
-        cattleData = GetData(keyCattle)
+        pigData = GetDataFlexible(keyPig)
+        goatData = GetDataFlexible(keyGoat)
+        sheepData = GetDataFlexible(keySheep)
+        cattleData = GetDataFlexible(keyCattle)
         #stop("Is this still true?  Something's wrong if it is...")
         #identical(sheepData, cattleData)
         newTempData = rbind(newFAOData, pigData, goatData,
@@ -162,12 +162,12 @@ if(nrow(cropItems) > 0){
                              Dimension(name = "timePointYears",
                                        keys = eurostatYears)
                      ))
-    ## If any keys have a length of 0, then we'll get an error with GetData.
-    ## To avoid that, check here first and only pull the data if all keys
-    ## exist.
+    ## If any keys have a length of 0, then we'll get an error with
+    ## GetDataFlexible. To avoid that, check here first and only pull the data
+    ## if all keys exist.
     keyLength = lapply(keyCrop@dimensions, function(x) length(x@keys))
     if(all(keyLength > 0)){
-        cropData = GetData(keyCrop)
+        cropData = GetDataFlexible(keyCrop)
         if(nrow(cropData) > 0){ # Only continue if data is available
             convertCode(data = cropData, mappingTable = countryMap,
                         keyData = "eurostatRawGeo",
@@ -201,12 +201,12 @@ if(nrow(meatItems) > 0){
                              Dimension(name = "timePointYears",
                                        keys = eurostatYears)
                      ))
-    ## If any keys have a length of 0, then we'll get an error with GetData.
+    ## If any keys have a length of 0, then we'll get an error with GetDataFlexible.
     ## To avoid that, check here first and only pull the data if all keys
     ## exist.
     keyLength = lapply(keyMeat@dimensions, function(x) length(x@keys))
     if(all(keyLength > 0)){
-        meatData = GetData(keyMeat)
+        meatData = GetDataFlexible(keyMeat)
         if(nrow(meatData) > 0){ # Only continue if data is available
             convertCode(data = meatData, mappingTable = countryMap,
                         keyData = "eurostatRawGeo",
@@ -249,7 +249,7 @@ if(is.null(newFAOData)){
     
     ## Merge with original data to determine which values to overwrite
     keys = names(swsContext.datasets[[1]]@dimensions)
-    oldFAOData = GetData(swsContext.datasets[[1]])
+    oldFAOData = GetDataFlexible(swsContext.datasets[[1]])
     if(nrow(oldFAOData) > 0){
         ## Convert keys to character for the join
         for(key in keys){
