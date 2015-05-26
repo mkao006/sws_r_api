@@ -122,12 +122,8 @@ data <- data %>%
   mutate_(rule3_1 = ~(weight != 0 & cost == 0))
 
 # Rule #5.
-# data1 <- data %>%
 #   # Filter near matching trade flows
-#   group_by_(~year, ~back, ~item, ~hs) %>%
-#   do(oppos_price = mirroredVariable(data = ., rep = reporter, par = partner, direc = dir))
-#   
-# 
+
 
 
 # LM outliers

@@ -1,8 +1,17 @@
-mirroredVariable <- function(rep, par, direc, value) {
-  df <- data.frame(rep = as.character(rep),
-                   par = as.character(par), 
-                   direc = as.character(direc),
-                   value = value,
+#' Returns corresponding value from opposite side of trade flow
+#' 
+#' @param reporter Vector with reporters' codes
+#' @param partner Vector with partners' codes
+#' @param direction Vector with trade flow directions
+#' @param variable Vector with values to get mirrored data from
+#' 
+#' @return Vector with values from opposite side of trade flow
+
+mirroredVariable <- function(reporter, partner, direction, variable) {
+  df <- data.frame(rep = as.character(reporter),
+                   par = as.character(partner), 
+                   direc = as.character(direction),
+                   value = variable,
                    stringsAsFactors = F)
   
   apply(df, 1, function(r, df) {
