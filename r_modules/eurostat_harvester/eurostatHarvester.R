@@ -16,7 +16,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         ## token = "a2dd0e14-1cdc-4486-bc4b-1f65d9ecad01"
         baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "c5497f05-54ad-48e0-8c8f-9882426f0f25"
+        token = "05b31c72-aeb9-43b9-ae74-44573da584fd"
     )
     files = dir("~/Documents/Github/sws_r_api/r_modules/eurostat_harvester/R",
                 full.names = TRUE)
@@ -181,7 +181,7 @@ if(nrow(cropItems) > 0){
             convertCode(data = cropData, mappingTable = cropMap,
                         keyData = "eurostatRawCroppro",
                         newKeyName = "measuredItemCPC",
-                        newKeyMap = "cpc", oldKeyMap = "crop_pro")
+                        newKeyMap = "cpc", oldKeyMap = "crop")
             newFAOData = rbind(newFAOData, cropData)
         }
     }
