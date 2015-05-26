@@ -14,7 +14,7 @@ getHSCode <- function(pattern,
   if(length(pattern) != 1) stop("Argument pattern must be length of one")
  
   if(ignore.case) pattern <- stringr::ignore.case(pattern)
-  if(perl) pattern <- stringr::perl(pattern)
+  if(perl) pattern <- stringr::regex(pattern)
   
   getAllItems() %>%
     filter(stringr::str_detect(description, pattern)) #NSE here?
