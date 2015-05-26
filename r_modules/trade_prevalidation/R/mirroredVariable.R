@@ -1,4 +1,4 @@
-oppositePrice <- function(rep, par, direc, value) {
+mirroredVariable <- function(rep, par, direc, value) {
   df <- data.frame(rep = as.character(rep),
                    par = as.character(par), 
                    direc = as.character(direc),

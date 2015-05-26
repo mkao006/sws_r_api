@@ -91,7 +91,7 @@ ct <- ct %>%
 
 ct <- ct %>%
   group_by(year, item) %>%
-  mutate(uv_partner = oppositePrice(reporter, partner, dir, uv)) %>%
+  mutate(uv_partner = mirroredVariable(reporter, partner, dir, uv)) %>%
   ungroup()
 
 
