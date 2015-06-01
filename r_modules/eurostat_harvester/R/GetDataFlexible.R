@@ -10,6 +10,9 @@
 ##' @param flags See ?GetData.
 ##' @param normalized See ?GetData.
 ##' @param pivoting See ?GetData.
+##' 
+##' @return See ?GetData.
+##' 
 
 GetDataFlexible = function(key, flags = TRUE, normalized = TRUE, pivoting){
     domain = key@domain
