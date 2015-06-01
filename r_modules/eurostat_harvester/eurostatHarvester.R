@@ -135,12 +135,6 @@ if(nrow(animalItems) > 0){
                         keyData = "eurostatRawAgriprod",
                         newKeyName = "measuredItemCPC",
                         newKeyMap = "cpc", oldKeyMap = "animals")
-            ## Some Eurostat to CPC maps are Many to 1.  So, we need to
-            ## aggregate those cases into unique elements:
-            newTempData = newTempData[, c("Value", "flagRawEurostat") :=
-                                          combineRows(Value, flagRawEurostat),
-                                      by = c("eurostatRawUnit", "eurostatRawGeo",
-                                             "timePointYears", "measuredItemCPC")]
             convertCode(data = newTempData, mappingTable = countryMap,
                         keyData = "eurostatRawGeo",
                         newKeyName = "geographicAreaM49",
@@ -181,12 +175,6 @@ if(nrow(cropItems) > 0){
                         keyData = "eurostatRawCroppro",
                         newKeyName = "measuredItemCPC",
                         newKeyMap = "cpc", oldKeyMap = "crop")
-            ## Some Eurostat to CPC maps are Many to 1.  So, we need to
-            ## aggregate those cases into unique elements:
-            cropData = cropData[, c("Value", "flagRawEurostat") :=
-                                    combineRows(Value, flagRawEurostat),
-                                by = c("eurostatRawStrucpro", "eurostatRawGeo",
-                                       "timePointYears", "measuredItemCPC")]
             convertCode(data = cropData, mappingTable = countryMap,
                         keyData = "eurostatRawGeo",
                         newKeyName = "geographicAreaM49",
@@ -227,12 +215,6 @@ if(nrow(meatItems) > 0){
                         keyData = "eurostatRawAgriprod",
                         newKeyName = "measuredItemCPC",
                         newKeyMap = "cpc", oldKeyMap = "meat")
-            ## Some Eurostat to CPC maps are Many to 1.  So, we need to
-            ## aggregate those cases into unique elements:
-            meatData = meatData[, c("Value", "flagRawEurostat") :=
-                                    combineRows(Value, flagRawEurostat),
-                                by = c("eurostatRawUnit", "eurostatRawGeo",
-                                       "timePointYears", "measuredItemCPC")]
             convertCode(data = meatData, mappingTable = countryMap,
                         keyData = "eurostatRawGeo",
                         newKeyName = "geographicAreaM49",
@@ -263,6 +245,12 @@ if(is.null(newFAOData)){
     if(any(is.na(newFAOData$flagObservationStatus)))
         stop("Invalid Eurostat flag!  Please update the flag conversion table.")
     newFAOData[, flagRawEurostat := NULL]
+    ## Some Eurostat to CPC maps are Many to 1.  So, we need to
+    ## aggregate those cases into unique elements:
+    newFAOData = newFAOData[, combineRows(Value, flagObservationStatus,
+                                              flagMethod, Metadata),
+                            by = c("timePointYears", "measuredItemCPC",
+                                   "geographicAreaM49", "measuredElement")]
     
     ## Convert Values (Conversion Factors)
     newFAOData[, Value := Value * 1000]

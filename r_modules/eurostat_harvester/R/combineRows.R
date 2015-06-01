@@ -7,18 +7,32 @@
 ##' 
 ##' @param values A numeric vector containing the values from the multiple 
 ##'   observations.
-##' @param flags A character vector containing the Eurostat flags corresponding 
-##'   to values.
-##'   
-##' @return A list of length two containing the aggregated value and one flag
-##'   which are the result of aggregating all the records.
-##'   
+##' @param flagObservationStatus A character vector containing the SWS 
+##'   observation flags corresponding to values.
+##' @param flagMethod A character vector containing the SWS method flags 
+##'   corresponding to values.
+##' @param Metadata A character vector containing the Metadata assosciated with 
+##'   each element (usually just to pass back, unless updated).
+##' 
+##' @return A list of length four containing the aggregated value, aggregated
+##'   observation flag, aggregated method flag, and new metadata.
+##' 
 
-combineRows = function(values, flags, missingFlags = c(":", "u", "c", "z")){
-    ## Data Quality checks
-    stopifnot(length(values) == length(flags))
+combineRows = function(values, flagObservationStatus, flagMethod, Metadata){
     
-    if(any(flags %in% missingFlags))
-        return(list(0, "u"))
-    return(list(sum(values), "h"))
+    ## Data Quality checks
+    stopifnot(length(values) == length(flagObservationStatus))
+    stopifnot(length(values) == length(flagMethod))
+    stopifnot(length(values) == length(Metadata))
+    
+    ## Length is 1, no need to aggregate or do anything
+    if(length(values) == 1){
+        out = list(values, flagObservationStatus, flagMethod, Metadata)
+    } else if(any(flagObservationStatus == "M")){
+        out = list(0, "M", "u", "/")
+    } else {
+        out = list(sum(values), "", "h", "aggregation across codes")
+    }
+    names(out) = c("Value", "flagObservationStatus", "flagMethod", "Metadata")
+    return(out)
 }
