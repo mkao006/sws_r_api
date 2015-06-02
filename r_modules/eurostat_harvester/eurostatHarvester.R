@@ -244,13 +244,13 @@ if(is.null(newFAOData)){
                        all.x = TRUE)
     if(any(is.na(newFAOData$flagObservationStatus)))
         stop("Invalid Eurostat flag!  Please update the flag conversion table.")
-    newFAOData[, flagRawEurostat := NULL]
     ## Some Eurostat to CPC maps are Many to 1.  So, we need to
     ## aggregate those cases into unique elements:
     newFAOData = newFAOData[, combineRows(Value, flagObservationStatus,
-                                              flagMethod, Metadata),
+                                          flagMethod, Metadata, flagRawEurostat),
                             by = c("timePointYears", "measuredItemCPC",
                                    "geographicAreaM49", "measuredElement")]
+    newFAOData[, flagRawEurostat := NULL]
     
     ## Convert Values (Conversion Factors)
     newFAOData[, Value := Value * 1000]
