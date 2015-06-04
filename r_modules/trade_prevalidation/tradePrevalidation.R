@@ -25,9 +25,9 @@ startMoment <- format(Sys.time(), "%Y%m%d%H%M")
 # Settings for developer's station
 if(Sys.getenv("DEBUG_MODE") %in% c("", "TRUE", "T", "1")) {
   
-  lapply(dir(file.path("r_modules", module_name, "R"), 
+  if(length(lapply(dir(file.path("r_modules", module_name, "R"), 
              full.names = T), 
-         source)
+         source)) == 0) stop("Files for sourcing not found")
   
   output_dir <- file.path(Sys.getenv("HOME"), 
                           module_name,
