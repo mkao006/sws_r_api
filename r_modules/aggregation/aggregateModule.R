@@ -4,34 +4,30 @@
 ########################################################################
 
 ## load the library
-require("faosws")
+library(faosws)
 library(faoswsUtil)
 library(data.table)
 
-## Set up for the test environment
-if(Sys.getenv("USER") == "mk"){
+## set up for the test environment and parameters
+R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
+DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
+
+if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
+    cat("Not on server, so setting up environment...\n")
+    
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "2a4d62c3-e776-4854-a013-0a4cdb5d7541"
-        )
+        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        ## token = "2a4d62c3-e776-4854-a013-0a4cdb5d7541"
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
+        token = "a2dd0e14-1cdc-4486-bc4b-1f65d9ecad01"
+    )
 }
 
-
-## load parameter, type can be area, item. These are examples.
-## aggregationType = "geographicAreaM49"
-## aggregationCode = "1061"
-## aggregationType = "measuredItemCPC"
-## aggregationCode = "011"
-aggregationType = swsContext.computationParams$aggregationType
-aggregationCode = swsContext.computationParams$aggregationCode
-
-
 ## CHECK (Michael): There are duplicate key in geographic key tree.
-keyTree =
+geoKeyTree =
     unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
                        dataset = swsContext.datasets[[1]]@dataset,
-                       dimension = aggregationType,
-                       roots = aggregationCode)
+                       dimension = "timePointYears")
            )
 
 ## Convert the code tree to code table
