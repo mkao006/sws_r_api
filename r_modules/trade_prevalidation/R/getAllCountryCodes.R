@@ -1,4 +1,4 @@
-getAllCountryCodes <- function(type) {
+getAllCountryCodes <- function(type = "reporter") {
   
   p <- "partner"
   r <- "reporter"
