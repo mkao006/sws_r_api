@@ -4,16 +4,22 @@
 ########################################################################
 
 ## load the library
-require("faosws")
+library(faosws)
 library(faoswsUtil)
 library(data.table)
 
 ## Set up for the test environment
-if(Sys.getenv("USER") == "mk"){
+R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
+DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
+
+if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
+    cat("Not on server, so setting up environment...\n")
     GetTestEnvironment(
-        baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
-        token = "2a4d62c3-e776-4854-a013-0a4cdb5d7541"
-        )
+        baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
+        token = "84124e7a-13c2-46f9-9688-18e8f5f93128"
+        ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
+        ## token = "90bb0f92-e345-4401-945d-1e43af801167"
+    )
 }
 
 
@@ -115,7 +121,7 @@ switch(aggregationType,
 
 ## Compute the aggregation
 aggregatedQuery =
-    keyedQuery[, list(Value = sumWithNA(Value)),
+    keyedQuery[, list(Value = sum(Value, na.rm = TRUE)),
                by = aggregateIndex]
 setnames(aggregatedQuery, "parent", aggregationType)
 
