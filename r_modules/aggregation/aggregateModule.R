@@ -8,6 +8,12 @@ library(faosws)
 library(faoswsUtil)
 library(data.table)
 
+## Aggregation of flags may eventually require more elegant processing.  But,
+## for the short term, we'll just assign flags of "I" (imputed) and "s"
+## (calculated as a sum).
+aggObsFlag = function(flagObservationStatus) "I"
+aggMetFlag = function(flagMethod) "s"
+
 ## set up for the test environment and parameters
 R_SWS_SHARE_PATH = Sys.getenv("R_SWS_SHARE_PATH")
 DEBUG_MODE = Sys.getenv("R_DEBUG_MODE")
@@ -19,7 +25,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
         ## baseUrl = "https://hqlqasws1.hq.un.fao.org:8181/sws",
         ## token = "2a4d62c3-e776-4854-a013-0a4cdb5d7541"
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
-        token = "a2dd0e14-1cdc-4486-bc4b-1f65d9ecad01"
+        token = "910ad800-b591-4687-a27e-0269f21e4395"
     )
 }
 
@@ -27,93 +33,109 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
 geoKeyTree =
     unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
                        dataset = swsContext.datasets[[1]]@dataset,
-                       dimension = "timePointYears")
+                       dimension = "geographicAreaM49")
            )
 
-## Convert the code tree to code table
-keyTable = adjacent2edge(keyTree)
-setnames(x = keyTable, old = "children", new = aggregationType)
-
-## This is a hack to collapse the graph
-if(aggregationType == "measuredItemCPC")
-    keyTable[, parent := substr(parent, 1, 3)]
+## Aggregate geo
+keyTable = adjacent2edge(geoKeyTree)
+setnames(x = keyTable, old = "children", new = "geographicAreaM49")
 
 ## Set up the new key
-switch(aggregationType,
-       "measuredItemCPC" = {
-           newKey = DatasetKey(
-               domain = slot(swsContext.datasets[[1]], "domain"),
-               dataset = slot(swsContext.datasets[[1]], "dataset"),
-               dimensions = list(
-                   Dimension(name = "geographicAreaM49",
-                             keys = slot(slot(swsContext.datasets[[1]],
-                                 "dimensions")$geographicAreaM49, "keys")),
-                   Dimension(name = "measuredElement",
-                             keys = slot(slot(swsContext.datasets[[1]],
-                                 "dimensions")$measuredElement, "keys")),
-                   Dimension(name = "measuredItemCPC",
-                             keys = keyTable[, measuredItemCPC]),
-                   Dimension(name = "timePointYears",
-                             keys = slot(slot(swsContext.datasets[[1]],
-                                 "dimensions")$timePointYears, "keys"))
-                   )
-               )
-       },
-       "geographicAreaM49" = {
-           newKey = DatasetKey(
-               domain = slot(swsContext.datasets[[1]], "domain"),
-               dataset = slot(swsContext.datasets[[1]], "dataset"),
-               dimensions = list(
-                   Dimension(name = "geographicAreaM49",
-                             keys = keyTable[, geographicAreaM49]),
-                   Dimension(name = "measuredElement",
-                             keys = slot(slot(swsContext.datasets[[1]],
-                                 "dimensions")$measuredElement, "keys")),
-                   Dimension(name = "measuredItemCPC",
-                             keys = slot(slot(swsContext.datasets[[1]],
-                                 "dimensions")$measuredItemCPC, "keys")),
-                   Dimension(name = "timePointYears",
-                             keys = slot(slot(swsContext.datasets[[1]],
-                                 "dimensions")$timePointYears, "keys"))
-                   )
-               )
-       }
-       )
-
-
+newKey = DatasetKey(
+   domain = slot(swsContext.datasets[[1]], "domain"),
+   dataset = slot(swsContext.datasets[[1]], "dataset"),
+   dimensions = list(
+        Dimension(name = "geographicAreaM49",
+                  keys = keyTable[, geographicAreaM49]),
+        Dimension(name = "measuredElement",
+                  keys = slot(slot(swsContext.datasets[[1]],
+                                   "dimensions")$measuredElement, "keys")),
+        Dimension(name = "measuredItemCPC",
+                  keys = slot(slot(swsContext.datasets[[1]],
+                                   "dimensions")$measuredItemCPC, "keys")),
+        Dimension(name = "timePointYears",
+                  keys = slot(slot(swsContext.datasets[[1]],
+                                   "dimensions")$timePointYears, "keys"))
+    )
+)
 
 ## Query the data
 query = GetData(
     key = newKey,
-    flags = FALSE,
+    flags = TRUE,
     normalized = TRUE
 )
 
 ## Merge the key and the data
 keyedQuery =
-    merge(query, keyTable, by = aggregationType, all.x = TRUE,
+    merge(query, keyTable, by = "geographicAreaM49", all.x = TRUE,
           allow.cartesian = TRUE)
-setkeyv(x = keyedQuery, cols = aggregationType)
+setkeyv(x = keyedQuery, cols = "geographicAreaM49")
 
 ## Aggregate the data
-switch(aggregationType,
-       "geographicAreaM49" = {
-           aggregateIndex =
-               c("parent", "measuredElement", "measuredItemCPC",
-                 "timePointYears")
-       },
-       "measuredItemCPC" = {
-           aggregateIndex =
-               c("geographicAreaM49", "measuredElement", "parent",
-                 "timePointYears")
-       }
-       )
+aggregateIndex = c("parent", "measuredElement", "measuredItemCPC",
+                   "timePointYears")
 
 ## Compute the aggregation
 aggregatedQuery =
-    keyedQuery[, list(Value = sumWithNA(Value)),
+    keyedQuery[, list(Value = sum(Value, na.rm = TRUE),
+                      flagObservationStatus = aggObsFlag(flagObservationStatus),
+                      flagMethod = aggMetFlag(flagMethod)),
                by = aggregateIndex]
-setnames(aggregatedQuery, "parent", aggregationType)
+setnames(aggregatedQuery, "parent", "geographicAreaM49")
+
+## Save the data back
+SaveData(domain = slot(swsContext.datasets[[1]], "domain"),
+         dataset = slot(swsContext.datasets[[1]], "dataset"),
+         data = aggregatedQuery, normalized = TRUE)
+
+
+
+############################### measuredItemCPC ###############################
+
+## CHECK (Michael): There are duplicate key in geographic key tree.
+cpcKeyTree =
+    unique(GetCodeTree(domain = swsContext.datasets[[1]]@domain,
+                       dataset = swsContext.datasets[[1]]@dataset,
+                       dimension = "measuredItemCPC")
+           )
+
+## Aggregate geo
+keyTable = adjacent2edge(cpcKeyTree)
+setnames(x = keyTable, old = "children", new = "measuredItemCPC")
+
+## This is a hack to collapse the graph
+# keyTable[, parent := substr(parent, 1, 3)]
+
+newKey = DatasetKey(
+   domain = slot(swsContext.datasets[[1]], "domain"),
+   dataset = slot(swsContext.datasets[[1]], "dataset"),
+   dimensions = list(
+        Dimension(name = "geographicAreaM49",
+                  keys = slot(slot(swsContext.datasets[[1]],
+                                   "dimensions")$geographicAreaM49, "keys")),
+        Dimension(name = "measuredElement",
+                  keys = slot(slot(swsContext.datasets[[1]],
+                                   "dimensions")$measuredElement, "keys")),
+        Dimension(name = "measuredItemCPC",
+                  keys = keyTable[, measuredItemCPC]),
+        Dimension(name = "timePointYears",
+                  keys = slot(slot(swsContext.datasets[[1]],
+                                   "dimensions")$timePointYears, "keys"))
+   )
+)
+
+## Aggregate the data
+aggregateIndex = c("geographicAreaM49", "measuredElement", "parent",
+                   "timePointYears")
+
+## Compute the aggregation
+aggregatedQuery =
+    keyedQuery[, list(Value = sum(Value, na.rm = TRUE),
+                      flagObservationStatus = aggObsFlag(flagObservationStatus),
+                      flagMethod = aggMetFlag(flagMethod)),
+               by = aggregateIndex]
+setnames(aggregatedQuery, "parent", "measuredItemCPC")
 
 ## Save the data back
 SaveData(domain = slot(swsContext.datasets[[1]], "domain"),
