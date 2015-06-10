@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Food Imputation</Name>
+	<Description>Perform imputation in food domain, using a deterministic econometric model (Engel model).</Description>
+	<Category>Imputation</Category>
+	<Authors>
+		<Author>
+			<Name>Natalia Golini</Name>
+			<Mail>natalia.golini@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Datasets>
+		<MainDataset>
+			<Code>FS1_SUA_UPD</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElementFS</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemFS</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>
+
