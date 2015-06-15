@@ -184,7 +184,7 @@ sua_2_fbs_fdm <- function(com_sua_cod){
     return(c(foodFdm = 48, foodCommodityM = 2656))
   }
 
-  if(com_sua_cod %in% c('26','29','66','82','86','571','634')){
+  if(com_sua_cod %in% c('26','29','66','82','86','517','634')){
     
     return(c(foodFdm = 49, foodCommodityM = 3004))
   }
