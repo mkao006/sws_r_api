@@ -21,6 +21,10 @@ library(magrittr)
 library(igraph)
 library(lme4)
 
+## We use bootstrapping to estimate variance, so we should set the seed here to
+## allow for reproducible results.
+set.seed(12345)
+
 ## Setting up variables
 areaVar = "geographicAreaM49"
 yearVar = "timePointYears"
@@ -81,20 +85,27 @@ seedLmeModel =
          (log(Value_measuredElement_5025)|cpcLvl3/measuredItemCPC:geographicAreaM49),
          data = seedModelData)
 
-seedLmeVariance = bootMer(seedLmeModel)
+## We have to remove cases where we do not have temperature, as we cannot create
+## a model when independent variables are missing.  The predictions would be NA
+## anyways, and so we wouldn't be saving anything to the database if we left
+## them in.
+seedModelData = seedModelData[!is.na(Value_wbIndicator_SWS.FAO.TEMP), ]
 
-selectedSeed =
-    getSelectedSeedData(swsContext.datasets[[1]]) %>%
-    removeCarryForward(data = ., variable = "Value_measuredElement_5525") %>%
-    buildCPCHierarchy(data = ., cpcItemVar = itemVar, levels = 3) %>%
-    mergeAllSeedData(seedData = ., area, climate) %>%
-    .[Value_measuredElement_5525 > 1 & Value_measuredElement_5025 > 1, ]
+seedModelData[, seedPredicted :=
+                 exp(predict(seedLmeModel, seedModelData, allow.new.levels = TRUE))]
+seedLmeVariance = bootMer(seedLmeModel,
+                          FUN = function(seedLmeModel) predict(seedLmeModel),
+                          nsim = 100)
+seedModelData[, seedVariance := apply(seedLmeVariance$t, 2, sd)]
 
-selectedSeed[, predicted :=
-                 exp(predict(seedLmeModel, selectedSeed, allow.new.levels = TRUE))]
+## Filter data based on swsContext
+seedModelData = seedModelData[
+    geographicAreaM49 %in% swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys &
+    timePointYears %in% swsContext.datasets[[1]]@dimensions$timePointYears@keys &
+    measuredItemCPC %in% swsContext.datasets[[1]]@dimensions$measuredItemCPC@keys, ]
 
-with(selectedSeed, plot(Value_measuredElement_5525, predicted))
+## Overwrite missing observations only
+seedModelData[is.na(Value_measuredElement_5525),
+              Value_measuredElement_5525 := seedPredicted]
 
-selectedSeed[Value_measuredElement_5525 >= 6e6 & predicted <= 4e6, ]
-
-saveSeedData(selectedSeed)
+saveSeedData(seedModelData)
