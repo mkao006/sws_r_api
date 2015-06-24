@@ -146,8 +146,8 @@ setkeyv(data_base, c("geographicAreaM49", "timePointYears"))
 
 ## The funcional form 4 (originally presented in Josef's data) was replaced by
 ## functional form 3 The functional form 32 is a typo. It was replaced by
-## functional form 3.
-data_base$foodFunction<-ifelse(data_base$foodFunction==4 | data_base$foodFunction==32,3,data_base$foodFunction)
+## functional form 2 in Food Factors database.
+data_base$foodFunction<-ifelse(data_base$foodFunction==4,3,data_base$foodFunction)
 data_base[, foodHat := calculateFood(food = .SD$food, elas = .SD$elasticity,
                                      gdp_pc = .SD$GDP/.SD$population,
                                      ## We can use the first value since they're all the same:
