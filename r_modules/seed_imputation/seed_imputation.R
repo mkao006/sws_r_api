@@ -50,7 +50,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         # token = "7823c00b-b82e-47bc-8708-1be103ac91e4" # Michael's token
-        token = "d0e1f76f-61a6-4183-981c-d0fec7ac1845" # Josh's token
+        token = "95d4f013-3ef3-44c6-99b1-cb431f2b7ae8" # Josh's token
     )
     R_SWS_SHARE_PATH = paste0(apiDirectory, "/..")
 
@@ -97,6 +97,20 @@ seedLmeVariance = bootMer(seedLmeModel,
                           FUN = function(seedLmeModel) predict(seedLmeModel),
                           nsim = 100)
 seedModelData[, seedVariance := apply(seedLmeVariance$t, 2, sd)]
+
+# ## Testing: Do the bootstrapping confidence intervals we get line-up well with
+# ## an assumption of normality?
+# seedModelData[, lowerBound := exp(apply(seedLmeVariance$t, 2, quantile, 0.025))]
+# seedModelData[, upperBound := exp(apply(seedLmeVariance$t, 2, quantile, 0.975))]
+# seedModelData[, sum(Value_measuredElement_5525 <= upperBound)/.N]
+# seedModelData[, sum(Value_measuredElement_5525 <= lowerBound)/.N]
+# seedModelData[, sum(Value_measuredElement_5525 <=
+#                         exp(log(seedPredicted) + 2*seedVariance))/.N]
+# seedModelData[, sum(Value_measuredElement_5525 >=
+#                         exp(log(seedPredicted) - 2*seedVariance))/.N]
+## Bootstrapping confidence intervals are ok (although a bit conservative). The
+## log-normal intervals, though, are way too conservative (capturing 100% of
+## the observations).
 
 ## Filter data based on swsContext
 seedModelData = seedModelData[
