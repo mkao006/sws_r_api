@@ -107,19 +107,20 @@ sua_2_fbs_fdm <- function(com_sua_cod){
   if(com_sua_cod %in% c('236', as.character(239:243), as.character(246:247), '267', '270', '292',
                         '295','329', as.character(249:251),'299', '254', '256', '260', '262',
                         '263', '265', '275', '277', '280', '296', '299', '305', as.character(310:312),
-                        '333', '336', '339', '342')){
+                        '333', '336', '339', '343')){
     
     return(c(foodFdm = 20, foodCommodityM = 2913))
   }
   
-  if(com_sua_cod %in% c('237','44','268','271','293','331','258','257','1276','1277','252','290','261',
+  if(com_sua_cod %in% c('237','244','268','271','293','331','258','257','1276','1277','252','290','261',
                         '274','36','60','264','266','276','278','281','297','306','307','313','334','337',
                         '340','664','1241','1242',as.character(1273:1275))){
     
     return(c(foodFdm = 40, foodCommodityM = 2914))
   }
   
-  if(com_sua_cod %in% c(as.character(388:392),'403', '358','366','367','372','373','378','393','401',
+  if(com_sua_cod %in% c(as.character(388:392),'403', '358','366','367','372','373','378','393',
+                        '394','397','399','401',
                         '402','406','407','414','417','420','423','426','430',as.character(446:451),
                         '459','461',as.character(463:466),'469',as.character(471:476),'658','475','476','658')){
     
@@ -253,7 +254,7 @@ sua_2_fbs_fdm <- function(com_sua_cod){
 
   if(com_sua_cod %in% c('1182 ')){
     
-    return(c(foodFdm = 17, foodCommodityM = 2745))
+    return(c(foodFdm = 17, foodCommodityM = 3006))
   }
   
   if(com_sua_cod %in% c(as.character(1501:1508),as.character(1514:1521),as.character(1527:1534),as.character(1540:1547))){
@@ -271,7 +272,7 @@ sua_2_fbs_fdm <- function(com_sua_cod){
     return(c(foodFdm = 36, foodCommodityM = 3003))
   }
   
-  if(com_sua_cod %in% c('1509','1522','1535','1548','1582','1510','1536','1549')){
+  if(com_sua_cod %in% c('1509','1522','1535','1548','1582','1510','1523','1536','1549')){
     
     return(c(foodFdm = 41, foodCommodityM = 2737))
   }
