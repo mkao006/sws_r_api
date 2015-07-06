@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<RScript xmlns="http://www.fao.org/rScript" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.fao.org/rScript rScript.xsd ">
+	<Name>Food Imputation</Name>
+	<Description>Perform imputation in food domain, using a deterministic econometric model (Engel model).</Description>
+	<Category>Imputation</Category>
+	<Authors>
+		<Author>
+			<Name>Natalia Golini</Name>
+			<Mail>natalia.golini@fao.org</Mail>
+		</Author>
+	</Authors>
+	<Params>
+		<Param xsi:type="Number">
+	        <Code>yearToProcess</Code>
+	            <Label>Year to Process</Label>
+		        <Description>
+			    Please specify which year the food module should be ran for.
+		        </Description>
+		        <Compulsory>true</Compulsory>
+                <Min>2012</Min>
+                <Max>2013</Max>
+	    </Param>
+		<Param xsi:type="Number">
+	        <Code>yearsForVar</Code>
+	            <Label>Years for Variance</Label>
+		        <Description>
+			    Please specify how many years should be used to estimate the variance.
+		        </Description>
+		        <Compulsory>true</Compulsory>
+                <Min>3</Min>
+                <Max>10</Max>
+	    </Param>
+	</Params>
+	<Datasets>
+		<MainDataset>
+			<Code>fbs_distrib</Code>
+			<SelectableDimensions>
+				<SelectableDimension compulsory="true">geographicAreaM49</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredElement</SelectableDimension>
+				<SelectableDimension compulsory="true">measuredItemCPC</SelectableDimension>
+				<SelectableDimension compulsory="true">fbsDistribParam</SelectableDimension>
+				<SelectableDimension compulsory="true">timePointYears</SelectableDimension>                
+			</SelectableDimensions>
+		</MainDataset>
+	</Datasets>
+	<InteractiveValidation>false</InteractiveValidation>
+	<Background>false</Background>
+</RScript>

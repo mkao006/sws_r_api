@@ -9,6 +9,8 @@ library(maps)
 ## Load data
 load("~/Documents/Github/sws_r_api/r_modules/tourist_consumption/processedData.RData")
 countryMap = fread("~/Documents/Github/sws_r_api/r_modules/tourist_consumption/m49Names.csv")
+load("~/Github/sws_r_api/r_modules/tourist_consumption/processedData.RData")
+countryMap = fread("~/Github/sws_r_api/r_modules/tourist_consumption/m49Names.csv")
 countryMap[, M49 := as.character(M49)]
 
 ## Merge orig to country name
@@ -40,6 +42,8 @@ colnames(summaryTable)[1] = "Country"
 
 ## Create country data object
 plotObject = map_data("world")
+plotObject$region = tolower(plotObject$region)
+summaryTable$Country = tolower(summaryTable$Country)
 plotObject = merge(plotObject, summaryTable, by.x = "region", by.y = "Country",
                    all.x = TRUE)
 plotObject = plotObject[order(plotObject$order), ]

@@ -21,6 +21,10 @@ library(magrittr)
 library(igraph)
 library(lme4)
 
+## We use bootstrapping to estimate variance, so we should set the seed here to
+## allow for reproducible results.
+set.seed(12345)
+
 ## Setting up variables
 areaVar = "geographicAreaM49"
 yearVar = "timePointYears"
@@ -46,7 +50,7 @@ if(!exists("DEBUG_MODE") || DEBUG_MODE == ""){
     GetTestEnvironment(
         baseUrl = "https://hqlprswsas1.hq.un.fao.org:8181/sws",
         # token = "7823c00b-b82e-47bc-8708-1be103ac91e4" # Michael's token
-        token = "d0e1f76f-61a6-4183-981c-d0fec7ac1845" # Josh's token
+        token = "95d4f013-3ef3-44c6-99b1-cb431f2b7ae8" # Josh's token
     )
     R_SWS_SHARE_PATH = paste0(apiDirectory, "/..")
 
@@ -81,20 +85,41 @@ seedLmeModel =
          (log(Value_measuredElement_5025)|cpcLvl3/measuredItemCPC:geographicAreaM49),
          data = seedModelData)
 
-seedLmeVariance = bootMer(seedLmeModel)
+## We have to remove cases where we do not have temperature, as we cannot create
+## a model when independent variables are missing.  The predictions would be NA
+## anyways, and so we wouldn't be saving anything to the database if we left
+## them in.
+seedModelData = seedModelData[!is.na(Value_wbIndicator_SWS.FAO.TEMP), ]
 
-selectedSeed =
-    getSelectedSeedData(swsContext.datasets[[1]]) %>%
-    removeCarryForward(data = ., variable = "Value_measuredElement_5525") %>%
-    buildCPCHierarchy(data = ., cpcItemVar = itemVar, levels = 3) %>%
-    mergeAllSeedData(seedData = ., area, climate) %>%
-    .[Value_measuredElement_5525 > 1 & Value_measuredElement_5025 > 1, ]
+seedModelData[, seedPredicted :=
+                 exp(predict(seedLmeModel, seedModelData, allow.new.levels = TRUE))]
+seedLmeVariance = bootMer(seedLmeModel,
+                          FUN = function(seedLmeModel) predict(seedLmeModel),
+                          nsim = 100)
+seedModelData[, seedVariance := apply(seedLmeVariance$t, 2, sd)]
 
-selectedSeed[, predicted :=
-                 exp(predict(seedLmeModel, selectedSeed, allow.new.levels = TRUE))]
+# ## Testing: Do the bootstrapping confidence intervals we get line-up well with
+# ## an assumption of normality?
+# seedModelData[, lowerBound := exp(apply(seedLmeVariance$t, 2, quantile, 0.025))]
+# seedModelData[, upperBound := exp(apply(seedLmeVariance$t, 2, quantile, 0.975))]
+# seedModelData[, sum(Value_measuredElement_5525 <= upperBound)/.N]
+# seedModelData[, sum(Value_measuredElement_5525 <= lowerBound)/.N]
+# seedModelData[, sum(Value_measuredElement_5525 <=
+#                         exp(log(seedPredicted) + 2*seedVariance))/.N]
+# seedModelData[, sum(Value_measuredElement_5525 >=
+#                         exp(log(seedPredicted) - 2*seedVariance))/.N]
+## Bootstrapping confidence intervals are ok (although a bit conservative). The
+## log-normal intervals, though, are way too conservative (capturing 100% of
+## the observations).
 
-with(selectedSeed, plot(Value_measuredElement_5525, predicted))
+## Filter data based on swsContext
+seedModelData = seedModelData[
+    geographicAreaM49 %in% swsContext.datasets[[1]]@dimensions$geographicAreaM49@keys &
+    timePointYears %in% swsContext.datasets[[1]]@dimensions$timePointYears@keys &
+    measuredItemCPC %in% swsContext.datasets[[1]]@dimensions$measuredItemCPC@keys, ]
 
-selectedSeed[Value_measuredElement_5525 >= 6e6 & predicted <= 4e6, ]
+## Overwrite missing observations only
+seedModelData[is.na(Value_measuredElement_5525),
+              Value_measuredElement_5525 := seedPredicted]
 
-saveSeedData(selectedSeed)
+saveSeedData(seedModelData)
